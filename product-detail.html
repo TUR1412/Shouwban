@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="塑梦潮玩 - [手办名称] 详情页，了解更多关于这款精美手办的信息。">
+    <title>[手办名称] - 塑梦潮玩</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Favicon -->
+    <!-- <link rel="icon" href="assets/favicon.ico"> -->
+</head>
+<body>
+
+    <header>
+        <div class="container header-container">
+            <div class="logo">
+                <a href="/">塑梦潮玩</a>
+            </div>
+            <nav class="main-navigation">
+                 <ul id="main-nav">
+                     <li><a href="/">首页</a></li>
+                     <li class="dropdown"> <!-- Category Dropdown Placeholder -->
+                         <a href="products.html" class="dropdown-toggle">手办分类 <i class="fas fa-angle-down"></i></a>
+                         <ul class="dropdown-menu">
+                             <li><a href="category.html?cat=scale">比例手办</a></li>
+                             <li><a href="category.html?cat=nendoroid">粘土人</a></li>
+                             <li><a href="category.html?cat=figma">Figma</a></li>
+                             <li><a href="category.html?cat=other">其他</a></li>
+                             <li><a href="products.html">所有分类</a></li>
+                         </ul>
+                     </li>
+                     <li><a href="/#about">品牌理念</a></li>
+                     <li><a href="/#contact">联系我们</a></li>
+                     <li><a href="static-page.html?page=faq">常见问题</a></li> <!-- Link to static page template -->
+                 </ul>
+             </nav>
+            <div class="header-actions">
+                <a href="#" class="action-link search-toggle" aria-label="搜索"><i class="fas fa-search"></i></a>
+                <!-- Add user account link/icon later if needed -->
+                <!-- <a href="account.html" class="action-link" aria-label="我的账户"><i class="fas fa-user"></i></a> -->
+                <a href="cart.html" class="action-link cart-link" aria-label="购物车">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">0</span> <!-- Cart count indicator -->
+                </a>
+                 <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">
+                    &#9776;
+                </button>
+            </div>
+        </div>
+        <!-- Search Bar Placeholder (initially hidden) -->
+        <div class="header__search-bar">
+            <div class="container">
+                 <form action="products.html" method="get" class="header__search-form" style="display: flex; width: 100%;">
+                    <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索">
+                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="pdp-main">
+        <div class="container">
+            <!-- Breadcrumb Placeholder -->
+             <nav aria-label="breadcrumb" class="breadcrumb-nav">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="products.html">所有手办</a></li>
+                    <!-- Category and product name will be added by JS -->
+                </ol>
+            </nav>
+
+            <div class="product-detail-layout">
+                <!-- Image Gallery -->
+                <div class="product-gallery-pdp">
+                    <div class="product-gallery-pdp__main-image">
+                        <img id="main-product-image" src="assets/images/placeholder-lowquality.jpg" alt="商品主图加载中...">
+                    </div>
+                    <div class="product-gallery-pdp__thumbnails">
+                        <!-- Thumbnails will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- Product Info -->
+                <div class="product-info-pdp">
+                    <h1 class="product-info-pdp__title">[加载中...]</h1>
+                    <p class="product-info-pdp__series">[加载中...]</p>
+                    <div class="product-info-pdp__price">
+                        <span class="price-value">[加载中...]</span>
+                        <span class="original-price" style="display: none;"></span>
+                    </div>
+
+                    <div class="product-specs" style="display: none;">
+                        <h4>规格参数</h4>
+                        <ul class="product-specs__list">
+                            <!-- Spec items will be dynamically inserted here -->
+                        </ul>
+                    </div>
+
+                    <div class="product-actions">
+                        <div class="quantity-selector">
+                             <button class="quantity-selector__button minus" aria-label="减少数量" disabled>-</button>
+                             <input class="quantity-selector__input" type="number" id="quantity" name="quantity" value="1" min="1" aria-label="商品数量">
+                             <button class="quantity-selector__button plus" aria-label="增加数量">+</button>
+                        </div>
+                        <button class="add-to-cart-btn">加入购物车 <i class="fas fa-shopping-cart"></i></button>
+                    </div>
+
+                    <div class="product-description" style="display: none;">
+                        <h4 class="product-description__title">商品描述</h4>
+                        <!-- Description content will be inserted after h4 by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional: Related Products Section -->
+            <section class="related-products" style="display: none;">
+                 <h3 class="related-products__title">相关推荐</h3>
+                 <div class="gallery-grid related-products__grid">
+                     <!-- Related product cards will be dynamically inserted here (if feature implemented) -->
+                 </div>
+             </section>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-container">
+            <div class="footer-about">
+                 <h5>塑梦潮玩</h5>
+                 <p>塑梦潮玩，专注于呈现兼具艺术感与收藏价值的高端手办。我们与顶尖工作室合作，只为将热爱带到您手中。</p>
+            </div>
+            <div class="footer-links">
+                <h5>快速链接</h5>
+                <ul>
+                    <li><a href="products.html">所有手办</a></li>
+                    <li><a href="/#about">品牌理念</a></li>
+                    <li><a href="static-page.html?page=faq">常见问题</a></li>
+                    <li><a href="static-page.html?page=privacy">隐私政策</a></li> <!-- Link to static page -->
+                    <li><a href="static-page.html?page=tos">服务条款</a></li>   <!-- Link to static page -->
+                </ul>
+            </div>
+            <div class="footer-social">
+                <h5>关注我们</h5>
+                 <div class="social-links-footer">
+                    <a href="#" target="_blank" aria-label="微博"><i class="fab fa-weibo"></i></a>
+                    <a href="#" target="_blank" aria-label="Bilibili"><i class="fab fa-bilibili"></i></a>
+                    <a href="#" target="_blank" aria-label="微信公众号"><i class="fab fa-weixin"></i></a>
+                 </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="container">
+                 <p>&copy; 2024 塑梦潮玩. 保留所有权利. [可选：网站备案号]</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="scripts/main.js"></script>
+    <!-- Add specific product detail script if needed later -->
+    <!-- <script src="scripts/product-detail.js"></script> -->
+</body>
+</html> 

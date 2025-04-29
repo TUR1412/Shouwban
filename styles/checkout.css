@@ -1,0 +1,236 @@
+/* Checkout Page Specific Styles (checkout.html) */
+
+.checkout-main {
+    padding: var(--spacing-lg) 0;
+    background-color: var(--color-background-medium); /* Light grey bg */
+}
+
+.checkout-layout {
+    display: grid;
+    grid-template-columns: 1fr; /* Mobile first */
+    gap: var(--spacing-lg);
+}
+
+.checkout-steps {
+    background-color: var(--color-text-light);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.checkout-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.checkout-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.checkout-section h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: var(--border-width) solid var(--color-border);
+    color: var(--color-primary-dark);
+}
+
+/* Checkout Form */
+.checkout-form .form-group {
+    margin-bottom: var(--spacing-base);
+}
+
+.checkout-form label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+}
+
+.checkout-form input[type="text"],
+.checkout-form input[type="tel"],
+.checkout-form input[type="email"], /* Add email if needed */
+.checkout-form textarea,
+.checkout-form select {
+    width: 100%;
+    padding: var(--spacing-sm);
+    /* Ensure consistent border */
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-base);
+}
+
+.checkout-form textarea {
+    resize: vertical; /* Allow vertical resize */
+}
+
+/* Payment Options */
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.payment-option {
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-base);
+    padding: var(--spacing-base);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+}
+
+.payment-option:hover {
+    border-color: var(--color-primary);
+    background-color: rgba(var(--color-primary-rgb), 0.05);
+}
+
+.payment-option input[type="radio"] {
+    margin-right: var(--spacing-sm);
+    accent-color: var(--color-primary); /* Style the radio button itself */
+    width: 18px; /* Custom size */
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.payment-option label {
+    margin-bottom: 0; /* Override form label margin */
+    font-weight: var(--font-weight-normal);
+    display: flex;
+    align-items: center;
+    flex-grow: 1; /* Allow label to take remaining space */
+}
+
+.payment-option label i {
+    font-size: 1.3em;
+    margin-right: var(--spacing-sm);
+    width: 24px; /* Fixed width for alignment */
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.payment-option input[type="radio"]:checked + label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-primary-dark);
+}
+
+.payment-option input[type="radio"]:checked + label i {
+    color: var(--color-primary);
+}
+
+/* Add styling for when radio is focused for accessibility */
+.payment-option input[type="radio"]:focus-visible + label {
+     outline: 2px solid var(--color-primary);
+     outline-offset: 2px;
+     border-radius: var(--border-radius-sm); /* Match focus style */
+}
+
+
+/* Order Summary (Checkout) */
+.order-summary {
+    background-color: var(--color-text-light);
+    border-radius: var(--border-radius-base);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: calc(var(--spacing-lg) + 80px); /* Adjust based on header height */
+}
+
+.order-summary h4 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+    color: var(--color-text-dark);
+}
+
+.order-summary__items {
+    max-height: 200px; /* Limit height and make scrollable */
+    overflow-y: auto;
+    margin-bottom: var(--spacing-base);
+    padding-right: var(--spacing-xs); /* Space for scrollbar */
+}
+
+/* Style for individual item in checkout summary */
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px dashed var(--color-border);
+}
+.summary-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.summary-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--border-radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.summary-item span:nth-child(2) { /* Name x Quantity */
+    flex-grow: 1;
+    color: var(--color-text-base);
+    line-height: 1.3;
+}
+
+.summary-item span:last-child { /* Price */
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-dark);
+    white-space: nowrap; /* Prevent price from wrapping */
+}
+
+.order-summary hr {
+    border: none;
+    border-top: var(--border-width) solid var(--color-border);
+    margin: var(--spacing-base) 0;
+}
+
+/* Re-use summary-row styles from cart */
+.order-summary .summary-row {
+    font-size: var(--font-size-base);
+}
+
+.order-summary .total-row {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+}
+
+.place-order-button {
+    display: block;
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-light);
+    background-color: var(--color-accent);
+    border: none;
+    border-radius: var(--border-radius-base);
+    cursor: pointer;
+    margin-top: var(--spacing-md);
+    transition: var(--transition-base);
+}
+
+.place-order-button:hover {
+    background-color: var(--color-accent-dark);
+}
+
+.place-order-button:disabled,
+.place-order-button.disabled {
+     background-color: var(--color-secondary);
+     cursor: not-allowed;
+     opacity: 0.7;
+}
+
+/* Responsive Styles for Checkout (Large screens and up) */
+@media (min-width: var(--breakpoint-lg)) {
+    .checkout-layout {
+        grid-template-columns: 3fr 2fr; /* Two columns: steps take more space */
+        align-items: start; /* Align items to the top */
+    }
+} 
