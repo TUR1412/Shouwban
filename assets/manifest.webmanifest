@@ -1,0 +1,20 @@
+{
+  "name": "塑梦潮玩",
+  "short_name": "塑梦潮玩",
+  "description": "高端手办与潮流收藏品（静态站点示例）",
+  "lang": "zh-CN",
+  "start_url": "../index.html",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#F8F9FA",
+  "theme_color": "#00BCD4",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
+

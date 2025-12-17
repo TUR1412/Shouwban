@@ -717,7 +717,7 @@ const PDP = (function() {
          if (!product) {
             console.error("PDP Populate Error: Product data is null or undefined.");
             // Display error within the layout instead of replacing everything
-            pdpContainer.innerHTML = '<div class="container text-center" style="padding: var(--spacing-xl) 0;"><p>抱歉，找不到该商品信息。</p><p><a href="/">返回首页</a> 或 <a href="products.html">浏览所有商品</a></p></div>';
+            pdpContainer.innerHTML = '<div class="container text-center" style="padding: var(--spacing-xl) 0;"><p>抱歉，找不到该商品信息。</p><p><a href="index.html">返回首页</a> 或 <a href="products.html">浏览所有商品</a></p></div>';
             document.title = "商品未找到 - 塑梦潮玩";
              return false;
          }
@@ -735,7 +735,7 @@ const PDP = (function() {
         // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
         if (breadcrumbList) {
              breadcrumbList.innerHTML = `
-                 <li class="breadcrumb-item"><a href="/" class="breadcrumb__link">首页</a></li>
+                 <li class="breadcrumb-item"><a href="index.html" class="breadcrumb__link">首页</a></li>
                  <li class="breadcrumb-item"><a href="products.html" class="breadcrumb__link">所有手办</a></li>
                  ${product.category ? `<li class="breadcrumb-item"><a href="category.html?cat=${product.category.key}" class="breadcrumb__link">${product.category.name}</a></li>` : ''}
                  <li class="breadcrumb-item active" aria-current="page">${product.name}</li>
@@ -1627,7 +1627,7 @@ const ProductListing = (function(){
     // --- Update Breadcrumbs --- (Use SharedData)
     function updateBreadcrumbs() {
         if (!breadcrumbContainer) return;
-        let breadcrumbHTML = `<li class="breadcrumb-item"><a href="/">首页</a></li>`;
+        let breadcrumbHTML = `<li class="breadcrumb-item"><a href="index.html">首页</a></li>`;
         const categoryNames = (typeof SharedData !== 'undefined') ? SharedData.getCategoryName : (key) => key; // Use helper or fallback
 
         if (pageMode === 'category') {

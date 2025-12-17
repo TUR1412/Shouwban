@@ -3,32 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="塑梦潮玩 - 浏览所有精选高品质手办">
-    <meta name="robots" content="index,follow">
+    <meta name="description" content="页面不存在 - 塑梦潮玩">
+    <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#00BCD4">
     <meta name="color-scheme" content="light">
-    <meta property="og:title" content="所有手办 - 塑梦潮玩">
-    <meta property="og:description" content="浏览所有精选高品质手办。">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="assets/images/hero-placeholder.svg">
-    <meta property="og:locale" content="zh_CN">
-    <meta name="twitter:card" content="summary_large_image">
-    <title>所有手办 - 塑梦潮玩</title>
+    <title>404 - 页面不存在 | 塑梦潮玩</title>
     <script>document.documentElement.classList.add('js');</script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Main CSS -->
     <link rel="stylesheet" href="styles/main.css?v=20251217.4">
-    <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
 </head>
 <body>
-
     <a class="skip-link" href="#main">跳到主要内容</a>
 
     <header class="header">
@@ -40,10 +26,9 @@
             <nav class="header__navigation" aria-label="主导航">
                 <ul id="main-nav" class="header__nav-list">
                     <li class="header__nav-item"><a class="header__nav-link" href="index.html">首页</a></li>
-
                     <li class="header__nav-item header__nav-item--dropdown">
                         <a class="header__nav-link header__dropdown-toggle" href="products.html">
-                            手办分类 <i class="fas fa-angle-down" aria-hidden="true"></i>
+                            手办分类
                         </a>
                         <ul class="header__dropdown-menu" aria-label="手办分类">
                             <li class="header__dropdown-item"><a href="category.html?cat=scale">比例手办</a></li>
@@ -53,7 +38,6 @@
                             <li class="header__dropdown-item"><a href="products.html">所有分类</a></li>
                         </ul>
                     </li>
-
                     <li class="header__nav-item"><a class="header__nav-link" href="index.html#about">品牌理念</a></li>
                     <li class="header__nav-item"><a class="header__nav-link" href="index.html#contact">联系我们</a></li>
                     <li class="header__nav-item"><a class="header__nav-link" href="static-page.html?page=faq">常见问题</a></li>
@@ -64,12 +48,10 @@
                 <button type="button" class="header__action-link" aria-label="搜索" aria-expanded="false">
                     <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
-
                 <a href="cart.html" class="header__action-link" aria-label="购物车">
                     <i class="fas fa-shopping-cart" aria-hidden="true"></i>
                     <span class="header__cart-count" aria-label="购物车商品数量">0</span>
                 </a>
-
                 <button class="header__menu-toggle" type="button" aria-label="切换导航" aria-expanded="false">
                     &#9776;
                 </button>
@@ -80,48 +62,25 @@
             <div class="container">
                 <form action="products.html" method="get" class="header__search-form">
                     <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索">
-                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    <button type="submit" class="header__search-submit" aria-label="提交搜索">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                    </button>
                 </form>
             </div>
         </div>
     </header>
 
-    <main id="main" class="plp-main">
+    <main id="main" class="static-page-main">
         <div class="container">
-             <!-- Breadcrumb Navigation -->
-            <nav aria-label="breadcrumb" class="breadcrumb-nav">
-                <ol class="breadcrumb">
-                    <!-- Breadcrumb items will be filled by JS -->
-                    <li class="breadcrumb-item"><a href="index.html">首页</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">所有手办</li>
-                </ol>
-            </nav>
-
-            <h2 class="page-title">所有手办</h2>
-
-            <!-- Filter/Sort Placeholder -->
-            <div class="filter-sort-bar">
-                <button>筛选 <i class="fas fa-filter"></i></button>
-                <select name="sort" id="sort-select" aria-label="商品排序方式">
-                    <option value="default">默认排序</option>
-                    <option value="price-asc">价格升序</option>
-                    <option value="price-desc">价格降序</option>
-                    <option value="newest">最新上架</option>
-                </select>
+            <div class="empty-state">
+                <img src="assets/images/hero-placeholder.svg" alt="" aria-hidden="true" loading="lazy">
+                <p class="empty-state__title">404 - 页面走丢了</p>
+                <p class="empty-state__desc">可能链接失效或页面已更名。你可以从下面入口继续浏览。</p>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                    <a class="cta-button" href="index.html">返回首页</a>
+                    <a class="cta-button-secondary" href="products.html">浏览商品</a>
+                </div>
             </div>
-
-            <!-- Re-use product grid -->
-            <div class="gallery-grid product-listing">
-                <!-- Product cards will be dynamically inserted here by scripts/main.js -->
-                <!-- Optional: Add a loading indicator -->
-                <!-- <p class="loading-message text-center">正在加载商品...</p> -->
-            </div>
-
-            <!-- Pagination Placeholder -->
-            <div class="pagination">
-                <!-- Pagination links will be dynamically inserted here by scripts/main.js -->
-            </div>
-
         </div>
     </main>
 
@@ -137,22 +96,22 @@
                     <li><a href="products.html">所有手办</a></li>
                     <li><a href="index.html#about">品牌理念</a></li>
                     <li><a href="static-page.html?page=faq">常见问题</a></li>
-                    <li><a href="static-page.html?page=privacy">隐私政策</a></li> <!-- Link to static page -->
-                    <li><a href="static-page.html?page=tos">服务条款</a></li>   <!-- Link to static page -->
+                    <li><a href="static-page.html?page=privacy">隐私政策</a></li>
+                    <li><a href="static-page.html?page=tos">服务条款</a></li>
                 </ul>
             </div>
             <div class="footer__social">
                 <h5>关注我们</h5>
-                 <div class="footer__social-links-container">
+                <div class="footer__social-links-container">
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo" aria-hidden="true"></i></a>
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili" aria-hidden="true"></i></a>
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin" aria-hidden="true"></i></a>
-                 </div>
+                </div>
             </div>
         </div>
         <div class="footer__bottom">
             <div class="container">
-                 <p>&copy; 2024 塑梦潮玩. 保留所有权利. [可选：网站备案号]</p>
+                <p>&copy; 2024 塑梦潮玩. 保留所有权利. [可选：网站备案号]</p>
             </div>
         </div>
     </footer>

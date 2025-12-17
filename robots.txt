@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: sitemap.xml
+
+# 若部署到自定义域名，请将下方 URL 替换为你的真实域名（建议保留一条绝对路径 Sitemap）
+Sitemap: https://tur1412.github.io/Shouwban/sitemap.xml

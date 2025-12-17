@@ -109,6 +109,96 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
   return errors;
 }
 
+function assertRequiredRepoFilesExist() {
+  const required = ['robots.txt', 'sitemap.xml'];
+  const errors = [];
+  for (const rel of required) {
+    const abs = path.join(workspaceRoot, rel);
+    if (!isFile(abs)) errors.push(`[REPO] 缺少必要文件: ${rel}`);
+  }
+  return errors;
+}
+
+function assertAllHtmlHaveManifest(htmlFiles) {
+  const errors = [];
+  for (const f of htmlFiles) {
+    const c = readText(f);
+    const rel = path.relative(workspaceRoot, f);
+    const hasRel = /\brel\s*=\s*["']manifest["']/.test(c);
+    const hasHref = /\bhref\s*=\s*["']assets\/manifest\.webmanifest["']/.test(c);
+    if (!hasRel || !hasHref) {
+      errors.push(`[HTML] 缺少 PWA Manifest 引用: ${rel}`);
+    }
+  }
+  return errors;
+}
+
+function assertNoTargetBlankWithoutNoopener(htmlFiles) {
+  const errors = [];
+  const aTagRegex = /<a\b[^>]*\btarget\s*=\s*["']_blank["'][^>]*>/gi;
+
+  for (const f of htmlFiles) {
+    const c = readText(f);
+    const relPath = path.relative(workspaceRoot, f);
+    let match;
+    while ((match = aTagRegex.exec(c))) {
+      const tag = match[0];
+      const hasRel = /\brel\s*=\s*["'][^"']*["']/.test(tag);
+      const hasNoopener = /\brel\s*=\s*["'][^"']*\bnoopener\b[^"']*["']/.test(tag);
+      const hasNoreferrer = /\brel\s*=\s*["'][^"']*\bnoreferrer\b[^"']*["']/.test(tag);
+      if (!hasRel || !hasNoopener || !hasNoreferrer) {
+        errors.push(`[HTML] 存在 target="_blank" 但缺少 rel="noopener noreferrer": ${relPath}`);
+        break;
+      }
+    }
+  }
+
+  return errors;
+}
+
+function assertSitemapLocAreAbsolute() {
+  const sitemapPath = path.join(workspaceRoot, 'sitemap.xml');
+  if (!isFile(sitemapPath)) return [];
+
+  const xml = readText(sitemapPath);
+  const locRegex = /<loc>([^<]+)<\/loc>/gi;
+  const errors = [];
+
+  let m;
+  while ((m = locRegex.exec(xml))) {
+    const loc = (m[1] || '').trim();
+    if (!/^https?:\/\//.test(loc)) {
+      errors.push(`[SITEMAP] <loc> 必须是绝对 URL: ${loc || '(空)'} `);
+    }
+  }
+
+  return errors;
+}
+
+function assertRobotsHasAbsoluteSitemap() {
+  const robotsPath = path.join(workspaceRoot, 'robots.txt');
+  if (!isFile(robotsPath)) return [];
+
+  const content = readText(robotsPath);
+  const errors = [];
+  const sitemapLines = content
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => /^sitemap:/i.test(l));
+
+  if (sitemapLines.length === 0) {
+    errors.push('[ROBOTS] robots.txt 缺少 Sitemap: 声明');
+    return errors;
+  }
+
+  const hasAbsolute = sitemapLines.some((l) => /^sitemap:\s*https?:\/\//i.test(l));
+  if (!hasAbsolute) {
+    errors.push('[ROBOTS] robots.txt 需要至少一条绝对 URL 的 Sitemap: 声明');
+  }
+
+  return errors;
+}
+
 function validateReferences(files) {
   const missing = [];
   for (const f of files) {
@@ -156,9 +246,22 @@ function main() {
   const cssFiles = allFiles.filter((p) => path.extname(p).toLowerCase() === '.css');
 
   const structuralErrors = assertAllHtmlHaveCacheBusting(htmlFiles);
+  const repoErrors = assertRequiredRepoFilesExist();
+  const pwaErrors = assertAllHtmlHaveManifest(htmlFiles);
+  const targetBlankErrors = assertNoTargetBlankWithoutNoopener(htmlFiles);
+  const sitemapErrors = assertSitemapLocAreAbsolute();
+  const robotsErrors = assertRobotsHasAbsoluteSitemap();
   const refErrors = validateReferences([...htmlFiles, ...cssFiles]);
 
-  const errors = [...structuralErrors, ...refErrors];
+  const errors = [
+    ...structuralErrors,
+    ...repoErrors,
+    ...pwaErrors,
+    ...targetBlankErrors,
+    ...sitemapErrors,
+    ...robotsErrors,
+    ...refErrors,
+  ];
 
   if (errors.length > 0) {
     console.error(`校验失败：共 ${errors.length} 项问题`);
