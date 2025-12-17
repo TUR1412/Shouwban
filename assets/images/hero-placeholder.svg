@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1200" viewBox="0 0 2400 1200" role="img" aria-label="Hero 背景占位图">
+  <defs>
+    <radialGradient id="a" cx="25%" cy="30%" r="60%">
+      <stop offset="0" stop-color="#80DEEA" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#00BCD4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="b" cx="80%" cy="25%" r="55%">
+      <stop offset="0" stop-color="#FFCC80" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FF9800" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="c" cx="65%" cy="85%" r="65%">
+      <stop offset="0" stop-color="#B2EBF2" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#00838F" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1B22"/>
+      <stop offset="1" stop-color="#071018"/>
+    </linearGradient>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+  </defs>
+  <rect width="2400" height="1200" fill="url(#base)"/>
+  <circle cx="520" cy="360" r="520" fill="url(#a)" filter="url(#blur)"/>
+  <circle cx="1900" cy="320" r="540" fill="url(#b)" filter="url(#blur)"/>
+  <circle cx="1500" cy="980" r="700" fill="url(#c)" filter="url(#blur)"/>
+  <path d="M0 930 C 420 820, 720 1020, 1200 900 C 1620 800, 1860 920, 2400 820 L 2400 1200 L 0 1200 Z"
+        fill="rgba(255,255,255,0.06)"/>
+</svg>
+

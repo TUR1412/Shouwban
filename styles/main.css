@@ -95,6 +95,21 @@
 
     /* Add primary color RGB for box-shadow alpha */
     --color-primary-rgb: 0, 188, 212; /* Corresponding to #00BCD4 */
+
+    /* ==============================================
+       兼容别名（历史变量名）
+       - 说明：仓库内存在两套命名（--color-* 与 --primary-* / --text-*）。
+       - 目标：先保证运行正确，再逐步收敛为单一命名。
+       ============================================== */
+    --primary-color: var(--color-primary);
+    --primary-dark-color: var(--color-primary-dark);
+    --primary-light-color: var(--color-primary-light);
+    --accent-color: var(--color-accent);
+    --accent-dark-color: var(--color-accent-dark);
+    --text-base-color: var(--color-text-base);
+    --text-dark-color: var(--color-text-dark);
+    --text-light-color: var(--color-text-light);
+    --border-color: var(--color-border);
 }
 
 /* ==============================================
@@ -115,11 +130,32 @@ body {
     font-weight: var(--font-weight-normal);
     line-height: var(--line-height-base);
     color: var(--color-text-base);
+    /* 轻质极光背景（拒绝“死白”） */
     background-color: var(--color-background-light);
+    background-image:
+        radial-gradient(1200px 800px at 12% 10%, rgba(var(--color-primary-rgb), 0.18), transparent 60%),
+        radial-gradient(900px 700px at 86% 14%, rgba(255, 152, 0, 0.14), transparent 55%),
+        radial-gradient(1000px 820px at 55% 92%, rgba(128, 222, 234, 0.14), transparent 58%);
+    background-attachment: fixed;
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* 细微噪点纹理（极低对比度，避免干扰可读性） */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.06;
+    background-image:
+        linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0, rgba(0, 0, 0, 0.10) 1px, transparent 1px, transparent 3px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.08) 1px, transparent 1px, transparent 3px);
+    background-size: 3px 3px;
+    mix-blend-mode: overlay;
 }
 
 img {
@@ -227,6 +263,99 @@ input:focus, textarea:focus, select:focus {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* 跳转到主要内容（键盘可访问性） */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: var(--spacing-base);
+    z-index: calc(var(--z-index-sticky) + 10);
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--color-text-dark);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-base);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.skip-link:focus {
+    left: var(--spacing-base);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.25), var(--shadow-md);
+}
+
+/* 轻量 Toast（成功/提示） */
+.toast-container {
+    position: fixed;
+    top: calc(var(--spacing-md) + 72px);
+    right: var(--spacing-md);
+    z-index: calc(var(--z-index-tooltip) + 20);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: none;
+    max-width: min(420px, calc(100vw - 2 * var(--spacing-md)));
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--color-text-dark);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: var(--shadow-md);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast--success {
+    border-color: rgba(40, 167, 69, 0.22);
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        left: var(--spacing-base);
+        right: var(--spacing-base);
+    }
+}
+
+/* 入场动画（IntersectionObserver）
+   - 无 JS：默认可见，避免“CSS 先隐藏，JS 救场”的白屏/缺失内容
+   - 有 JS：先隐藏，进入视口后再渐入
+*/
+html:not(.js) .fade-in-up {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+html.js .fade-in-up {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+html.js .fade-in-up.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.js .fade-in-up {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
 }
 
 /* Input Error State */
@@ -419,6 +548,9 @@ select:focus {
     margin-left: var(--spacing-base);
     padding: var(--spacing-xs);
     position: relative; /* For cart count */
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .header__action-link:hover {
@@ -474,12 +606,18 @@ select:focus {
 }
 
 .header__search-bar .container {
+    display: block;
+}
+
+.header__search-form {
     display: flex;
+    width: 100%;
+    gap: var(--spacing-xs);
 }
 
 .header__search-input {
     flex-grow: 1;
-    margin-right: var(--spacing-xs);
+    margin-right: 0;
 }
 
 .header__search-submit {
@@ -776,7 +914,7 @@ select:focus {
 
 /* --- Hero Section --- */
 .hero {
-    background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.jpg') no-repeat center center/cover;
+    background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.svg') no-repeat center center/cover;
     color: var(--color-text-light);
     min-height: 60vh; /* Adjusted for mobile */
     display: flex;
@@ -1085,14 +1223,18 @@ select:focus {
 
 /* Lazy Load Styles */
 img.lazyload {
-    opacity: 0;
-    transition: opacity 0.4s ease-in-out;
+    opacity: 1; /* 默认可见：先显示占位图，再由 JS 切换高清 */
+    filter: blur(12px);
+    transform: scale(1.02);
+    transition: filter 0.35s ease, transform 0.35s ease;
     min-height: 50px; /* Give unloaded images some space */
     background-color: #eee; /* Placeholder background */
 }
 
 img.loaded {
     opacity: 1;
+    filter: blur(0);
+    transform: none;
 }
 
 /* 通用容器 */
@@ -1103,7 +1245,7 @@ img.loaded {
 }
 
 /* Header Styles Refinement */
-header {
+header:not(.header) {
     background-color: rgba(255, 255, 255, 0.9); /* Slightly less transparent */
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
@@ -1116,7 +1258,7 @@ header {
     transition: all 0.3s ease;
 }
 
-header.scrolled {
+header:not(.header).scrolled {
     background-color: rgba(255, 255, 255, 1); /* 滚动后变为不透明 */
     box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 滚动后阴影加深 */
 }
@@ -1140,7 +1282,7 @@ header.scrolled {
     opacity: 0.8;
 }
 
-header nav ul {
+header:not(.header) nav ul {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -1148,11 +1290,11 @@ header nav ul {
     align-items: center;
 }
 
-header nav ul li {
+header:not(.header) nav ul li {
     margin-left: 1.5rem;
 }
 
-header nav ul li a {
+header:not(.header) nav ul li a {
     text-decoration: none;
     color: var(--text-dark-color); /* Darker nav links */
     font-size: 1rem; /* Slightly larger nav font */
@@ -1162,7 +1304,7 @@ header nav ul li a {
     transition: color 0.3s ease;
 }
 
-header nav ul li a::after { /* Underline */
+header:not(.header) nav ul li a::after { /* Underline */
     content: '';
     position: absolute;
     width: 0;
@@ -1174,11 +1316,11 @@ header nav ul li a::after { /* Underline */
     transition: width 0.3s ease, left 0.3s ease;
 }
 
-header nav ul li a:hover {
+header:not(.header) nav ul li a:hover {
     color: var(--primary-color); /* Teal hover */
 }
 
-header nav ul li a:hover::after {
+header:not(.header) nav ul li a:hover::after {
     width: 100%;
     left: 0;
 }
@@ -1195,7 +1337,7 @@ header nav ul li a:hover::after {
 
 /* Header Responsive */
 @media (max-width: 768px) {
-    header nav ul {
+    header:not(.header) nav ul {
         display: none; /* 小屏幕隐藏导航列表 */
         /* 后续会结合 JS 实现点击显示 */
         position: absolute;
@@ -1208,24 +1350,24 @@ header nav ul li a:hover::after {
         padding: 1rem 0;
     }
 
-    header nav ul.active { /* 添加 active 类时显示 */
+    header:not(.header) nav ul.active { /* 添加 active 类时显示 */
         display: flex;
     }
 
-    header nav ul li {
+    header:not(.header) nav ul li {
         margin: 0;
         width: 100%;
         text-align: center;
     }
-    header nav ul li a {
+    header:not(.header) nav ul li a {
          padding: 1rem; /* 增大点击区域 */
          display: block; /* 占据整行 */
          border-bottom: 1px solid #eee;
     }
-    header nav ul li:last-child a {
+    header:not(.header) nav ul li:last-child a {
         border-bottom: none;
     }
-    header nav ul li a::after {
+    header:not(.header) nav ul li a::after {
         display: none; /* 小屏幕移除下划线动画 */
     }
 
@@ -1237,7 +1379,7 @@ header nav ul li a:hover::after {
 /* Hero Section Styles Refinement */
 .hero {
     /* New Gradient Background */
-    background: linear-gradient(135deg, rgba(0, 188, 212, 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('/assets/images/hero-placeholder.jpg') no-repeat center center/cover; /* Adjusted gradient with primary colors */
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.svg') no-repeat center center/cover; /* Adjusted gradient with primary colors */
     color: var(--text-light-color);
     min-height: 70vh;
     display: flex;
@@ -1762,18 +1904,22 @@ footer h5 {
 
 /* Lazy Loading Styles */
 img.lazyload {
-  opacity: 0; /* Start hidden */
-  transition: opacity 0.4s ease-in-out;
+  opacity: 1; /* 默认可见：先显示占位图，再由 JS 切换高清 */
+  filter: blur(12px);
+  transform: scale(1.02);
+  transition: filter 0.35s ease, transform 0.35s ease;
   min-height: 50px; /* Give unloaded images some space */
   background-color: #eee; /* Placeholder background */
 }
 
 img.loaded {
   opacity: 1;
+  filter: blur(0);
+  transform: none;
 }
 
 /* Header Scrolled State */
-header.scrolled {
+header:not(.header).scrolled {
     background-color: rgba(255, 255, 255, 1); /* 滚动后变为不透明 */
     box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 滚动后阴影加深 */
 }
@@ -2337,6 +2483,35 @@ header.scrolled {
     padding: var(--spacing-xl) 0;
     background-color: var(--color-background-medium);
     border-radius: var(--border-radius-md);
+}
+
+.empty-state {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-base);
+}
+
+.empty-state img {
+    width: 180px;
+    max-width: 60%;
+    height: auto;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.empty-state__title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-dark);
+    margin-bottom: var(--spacing-xs);
+}
+
+.empty-state__desc {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
 }
 
 /* --- Cart Summary --- */
@@ -11471,7 +11646,13 @@ body {
     font-weight: var(--font-weight-normal);
     line-height: var(--line-height-base);
     color: var(--color-text-base);
+    /* 轻质极光背景（拒绝“死白”） */
     background-color: var(--color-background-light);
+    background-image:
+        radial-gradient(1200px 800px at 12% 10%, rgba(var(--color-primary-rgb), 0.18), transparent 60%),
+        radial-gradient(900px 700px at 86% 14%, rgba(255, 152, 0, 0.14), transparent 55%),
+        radial-gradient(1000px 820px at 55% 92%, rgba(128, 222, 234, 0.14), transparent 58%);
+    background-attachment: fixed;
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
@@ -11721,6 +11902,9 @@ input:focus, textarea:focus, select:focus {
     margin-left: var(--spacing-base);
     padding: var(--spacing-xs);
     position: relative; /* For cart count */
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .header__action-link:hover {
@@ -11776,12 +11960,18 @@ input:focus, textarea:focus, select:focus {
 }
 
 .header__search-bar .container {
+    display: block;
+}
+
+.header__search-form {
     display: flex;
+    width: 100%;
+    gap: var(--spacing-xs);
 }
 
 .header__search-input {
     flex-grow: 1;
-    margin-right: var(--spacing-xs);
+    margin-right: 0;
 }
 
 .header__search-submit {
@@ -12078,7 +12268,7 @@ input:focus, textarea:focus, select:focus {
 
 /* --- Hero Section --- */
 .hero {
-    background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.jpg') no-repeat center center/cover;
+    background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.svg') no-repeat center center/cover;
     color: var(--color-text-light);
     min-height: 60vh; /* Adjusted for mobile */
     display: flex;
@@ -12387,14 +12577,18 @@ input:focus, textarea:focus, select:focus {
 
 /* Lazy Load Styles */
 img.lazyload {
-    opacity: 0;
-    transition: opacity 0.4s ease-in-out;
+    opacity: 1; /* 默认可见：先显示占位图，再由 JS 切换高清 */
+    filter: blur(12px);
+    transform: scale(1.02);
+    transition: filter 0.35s ease, transform 0.35s ease;
     min-height: 50px; /* Give unloaded images some space */
     background-color: #eee; /* Placeholder background */
 }
 
 img.loaded {
     opacity: 1;
+    filter: blur(0);
+    transform: none;
 }
 
 /* 通用容器 */
@@ -12405,7 +12599,7 @@ img.loaded {
 }
 
 /* Header Styles Refinement */
-header {
+header:not(.header) {
     background-color: rgba(255, 255, 255, 0.9); /* Slightly less transparent */
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
@@ -12418,7 +12612,7 @@ header {
     transition: all 0.3s ease;
 }
 
-header.scrolled {
+header:not(.header).scrolled {
     background-color: rgba(255, 255, 255, 1); /* 滚动后变为不透明 */
     box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 滚动后阴影加深 */
 }
@@ -12442,7 +12636,7 @@ header.scrolled {
     opacity: 0.8;
 }
 
-header nav ul {
+header:not(.header) nav ul {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -12450,11 +12644,11 @@ header nav ul {
     align-items: center;
 }
 
-header nav ul li {
+header:not(.header) nav ul li {
     margin-left: 1.5rem;
 }
 
-header nav ul li a {
+header:not(.header) nav ul li a {
     text-decoration: none;
     color: var(--text-dark-color); /* Darker nav links */
     font-size: 1rem; /* Slightly larger nav font */
@@ -12464,7 +12658,7 @@ header nav ul li a {
     transition: color 0.3s ease;
 }
 
-header nav ul li a::after { /* Underline */
+header:not(.header) nav ul li a::after { /* Underline */
     content: '';
     position: absolute;
     width: 0;
@@ -12476,11 +12670,11 @@ header nav ul li a::after { /* Underline */
     transition: width 0.3s ease, left 0.3s ease;
 }
 
-header nav ul li a:hover {
+header:not(.header) nav ul li a:hover {
     color: var(--primary-color); /* Teal hover */
 }
 
-header nav ul li a:hover::after {
+header:not(.header) nav ul li a:hover::after {
     width: 100%;
     left: 0;
 }
@@ -12497,7 +12691,7 @@ header nav ul li a:hover::after {
 
 /* Header Responsive */
 @media (max-width: 768px) {
-    header nav ul {
+    header:not(.header) nav ul {
         display: none; /* 小屏幕隐藏导航列表 */
         /* 后续会结合 JS 实现点击显示 */
         position: absolute;
@@ -12510,24 +12704,24 @@ header nav ul li a:hover::after {
         padding: 1rem 0;
     }
 
-    header nav ul.active { /* 添加 active 类时显示 */
+    header:not(.header) nav ul.active { /* 添加 active 类时显示 */
         display: flex;
     }
 
-    header nav ul li {
+    header:not(.header) nav ul li {
         margin: 0;
         width: 100%;
         text-align: center;
     }
-    header nav ul li a {
+    header:not(.header) nav ul li a {
          padding: 1rem; /* 增大点击区域 */
          display: block; /* 占据整行 */
          border-bottom: 1px solid #eee;
     }
-    header nav ul li:last-child a {
+    header:not(.header) nav ul li:last-child a {
         border-bottom: none;
     }
-    header nav ul li a::after {
+    header:not(.header) nav ul li a::after {
         display: none; /* 小屏幕移除下划线动画 */
     }
 
@@ -12539,7 +12733,7 @@ header nav ul li a:hover::after {
 /* Hero Section Styles Refinement */
 .hero {
     /* New Gradient Background */
-    background: linear-gradient(135deg, rgba(0, 188, 212, 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('/assets/images/hero-placeholder.jpg') no-repeat center center/cover; /* Adjusted gradient with primary colors */
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.8) 0%, rgba(0, 131, 143, 0.9) 100%), url('../assets/images/hero-placeholder.svg') no-repeat center center/cover; /* Adjusted gradient with primary colors */
     color: var(--text-light-color);
     min-height: 70vh;
     display: flex;
@@ -13064,18 +13258,22 @@ footer h5 {
 
 /* Lazy Loading Styles */
 img.lazyload {
-  opacity: 0; /* Start hidden */
-  transition: opacity 0.4s ease-in-out;
+  opacity: 1; /* 默认可见：先显示占位图，再由 JS 切换高清 */
+  filter: blur(12px);
+  transform: scale(1.02);
+  transition: filter 0.35s ease, transform 0.35s ease;
   min-height: 50px; /* Give unloaded images some space */
   background-color: #eee; /* Placeholder background */
 }
 
 img.loaded {
   opacity: 1;
+  filter: blur(0);
+  transform: none;
 }
 
 /* Header Scrolled State */
-header.scrolled {
+header:not(.header).scrolled {
     background-color: rgba(255, 255, 255, 1); /* 滚动后变为不透明 */
     box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 滚动后阴影加深 */
 }
@@ -14789,4 +14987,4 @@ header.scrolled {
 
 /* ... Keep existing styles ... */
 
-} 
+}

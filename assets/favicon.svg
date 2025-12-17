@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="塑梦潮玩">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00BCD4"/>
+      <stop offset="1" stop-color="#FF9800"/>
+    </linearGradient>
+    <filter id="s" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" rx="14" fill="url(#g)" filter="url(#s)"/>
+  <path d="M22 34c0-6 4-11 10-11s10 5 10 11v7c0 2-2 3-4 3H26c-2 0-4-1-4-3v-7z" fill="rgba(255,255,255,0.92)"/>
+  <circle cx="26" cy="29" r="2.2" fill="#263238"/>
+  <circle cx="38" cy="29" r="2.2" fill="#263238"/>
+  <path d="M28 36c2 2 6 2 8 0" fill="none" stroke="#263238" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
+

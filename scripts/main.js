@@ -26,6 +26,23 @@ const Utils = {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => func.apply(context, args), delay);
         }
+    },
+    // Normalize current page name for both http(s) & file:// usage
+    getPageNameFromPath: (pathname) => {
+        const safePath = typeof pathname === 'string' ? pathname : '';
+        const parts = safePath.split('/').filter(Boolean);
+        const last = parts.length > 0 ? parts[parts.length - 1] : '';
+        if (!last) return 'index.html';
+        // 目录路径（如 /repo/ 或 /repo）也视为首页
+        if (!last.includes('.')) return 'index.html';
+        return last;
+    },
+    getPageName: () => {
+        try {
+            return Utils.getPageNameFromPath(window.location.pathname);
+        } catch {
+            return 'index.html';
+        }
     }
 };
 
@@ -123,87 +140,68 @@ const Header = (function() {
     }
 
     function setActiveLink() {
-        const currentPath = window.location.pathname;
-        const currentSearch = window.location.search;
-        const currentFullPath = currentPath + currentSearch;
-        const homePaths = ['/', '/index.html'];
+        const currentUrl = new URL(window.location.href);
+        const currentPage = Utils.getPageNameFromPath(currentUrl.pathname);
+        const currentSearch = currentUrl.search || '';
+        const currentHash = currentUrl.hash || '';
 
-        // Deactivate all links first
+        // 先清理状态
         allNavLinks.forEach(link => {
             link.classList.remove('header__nav-link--active');
             link.closest('.header__nav-item--dropdown')?.classList.remove('header__nav-link--active');
         });
-        const cartLink = headerElement?.querySelector('.header__action-link[href="cart.html"]');
-        if (cartLink) cartLink.classList.remove('header__action-link--active');
 
-        // Determine the best match
+        const cartLink = headerElement?.querySelector('.header__action-link[href="cart.html"]');
+        cartLink?.classList.remove('header__action-link--active');
+
+        // 评分选择最佳匹配（兼容 http(s) 与 file://）
         let bestMatch = null;
-        let isExactMatch = false;
+        let bestScore = -1;
 
         allNavLinks.forEach(link => {
-            const linkHref = link.getAttribute('href');
-            if (!linkHref) return;
+            const href = link.getAttribute('href');
+            if (!href || href === '#') return;
 
-            // Normalize link href for comparison
-            let normalizedLinkHref = linkHref;
-            if (normalizedLinkHref === '/') {
-                 normalizedLinkHref = '/index.html'; // Treat '/' as index.html
+            let linkUrl;
+            try {
+                linkUrl = new URL(href, currentUrl);
+            } catch {
+                return;
             }
-            let normalizedCurrentPath = currentPath;
-             if (homePaths.includes(currentPath)) {
-                 normalizedCurrentPath = '/index.html'; // Treat home paths as index.html
-             }
 
-            // 1. Exact match (path + search)
-            if (linkHref === currentFullPath) {
+            const linkPage = Utils.getPageNameFromPath(linkUrl.pathname);
+            if (linkPage !== currentPage) return;
+
+            const linkSearch = linkUrl.search || '';
+            const linkHash = linkUrl.hash || '';
+
+            let score = 10; // page match
+            if (linkSearch && linkSearch === currentSearch) score += 20;
+            if (linkHash && linkHash === currentHash) score += 15;
+            if (!linkSearch && !currentSearch) score += 5;
+            if (!linkHash && !currentHash) score += 5;
+
+            if (score > bestScore) {
+                bestScore = score;
                 bestMatch = link;
-                isExactMatch = true;
-                return; // Found exact match, no need to check further for this link
-            }
-
-            // 2. Path match (for non-query string links)
-            // Check if link href doesn't contain '?' and matches current path
-            if (!isExactMatch && !linkHref.includes('?') && normalizedLinkHref === normalizedCurrentPath) {
-                bestMatch = link;
-            }
-
-            // 3. Special case: Homepage (if current path is / or /index.html and link is /)
-             if (!isExactMatch && homePaths.includes(currentPath) && linkHref === '/') {
-                 bestMatch = link;
-             }
-
-            // 4. Special case: Category/Product pages highlight parent dropdown
-            if (!isExactMatch && (currentPath === '/category.html' || currentPath === '/products.html' || currentPath === '/product-detail.html')) {
-                const dropdownToggle = link.closest('.header__nav-item--dropdown')?.querySelector('.header__dropdown-toggle[href="products.html"]');
-                if (dropdownToggle) {
-                    // If we are on a category related page, highlight the main category toggle
-                    bestMatch = dropdownToggle; // Prefer highlighting the parent toggle
-                }
-            }
-             // 5. Special case: Anchor links on homepage (basic)
-             if (!isExactMatch && linkHref.startsWith('/#') && homePaths.includes(currentPath)) {
-                if (window.location.hash === linkHref.substring(1)) {
-                    bestMatch = link;
-                }
             }
         });
 
-        // Activate the best match found
+        // 分类相关页面：优先高亮“手办分类”入口
+        if (['category.html', 'products.html', 'product-detail.html'].includes(currentPage)) {
+            const dropdownToggle = headerElement?.querySelector('.header__dropdown-toggle[href="products.html"]');
+            if (dropdownToggle) bestMatch = dropdownToggle;
+        }
+
         if (bestMatch) {
             bestMatch.classList.add('header__nav-link--active');
-            // Activate parent dropdown if the best match is inside one
             bestMatch.closest('.header__nav-item--dropdown')?.classList.add('header__nav-link--active');
         }
 
-         // Activate Cart link specifically if on cart.html
-         if (currentPath === '/cart.html' && cartLink) {
-             cartLink.classList.add('header__action-link--active');
-             // Ensure other nav links are not active unless intended
-             if(bestMatch && bestMatch !== cartLink) {
-                 bestMatch.classList.remove('header__nav-link--active');
-                 bestMatch.closest('.header__nav-item--dropdown')?.classList.remove('header__nav-link--active');
-             }
-         }
+        // 购物车页：高亮购物车图标
+        if (currentPage === 'cart.html' && cartLink) {
+            cartLink.classList.add('header__action-link--active');
+        }
     }
 
     function addEventListeners() {
@@ -216,7 +214,7 @@ const Header = (function() {
         }
 
         // Close mobile menu when clicking a nav link
-        navigation?.querySelectorAll('.header__nav-link, .header__dropdown-item a').forEach(link => {
+        navigation?.querySelectorAll('.header__nav-link:not(.header__dropdown-toggle), .header__dropdown-item a').forEach(link => {
              link.addEventListener('click', closeMobileMenu);
         });
 
@@ -309,25 +307,40 @@ const Header = (function() {
 // ==============================================
 const SmoothScroll = (function() {
     function init() {
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        const currentUrl = new URL(window.location.href);
+        const currentPage = Utils.getPageNameFromPath(currentUrl.pathname);
+
+        // 兼容：
+        // - href="#about"
+        // - href="index.html#about"
+        document.querySelectorAll('a[href*="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
-                const hrefAttribute = this.getAttribute('href');
-                if (hrefAttribute && hrefAttribute.length > 1 && hrefAttribute.startsWith('#')) {
-                    try {
-                        const targetElement = document.querySelector(hrefAttribute);
-                        if (targetElement) {
-                            e.preventDefault();
-                            const headerOffset = document.querySelector('.header')?.offsetHeight || 0;
-                            const elementPosition = targetElement.getBoundingClientRect().top;
-                            const offsetPosition = elementPosition + window.pageYOffset - headerOffset - 10; // 10px buffer
-                            window.scrollTo({
-                                top: offsetPosition,
-                                behavior: "smooth"
-                            });
-                        }
-                    } catch (error) {
-                        console.warn(`Smooth scroll failed for selector: ${hrefAttribute}`, error);
-                    }
+                const href = this.getAttribute('href');
+                if (!href || href === '#') return;
+
+                let linkUrl;
+                try {
+                    linkUrl = new URL(href, currentUrl);
+                } catch {
+                    return;
+                }
+
+                const linkPage = Utils.getPageNameFromPath(linkUrl.pathname);
+                if (linkPage !== currentPage) return;
+
+                const hash = linkUrl.hash;
+                if (!hash || hash.length < 2) return;
+
+                try {
+                    const targetElement = document.querySelector(hash);
+                    if (!targetElement) return;
+                    e.preventDefault();
+                    const headerOffset = document.querySelector('.header')?.offsetHeight || 0;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset - 10; // 10px buffer
+                    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+                } catch (error) {
+                    console.warn(`SmoothScroll: selector failed: ${hash}`, error);
                 }
             });
         });
@@ -341,15 +354,13 @@ const SmoothScroll = (function() {
 // Intersection Observer Animations Module
 // ==============================================
 const ScrollAnimations = (function() {
-    const animatedElements = document.querySelectorAll('.fade-in-up');
-
     function init() {
+        const animatedElements = document.querySelectorAll('.fade-in-up:not(.is-visible)');
+
         if (animatedElements.length > 0 && "IntersectionObserver" in window) {
             const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach((entry, index) => {
+                entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        // Basic staggered delay, can be customized further
-                         entry.target.style.transitionDelay = `${index * 50}ms`;
                         entry.target.classList.add('is-visible');
                         observer.unobserve(entry.target);
                     }
@@ -358,7 +369,10 @@ const ScrollAnimations = (function() {
                 threshold: 0.1 // Trigger when 10% visible
             });
 
-            animatedElements.forEach(element => {
+            animatedElements.forEach((element, index) => {
+                // Basic staggered delay, capped to avoid excessive delays on long lists
+                const delay = Math.min(index, 10) * 50;
+                element.style.transitionDelay = `${delay}ms`;
                 observer.observe(element);
             });
             console.log('ScrollAnimations module initialized with IntersectionObserver.');
@@ -378,9 +392,9 @@ const ScrollAnimations = (function() {
 // Lazy Loading Module
 // ==============================================
 const LazyLoad = (function() {
-    const lazyImages = document.querySelectorAll('img.lazyload');
-
     function init() {
+        const lazyImages = document.querySelectorAll('img.lazyload');
+
         if (lazyImages.length > 0 && "IntersectionObserver" in window) {
             const lazyImageObserver = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
@@ -431,6 +445,46 @@ const LazyLoad = (function() {
 })();
 
 // ==============================================
+// Toast / Feedback Module (轻量提示，不依赖外部库)
+// ==============================================
+const Toast = (function() {
+    let container = null;
+
+    function ensureContainer() {
+        if (container) return container;
+        container = document.querySelector('.toast-container');
+        if (container) return container;
+
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-relevant', 'additions');
+        document.body.appendChild(container);
+        return container;
+    }
+
+    function show(message, type = 'info', durationMs = 2400) {
+        if (!message) return;
+        const root = ensureContainer();
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.textContent = message;
+        root.appendChild(toast);
+
+        // Trigger enter animation
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+        window.setTimeout(() => {
+            toast.classList.remove('is-visible');
+            toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+        }, Math.max(800, durationMs));
+    }
+
+    return { show };
+})();
+
+// ==============================================
 // Shared Data (Simulated)
 // ==============================================
 const SharedData = (function() {
@@ -453,10 +507,10 @@ const SharedData = (function() {
                 { label: '尺寸', value: '全高约250mm' } 
             ], 
             images: [ 
-                { thumb: 'assets/images/placeholder-figurine-thumb-1.jpg', large: 'assets/images/placeholder-figurine-large-1.jpg', alt: '初音未来 魔法未来 2023 正面图' }, 
-                { thumb: 'assets/images/placeholder-figurine-thumb-2.jpg', large: 'assets/images/placeholder-figurine-large-2.jpg', alt: '初音未来 魔法未来 2023 侧面图' }, 
-                { thumb: 'assets/images/placeholder-figurine-thumb-3.jpg', large: 'assets/images/placeholder-figurine-large-3.jpg', alt: '初音未来 魔法未来 2023 背面图' }, 
-                { thumb: 'assets/images/placeholder-figurine-thumb-4.jpg', large: 'assets/images/placeholder-figurine-large-4.jpg', alt: '初音未来 魔法未来 2023 特写图' } 
+                { thumb: 'assets/images/figurine-1.svg', large: 'assets/images/figurine-1.svg', alt: '初音未来 魔法未来 2023 正面图' },
+                { thumb: 'assets/images/figurine-2.svg', large: 'assets/images/figurine-2.svg', alt: '初音未来 魔法未来 2023 侧面图' },
+                { thumb: 'assets/images/figurine-3.svg', large: 'assets/images/figurine-3.svg', alt: '初音未来 魔法未来 2023 背面图' },
+                { thumb: 'assets/images/figurine-4.svg', large: 'assets/images/figurine-4.svg', alt: '初音未来 魔法未来 2023 特写图' }
             ],
             dateAdded: '2024-01-15' // Keep dateAdded for sorting
         },
@@ -473,7 +527,7 @@ const SharedData = (function() {
                 { label: '材质', value: 'PVC & ABS' }
             ], 
             images: [
-                { thumb: 'assets/images/placeholder-figurine-thumb-2.jpg', large: 'assets/images/placeholder-figurine-large-2.jpg', alt: '梅琳娜 正面' }
+                { thumb: 'assets/images/figurine-2.svg', large: 'assets/images/figurine-2.svg', alt: '梅琳娜 正面' }
             ],
             dateAdded: '2024-01-10'
         },
@@ -490,7 +544,7 @@ const SharedData = (function() {
                 { label: '发售日期', value: '2021/11' } 
             ],
             images: [
-                { thumb: 'assets/images/placeholder-figurine-card-6.jpg', large: 'assets/images/placeholder-figurine-card-6.jpg', alt: '莱莎琳·斯托特' } // Using card image as large for now
+                { thumb: 'assets/images/figurine-6.svg', large: 'assets/images/figurine-6.svg', alt: '莱莎琳·斯托特' } // Using placeholder as large for now
             ],
             dateAdded: '2023-12-20'
         },
@@ -508,7 +562,7 @@ const SharedData = (function() {
                 { label: '尺寸', value: '全高约100mm' }
             ], 
             images: [
-                { thumb: 'assets/images/placeholder-figurine-thumb-3.jpg', large: 'assets/images/placeholder-figurine-large-3.jpg', alt: '后藤一里 粘土人' }
+                { thumb: 'assets/images/figurine-3.svg', large: 'assets/images/figurine-3.svg', alt: '后藤一里 粘土人' }
             ],
             dateAdded: '2024-02-01'
         },
@@ -525,7 +579,7 @@ const SharedData = (function() {
                 { label: '尺寸', value: '全高约100mm' }
             ],
             images: [
-                { thumb: 'assets/images/placeholder-figurine-card-7.jpg', large: 'assets/images/placeholder-figurine-card-7.jpg', alt: '阿尼亚·福杰 粘土人' }
+                { thumb: 'assets/images/figurine-1.svg', large: 'assets/images/figurine-1.svg', alt: '阿尼亚·福杰 粘土人' }
             ],
             dateAdded: '2023-11-05'
         },
@@ -542,7 +596,7 @@ const SharedData = (function() {
                 { label: '尺寸', value: '全高约100mm' }
             ],
              images: [
-                 { thumb: 'assets/images/placeholder-figurine-card-8.jpg', large: 'assets/images/placeholder-figurine-card-8.jpg', alt: '帕瓦 粘土人' }
+                 { thumb: 'assets/images/figurine-2.svg', large: 'assets/images/figurine-2.svg', alt: '帕瓦 粘土人' }
             ],
              dateAdded: '2024-01-25' 
         },
@@ -560,7 +614,7 @@ const SharedData = (function() {
                  { label: '尺寸', value: '全高约135mm' }
             ],
              images: [
-                 { thumb: 'assets/images/placeholder-figurine-card-4.jpg', large: 'assets/images/placeholder-figurine-card-4.jpg', alt: '灶门炭治郎 figma' }
+                 { thumb: 'assets/images/figurine-4.svg', large: 'assets/images/figurine-4.svg', alt: '灶门炭治郎 figma' }
             ],
              dateAdded: '2023-10-15' 
         },
@@ -577,7 +631,7 @@ const SharedData = (function() {
                  { label: '尺寸', value: '全高约130mm' }
             ],
              images: [
-                 { thumb: 'assets/images/placeholder-figurine-card-9.jpg', large: 'assets/images/placeholder-figurine-card-9.jpg', alt: '东海帝皇 figma' }
+                 { thumb: 'assets/images/figurine-3.svg', large: 'assets/images/figurine-3.svg', alt: '东海帝皇 figma' }
             ],
              dateAdded: '2024-02-10' 
         },
@@ -595,7 +649,7 @@ const SharedData = (function() {
                  { label: '尺寸', value: '全高约160mm' }
             ],
              images: [
-                 { thumb: 'assets/images/placeholder-figurine-card-5.jpg', large: 'assets/images/placeholder-figurine-card-5.jpg', alt: '噶呜·古拉 POP UP PARADE' }
+                 { thumb: 'assets/images/figurine-5.svg', large: 'assets/images/figurine-5.svg', alt: '噶呜·古拉 POP UP PARADE' }
             ],
              dateAdded: '2023-09-30' 
         },
@@ -612,7 +666,7 @@ const SharedData = (function() {
                  { label: '分类', value: '组装模型' }
             ],
              images: [
-                 { thumb: 'assets/images/placeholder-figurine-card-10.jpg', large: 'assets/images/placeholder-figurine-card-10.jpg', alt: '天竺鼠车车 MODEROID' }
+                 { thumb: 'assets/images/figurine-4.svg', large: 'assets/images/figurine-4.svg', alt: '天竺鼠车车 MODEROID' }
             ],
              dateAdded: '2023-11-20' 
         }
@@ -728,7 +782,7 @@ const PDP = (function() {
                  console.warn("PDP Warning: Thumbnail container not found.");
             }
         } else {
-             mainImage.src = 'assets/images/placeholder-figurine-large-1.jpg'; // Fallback image
+             mainImage.src = 'assets/images/figurine-1.svg'; // Fallback image
              mainImage.alt = product.name;
              if (thumbnailContainer) thumbnailContainer.innerHTML = '';
         }
@@ -828,7 +882,7 @@ const PDP = (function() {
             id: currentProductData.id,
             name: currentProductData.name,
             price: currentProductData.price,
-            image: currentProductData.images && currentProductData.images.length > 0 ? currentProductData.images[0].thumb : 'assets/images/placeholder-figurine-thumb-1.jpg', 
+            image: currentProductData.images && currentProductData.images.length > 0 ? currentProductData.images[0].thumb : 'assets/images/figurine-1.svg',
             quantity: parseInt(quantityInput.value, 10) || 1
         };
 
@@ -865,6 +919,11 @@ const PDP = (function() {
                  addToCartBtn.disabled = false;
             }
         }, 1500);
+
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            const addedCount = productToAdd.quantity > 1 ? ` ×${productToAdd.quantity}` : '';
+            Toast.show(`已加入购物车${addedCount}`, 'success');
+        }
 
         console.log('Added to cart:', productToAdd);
         console.log('Current Cart:', cart);
@@ -964,7 +1023,7 @@ const Cart = (function() {
             <div class="cart-item" data-product-id="${item.id}">
                 <div class="cart-item__image">
                     <a href="product-detail.html?id=${item.id}">
-                        <img src="${item.image || 'assets/images/placeholder-figurine-thumb-1.jpg'}" alt="${item.name || '[手办名称]'}">
+                        <img src="${item.image || 'assets/images/figurine-1.svg'}" alt="${item.name || '[手办名称]'}">
                     </a>
                 </div>
                 <div class="cart-item__info">
@@ -1012,16 +1071,18 @@ const Cart = (function() {
 
     function updateCartSummary(cart) {
          // ... (no changes needed here)
-         const subtotalElement = cartSummaryContainer?.querySelector('.summary-row:nth-child(1) span:last-child');
+        const subtotalElement = cartSummaryContainer?.querySelector('.summary-subtotal');
+        const shippingElement = cartSummaryContainer?.querySelector('.summary-shipping');
         const totalElement = cartSummaryContainer?.querySelector('.total-price');
         
-        if (!subtotalElement || !totalElement) return;
+        if (!subtotalElement || !shippingElement || !totalElement) return;
 
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const shippingCost = 0; // Placeholder for shipping calculation
         const total = subtotal + shippingCost;
 
         subtotalElement.textContent = `¥${subtotal.toFixed(2)}`;
+        shippingElement.textContent = `¥${shippingCost.toFixed(2)}`;
         totalElement.textContent = `¥${total.toFixed(2)}`;
 
         if (checkoutButton) {
@@ -1108,11 +1169,15 @@ const Cart = (function() {
 
     // --- Initialization --- 
     function init() {
-         // Only run full init if on the cart page
-         if (cartContainer) { 
+        // 始终更新 Header 购物车数量（让所有页面都能显示正确角标）
+        const cart = getCart();
+        _updateHeaderCartCount(cart);
+
+        // 仅在购物车页做完整渲染
+        if (cartContainer) {
             console.log('Cart module initialized.');
             renderCart(); // Initial render
-         }
+        }
     }
 
     // Expose functions needed by other modules
@@ -1132,8 +1197,8 @@ const Checkout = (function() {
 
     const checkoutForm = checkoutContainer.querySelector('#checkout-form'); 
     const orderSummaryItemsContainer = checkoutContainer.querySelector('.order-summary__items');
-    const summarySubtotalEl = checkoutContainer.querySelector('.order-summary .summary-row span:last-child'); // Simpler selector might be needed
-    const summaryShippingEl = checkoutContainer.querySelector('.order-summary .summary-row:nth-of-type(2) span:last-child'); // More specific selector
+    const summarySubtotalEl = checkoutContainer.querySelector('.order-summary .summary-subtotal');
+    const summaryShippingEl = checkoutContainer.querySelector('.order-summary .summary-shipping');
     const summaryTotalEl = checkoutContainer.querySelector('.order-summary .total-price');
     const paymentOptions = checkoutContainer.querySelectorAll('.payment-options input[name="payment"]');
     const placeOrderButton = checkoutContainer.querySelector('.place-order-button');
@@ -1302,7 +1367,7 @@ const Checkout = (function() {
             };
 
             console.log("模拟订单数据:", orderData);
-             alert("订单提交成功！（模拟）");
+             // 订单提交成功（模拟）：跳回首页并展示提示
             localStorage.removeItem('cart');
              // Use Cart module's function to update header
              if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
@@ -1310,7 +1375,7 @@ const Checkout = (function() {
              } else {
                   console.error("Checkout Error: Cannot update header cart count.");
              }
-             window.location.href = '/';
+             window.location.href = 'index.html?order=success';
         } else {
             console.log("表单验证失败。");
             const firstError = checkoutForm.querySelector('.input-error, .error-message');
@@ -1428,8 +1493,37 @@ const Animations = (function() {
 // Product Listing / Category / Search Results Module (Modified to use SharedData)
 // ==============================================
 const ProductListing = (function(){
+    // --- Generate Product Card HTML --- (Shared across pages)
+    function createProductCardHTML(product) {
+        const safeProduct = product || {};
+        const name = safeProduct.name || '[商品名称]';
+        const series = safeProduct.series || '[所属系列]';
+        const price = typeof safeProduct.price === 'number' ? safeProduct.price.toFixed(2) : 'N/A';
+        const image = (safeProduct.images && safeProduct.images.length > 0 ? safeProduct.images[0].thumb : 'assets/images/figurine-1.svg');
+        const id = safeProduct.id || '#';
+        const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">¥${price}</p>` : '';
+
+        return `
+          <div class="product-card fade-in-up">
+              <div class="product-card__image">
+                  <a href="product-detail.html?id=${id}">
+                       <img src="assets/images/placeholder-lowquality.svg" data-src="${image}" alt="${name} - ${series}" loading="lazy" class="lazyload">
+                  </a>
+              </div>
+              <div class="product-card__content">
+                  <h4 class="product-card__title">
+                      <a href="product-detail.html?id=${id}">${name}</a>
+                  </h4>
+                  <p class="product-card__series">${series}</p>
+                  ${priceHTML} 
+                  <a href="product-detail.html?id=${id}" class="product-card__button">查看详情</a>
+              </div>
+          </div>
+        `;
+    }
+
     const listingContainer = document.querySelector('.plp-main, .category-main');
-    if (!listingContainer) return { init: () => {} };
+    if (!listingContainer) return { init: () => {}, createProductCardHTML };
 
     // DOM elements (Keep existing)
     const pageTitleElement = listingContainer.querySelector('.page-title');
@@ -1446,35 +1540,6 @@ const ProductListing = (function(){
     let pageMode = 'all';
     let currentQuery = '';
     let currentCategory = '';
-
-    // --- Generate Product Card HTML --- (Use SharedData format)
-    function createProductCardHTML(product) {
-        // ... (Keep existing, ensure it uses product.images[0].thumb or fallback)
-         const name = product.name || '[商品名称]';
-        const series = product.series || '[所属系列]';
-        const price = typeof product.price === 'number' ? product.price.toFixed(2) : 'N/A';
-        const image = (product.images && product.images.length > 0 ? product.images[0].thumb : 'assets/images/placeholder-figurine-card-1.jpg');
-        const id = product.id || '#';
-        const priceHTML = typeof product.price === 'number' ? `<p class="product-card__price">¥${price}</p>` : '';
-
-        return `
-          <div class="product-card fade-in-up">
-              <div class="product-card__image">
-                  <a href="product-detail.html?id=${id}">
-                       <img src="assets/images/placeholder-lowquality.jpg" data-src="${image}" alt="${name} - ${series}" loading="lazy" class="lazyload">
-                  </a>
-              </div>
-              <div class="product-card__content">
-                  <h4 class="product-card__title">
-                      <a href="product-detail.html?id=${id}">${name}</a>
-                  </h4>
-                  <p class="product-card__series">${series}</p>
-                  ${priceHTML} 
-                  <a href="product-detail.html?id=${id}" class="product-card__button">查看详情</a>
-              </div>
-          </div>
-        `;
-    }
 
     // --- Sorting Logic --- (Keep existing)
     function sortProducts(products, sortType) {
@@ -1652,7 +1717,7 @@ const ProductListing = (function(){
             currentCategory = categoryKey;
             title = categoryNames(currentCategory);
             currentProducts = allProducts.filter(p => p.category?.key === currentCategory);
-        } else if (window.location.pathname.includes('products.html')) {
+        } else if (Utils.getPageName() === 'products.html') {
              pageMode = 'all'; title = categoryNames('all'); currentProducts = [...allProducts];
         } else {
              currentProducts = [...allProducts]; // Fallback
@@ -1667,7 +1732,7 @@ const ProductListing = (function(){
         console.log(`ProductListing module initialized in '${pageMode}' mode.`);
     }
 
-    return { init: init };
+    return { init: init, createProductCardHTML };
 })();
 
 // ==============================================
@@ -1711,7 +1776,7 @@ const Homepage = (function() {
 
     function init() {
         // ... (Keep existing check for homepage)
-         if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+         if (Utils.getPageName() === 'index.html') {
              if (featuredGrid) {
                 console.log('Homepage module Initializing...');
                 populateFeaturedProducts();
@@ -1741,6 +1806,26 @@ const App = {
         Checkout.init();
         StaticPage.init();
         ProductListing.init();
+
+        // URL 参数触发的一次性提示（避免刷新重复弹出）
+        try {
+            const url = new URL(window.location.href);
+            const params = url.searchParams;
+            const orderStatus = params.get('order');
+            if (orderStatus === 'success') {
+                if (typeof Toast !== 'undefined' && Toast.show) {
+                    Toast.show('订单提交成功（模拟）', 'success');
+                }
+                params.delete('order');
+                const nextSearch = params.toString();
+                const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, nextUrl);
+                }
+            }
+        } catch (e) {
+            console.warn('App: URL toast init failed.', e);
+        }
         console.log("App Initialization Complete.");
     }
 };
