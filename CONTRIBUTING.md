@@ -34,6 +34,12 @@ pwsh -NoLogo -NoProfile -Command 'node scripts/validate.mjs'
 pwsh -NoLogo -NoProfile -Command 'node --check scripts/main.js; node --check sw.js'
 ```
 
+也可以使用 `npm` 脚本（零依赖，无需安装依赖包）：
+
+```powershell
+pwsh -NoLogo -NoProfile -Command 'npm run verify'
+```
+
 ## 修改静态资源后的版本号（很重要）
 
 当你修改 `styles/main.css` / `styles/extensions.css` / `scripts/main.js` / `sw.js` 等核心资源时，请同步更新版本号，避免浏览器/Service Worker 缓存导致“改了没生效”：
@@ -41,6 +47,22 @@ pwsh -NoLogo -NoProfile -Command 'node --check scripts/main.js; node --check sw.
 1. 更新所有 HTML 中的引用版本号：`?v=...`
 2. 更新 `sw.js` 中的 `CACHE_NAME` 与 `PRECACHE_URLS`
 3. 运行 `node scripts/validate.mjs` 确认引用一致且资源存在
+
+推荐使用一键脚本统一 bump：
+
+```powershell
+pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251218.4'
+```
+
+或：
+
+```powershell
+pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251218.4'
+```
+
+## 安全问题披露
+
+请不要在公开 Issue 中直接披露可利用的漏洞细节；详见 `SECURITY.md`。
 
 ## 提交信息建议
 
