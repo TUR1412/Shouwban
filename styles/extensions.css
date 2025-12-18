@@ -162,3 +162,9 @@ html[data-theme="dark"] .favorite-btn {
   border-color: rgba(255, 255, 255, 0.14);
   color: var(--color-text-dark);
 }
+
+html[data-theme="dark"] .back-to-top {
+  background: rgba(17, 24, 39, 0.72);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--color-text-dark);
+}

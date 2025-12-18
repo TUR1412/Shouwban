@@ -470,6 +470,60 @@ const SmoothScroll = (function() {
 })();
 
 // ==============================================
+// Back To Top (Injected Button)
+// ==============================================
+const BackToTop = (function() {
+    let button = null;
+
+    function prefersReducedMotion() {
+        try {
+            return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch {
+            return false;
+        }
+    }
+
+    function ensureButton() {
+        if (button) return button;
+        if (!document.body) return null;
+
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'back-to-top';
+        button.setAttribute('aria-label', '返回顶部');
+        button.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
+        document.body.appendChild(button);
+        return button;
+    }
+
+    function updateVisibility() {
+        const el = ensureButton();
+        if (!el) return;
+        const visible = window.scrollY > 520;
+        el.classList.toggle('is-visible', visible);
+    }
+
+    function scrollToTop() {
+        try {
+            window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+        } catch {
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function init() {
+        const el = ensureButton();
+        if (!el) return;
+
+        updateVisibility();
+        window.addEventListener('scroll', Utils.throttle(updateVisibility, 120), { passive: true });
+        el.addEventListener('click', scrollToTop);
+    }
+
+    return { init };
+})();
+
+// ==============================================
 // Intersection Observer Animations Module
 // ==============================================
 const ScrollAnimations = (function() {
@@ -2570,6 +2624,7 @@ const App = {
         Header.init();
         Theme.init();
         SmoothScroll.init();
+        BackToTop.init();
         ScrollAnimations.init(); 
         LazyLoad.init(); 
         Favorites.init();

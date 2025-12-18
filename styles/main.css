@@ -415,6 +415,40 @@ select:focus:not(:focus-visible) {
     outline: none;
 }
 
+/* Back To Top (injected by JS) */
+.back-to-top {
+    position: fixed;
+    right: max(var(--spacing-base), env(safe-area-inset-right));
+    bottom: max(var(--spacing-base), env(safe-area-inset-bottom));
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.78);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-index-tooltip);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.back-to-top.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.back-to-top:active {
+    transform: scale(0.96);
+}
+
 /* ==============================================
    4. Header Component (Mobile First)
    ============================================== */
