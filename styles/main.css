@@ -2607,6 +2607,22 @@ header:not(.header).scrolled {
     padding: var(--spacing-sm);
 }
 
+.cart-clear-button {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.cart-clear-button:hover {
+    background-color: var(--color-error);
+    border-color: var(--color-error);
+    color: var(--color-text-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.25);
+}
+
 .checkout-button.disabled {
     background-color: var(--color-secondary);
     color: var(--color-text-light);

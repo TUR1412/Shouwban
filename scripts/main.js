@@ -1592,6 +1592,7 @@ const Cart = (function() {
     const cartSummaryContainer = cartContainer.querySelector('.cart-summary');
     const emptyCartMessage = cartContainer.querySelector('.empty-cart-message');
     const checkoutButton = cartSummaryContainer?.querySelector('.checkout-button');
+    let clearCartButton = cartSummaryContainer?.querySelector('.cart-clear-button') || null;
 
     function normalizeCartItems(items) {
         if (!Array.isArray(items)) return [];
@@ -1709,6 +1710,7 @@ const Cart = (function() {
             emptyCartMessage.style.display = 'none';
             cartSummaryContainer.style.display = 'block'; // Show summary
             cartItemsContainer.style.display = 'block'; // Show items container
+            ensureClearCartButton();
             cart.forEach(item => {
                 cartItemsContainer.innerHTML += renderCartItem(item);
             });
@@ -1743,6 +1745,34 @@ const Cart = (function() {
                  checkoutButton.setAttribute('href', 'checkout.html');
             }
         }
+    }
+
+    function ensureClearCartButton() {
+        if (!cartSummaryContainer) return null;
+        if (clearCartButton) return clearCartButton;
+
+        clearCartButton = document.createElement('button');
+        clearCartButton.type = 'button';
+        clearCartButton.className = 'cta-button-secondary cart-clear-button';
+        clearCartButton.textContent = '清空购物车';
+        clearCartButton.setAttribute('aria-label', '清空购物车');
+
+        const continueLink = cartSummaryContainer.querySelector('.continue-shopping-link');
+        if (continueLink) cartSummaryContainer.insertBefore(clearCartButton, continueLink);
+        else cartSummaryContainer.appendChild(clearCartButton);
+
+        clearCartButton.addEventListener('click', () => {
+            const cart = getCart();
+            if (cart.length === 0) return;
+            const ok = window.confirm('确定要清空购物车吗？此操作不可撤销。');
+            if (!ok) return;
+            setCart([]);
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show('购物车已清空', 'success', 1800);
+            }
+        });
+
+        return clearCartButton;
     }
 
     // --- Event Handlers --- (Keep existing handleQuantityChange, handleRemoveItem, addCartItemEventListeners)
