@@ -43,6 +43,17 @@ const Utils = {
         } catch {
             return 'index.html';
         }
+    },
+
+    // Escape HTML to avoid XSS when data is later sourced from APIs
+    escapeHtml: (value) => {
+        const s = String(value ?? '');
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 };
 
@@ -1025,12 +1036,16 @@ const PDP = (function() {
 
         // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
         if (breadcrumbList) {
+            const safeProductName = Utils.escapeHtml(product.name || '');
+            const safeCategoryKey = product.category?.key ? encodeURIComponent(product.category.key) : '';
+            const safeCategoryName = Utils.escapeHtml(product.category?.name || '');
+
              breadcrumbList.innerHTML = `
-                 <li class="breadcrumb-item"><a href="index.html" class="breadcrumb__link">首页</a></li>
-                 <li class="breadcrumb-item"><a href="products.html" class="breadcrumb__link">所有手办</a></li>
-                 ${product.category ? `<li class="breadcrumb-item"><a href="category.html?cat=${product.category.key}" class="breadcrumb__link">${product.category.name}</a></li>` : ''}
-                 <li class="breadcrumb-item active" aria-current="page">${product.name}</li>
-             `;
+                  <li class="breadcrumb-item"><a href="index.html" class="breadcrumb__link">首页</a></li>
+                  <li class="breadcrumb-item"><a href="products.html" class="breadcrumb__link">所有手办</a></li>
+                  ${product.category ? `<li class="breadcrumb-item"><a href="category.html?cat=${safeCategoryKey}" class="breadcrumb__link">${safeCategoryName}</a></li>` : ''}
+                  <li class="breadcrumb-item active" aria-current="page">${safeProductName}</li>
+              `;
         } else {
              console.warn("PDP Warning: Breadcrumb container not found.");
         }
@@ -1862,14 +1877,21 @@ const ProductListing = (function(){
     // --- Generate Product Card HTML --- (Shared across pages)
     function createProductCardHTML(product) {
         const safeProduct = product || {};
-        const name = safeProduct.name || '[商品名称]';
-        const series = safeProduct.series || '[所属系列]';
+        const rawName = safeProduct.name || '[商品名称]';
+        const rawSeries = safeProduct.series || '[所属系列]';
+        const name = Utils.escapeHtml(rawName);
+        const series = Utils.escapeHtml(rawSeries);
         const price = typeof safeProduct.price === 'number' ? safeProduct.price.toFixed(2) : 'N/A';
         const image = (safeProduct.images && safeProduct.images.length > 0 ? safeProduct.images[0].thumb : 'assets/images/figurine-1.svg');
         const id = safeProduct.id || '#';
+        const safeImage = Utils.escapeHtml(image);
+        const safeIdAttr = Utils.escapeHtml(id);
+        const safeAlt = Utils.escapeHtml(`${rawName} - ${rawSeries}`);
+        const encodedId = id !== '#' ? encodeURIComponent(id) : '';
+        const detailHref = id !== '#' ? `product-detail.html?id=${encodedId}` : '#';
         const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">¥${price}</p>` : '';
         const favBtnHTML = id !== '#'
-            ? `<button class="favorite-btn" type="button" data-product-id="${id}" aria-label="加入收藏" aria-pressed="false">
+            ? `<button class="favorite-btn" type="button" data-product-id="${safeIdAttr}" aria-label="加入收藏" aria-pressed="false">
                     <i class="fa-regular fa-heart" aria-hidden="true"></i>
                </button>`
             : '';
@@ -1877,18 +1899,18 @@ const ProductListing = (function(){
         return `
           <div class="product-card fade-in-up">
               <div class="product-card__image">
-                  <a href="product-detail.html?id=${id}">
-                       <img src="assets/images/placeholder-lowquality.svg" data-src="${image}" alt="${name} - ${series}" loading="lazy" class="lazyload">
-                  </a>
+                  <a href="${detailHref}">
+                       <img src="assets/images/placeholder-lowquality.svg" data-src="${safeImage}" alt="${safeAlt}" loading="lazy" class="lazyload">
+                   </a>
                   ${favBtnHTML}
               </div>
               <div class="product-card__content">
                   <h4 class="product-card__title">
-                      <a href="product-detail.html?id=${id}">${name}</a>
+                      <a href="${detailHref}">${name}</a>
                   </h4>
                   <p class="product-card__series">${series}</p>
                   ${priceHTML} 
-                  <a href="product-detail.html?id=${id}" class="product-card__button">查看详情</a>
+                  <a href="${detailHref}" class="product-card__button">查看详情</a>
               </div>
           </div>
         `;
@@ -2020,14 +2042,14 @@ const ProductListing = (function(){
 
         if (pageMode === 'category') {
             breadcrumbHTML += `<li class="breadcrumb-item"><a href="products.html">所有手办</a></li>`;
-            breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${categoryNames(currentCategory)}</li>`;
+            breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${Utils.escapeHtml(categoryNames(currentCategory))}</li>`;
         } else if (pageMode === 'search') {
-             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">搜索结果: ${currentQuery}</li>`;
+             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">搜索结果: ${Utils.escapeHtml(currentQuery)}</li>`;
         } else if (pageMode === 'favorites') {
             breadcrumbHTML += `<li class="breadcrumb-item"><a href="products.html">所有手办</a></li>`;
             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">我的收藏</li>`;
         } else {
-             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${categoryNames('all')}</li>`;
+             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${Utils.escapeHtml(categoryNames('all'))}</li>`;
         }
         breadcrumbContainer.innerHTML = breadcrumbHTML;
     }
