@@ -1645,11 +1645,17 @@ const Cart = (function() {
         if (cartContainer) renderCart();
     }
 
+    function setCart(items) {
+        saveCart(items);
+        if (cartContainer) renderCart();
+    }
+
     // Expose functions needed by other modules
     return { 
         init: init, 
         getCart: getCart,
         refresh: refresh,
+        setCart: setCart,
         updateHeaderCartCount: updateHeaderCartCount // Expose wrapper that normalizes input
     };
 })();
