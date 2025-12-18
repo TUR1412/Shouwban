@@ -29,7 +29,7 @@
 - [x] 安全基线：动态文本 HTML 转义 + URL 参数 `encodeURIComponent`，避免注入风险
 - [x] 安全加固：购物车/结算等关键渲染改用安全 DOM API + HTML 转义（防 `localStorage` 注入）
 - [x] 可访问性：ESC 关闭搜索/菜单/下拉；购物车/收藏计数补齐 `aria-live`
-- [x] 缓存穿透统一版本号：`20251218.3`（`main.css`/`extensions.css`/`main.js`）
+- [x] 缓存穿透统一版本号：`20251218.4`（`main.css`/`extensions.css`/`main.js`）
 - [x] 主题原子性：新增 `--color-surface`，暗色主题下卡片/导航/内容区块一致更新
 - [x] 样式体积治理：移除 `styles/main.css` 误拼接重复段（并在校验脚本中增加重复检测）
 - [x] 跨标签同步：监听 `storage` 同步主题/收藏/购物车（含结算页摘要刷新）
