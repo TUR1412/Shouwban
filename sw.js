@@ -77,6 +77,24 @@ function isNavigationRequest(request) {
   return accept.includes('text/html');
 }
 
+function fetchWithTimeout(request, timeoutMs) {
+  const ms = Number(timeoutMs) || 0;
+  if (ms <= 0) return fetch(request);
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('SW fetch timeout')), ms);
+    fetch(request)
+      .then((response) => {
+        clearTimeout(timer);
+        resolve(response);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -84,7 +102,7 @@ self.addEventListener('fetch', (event) => {
 
   if (isNavigationRequest(request)) {
     event.respondWith(
-      fetch(request)
+      fetchWithTimeout(request, 4500)
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
