@@ -18,6 +18,7 @@
 - [原子级自检（推荐）](#原子级自检推荐)
 - [缓存版本号（重要）](#缓存版本号重要)
 - [PWA 调试（开发时常用）](#pwa-调试开发时常用)
+- [故障排查](#故障排查)
 - [部署](#部署)
 - [二次开发（最常见）](#二次开发最常见)
 - [安全](#安全)
@@ -142,6 +143,10 @@ pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251218.4'
 
 - Chrome：DevTools -> Application -> Service Workers -> Unregister
 - 或者清理站点数据（Application -> Clear storage）
+
+## 故障排查
+
+常见问题（缓存 / SW / file:// 限制）：见 `TROUBLESHOOTING.md`。
 
 ## 部署
 
