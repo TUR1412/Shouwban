@@ -1876,6 +1876,13 @@ const Checkout = (function() {
         if (checkoutContainer) { // Check if on checkout page
              renderOrderSummary();
              addEventListeners();
+
+             // 同标签页内购物车变化（例如从其他模块写入）时刷新摘要
+             try {
+                 window.addEventListener('cart:changed', renderOrderSummary);
+             } catch {
+                 // ignore
+             }
         }
     }
 
