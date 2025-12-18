@@ -17,6 +17,9 @@
 - [x] 购物车/结算渲染直接拼接 `innerHTML` 且数据来自 `localStorage`（存在注入/XSS 风险，已修复）
 - [x] `styles/main.css` 存在误拼接重复段（体积膨胀、维护风险，已修复并加入校验防回归）
 - [x] 暗色主题下部分卡片背景误用“文字色变量”导致主题原子性不完整（已引入 `--color-surface` 修复）
+- [x] `sw.js` 在静态资源请求失败时可能返回 `null`，导致 `respondWith` 异常（已修复）
+- [x] `Cart` 模块在非购物车页“早退”导致 API 不一致、容错不足（已修复）
+- [x] `:focus` 覆盖 `:focus-visible` 导致键盘焦点提示弱化（已修复）
 
 ## 3. 执行清单（2025-12-18）
 - [x] 修复关键功能：PDP 选择器、StaticPage 内容、列表页排序监听
@@ -36,4 +39,20 @@
 - [x] 协作增强：新增 Issue 表单 + PR 模板（内置版本号/校验脚本自检清单）
 - [x] 强化校验脚本：`scripts/validate.mjs` 增加主题注入/扩展样式/离线与 SW 文件强校验 + 版本号一致性校验（HTML↔SW）+ main.css 重复检测
 - [x] CI 加固：GitHub Actions 增加 `sw.js` 语法检查
+- [x] PWA 稳健性：导航请求增加超时策略；离线优先回退缓存；目录路由回退 `index.html`
+- [x] 离线体验：`offline.html` 增加网络状态提示 + 一键重试（并由 JS 驱动）
+- [x] UX 增强：新增“返回顶部”按钮（兼容减少动态偏好）
+- [x] UX 增强：商品详情新增“复制链接”分享按钮（Clipboard API + 降级方案）
+- [x] UX 增强：购物车新增“清空购物车”按钮（确认 + Toast）
+- [x] A11y 增强：Header 下拉菜单补齐 `aria-*` + 键盘打开；Header 搜索补齐 `aria-controls`/`aria-hidden`
+- [x] A11y 增强：结算表单错误补齐 `aria-invalid`/`aria-describedby`，并聚焦首个错误
+- [x] 工具链：新增 `scripts/bump-version.mjs` 与 `package.json`（零依赖）便于一键校验与版本号 bump
+- [x] 文档：新增 `SECURITY.md`、`TROUBLESHOOTING.md`、`QUARK_ITERATIONS.md`，并进一步美化 README
 
+## 4. 验收命令（推荐）
+
+在项目根目录执行：
+
+```powershell
+pwsh -NoLogo -NoProfile -Command 'npm run verify'
+```
