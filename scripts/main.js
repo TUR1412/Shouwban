@@ -1850,13 +1850,20 @@ const Checkout = (function() {
             };
 
              // 订单提交成功（模拟）：跳回首页并展示提示
-            localStorage.removeItem('cart');
-             // Use Cart module's function to update header
-             if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
-                 Cart.updateHeaderCartCount([]); 
-             } else {
-                  console.error("Checkout Error: Cannot update header cart count.");
-             }
+
+            // 清空购物车（优先走统一入口，确保归一化与事件派发）
+            if (typeof Cart !== 'undefined' && typeof Cart.setCart === 'function') {
+                Cart.setCart([]);
+            } else {
+                try { localStorage.removeItem('cart'); } catch { /* ignore */ }
+
+                // Fallback：至少更新头部角标
+                if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
+                    Cart.updateHeaderCartCount([]);
+                } else {
+                    console.error("Checkout Error: Cannot update header cart count.");
+                }
+            }
              window.location.href = 'index.html?order=success';
         } else {
             const firstError = checkoutForm.querySelector('.input-error, .error-message');
