@@ -140,13 +140,17 @@ const Header = (function() {
         if (!searchBar.classList.contains('is-open')) return;
         searchBar.classList.remove('is-open');
         searchToggle.setAttribute('aria-expanded', 'false');
+        searchBar.setAttribute('aria-hidden', 'true');
     }
 
     function toggleSearch() {
         if (!searchBar || !searchInput || !searchToggle) return;
         const isOpen = searchBar.classList.toggle('is-open');
         searchToggle.setAttribute('aria-expanded', isOpen);
+        searchBar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
         if (isOpen) {
+            closeMobileMenu();
+            closeAllDropdowns();
             searchInput.focus();
             // Optional: Change search icon to close icon
         } else {
@@ -410,6 +414,11 @@ const Header = (function() {
 
     function init() {
         if (!headerElement) return;
+        if (searchBar) {
+            if (!searchBar.id) searchBar.id = 'header-search-bar';
+            searchBar.setAttribute('aria-hidden', searchBar.classList.contains('is-open') ? 'false' : 'true');
+            searchToggle?.setAttribute('aria-controls', searchBar.id);
+        }
         handleScroll(); // Initial check
         setActiveLink(); // Set active link on load
         addEventListeners();
