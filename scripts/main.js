@@ -1013,6 +1013,60 @@ const PDP = (function() {
         return favoriteBtn;
     }
 
+    function upsertProductJsonLd(product) {
+        try {
+            if (!product || !product.id) return;
+
+            const existing = document.getElementById('product-jsonld');
+            existing?.remove();
+
+            const toPlainText = (html) => {
+                const div = document.createElement('div');
+                div.innerHTML = String(html ?? '');
+                return (div.textContent || '').replace(/\s+/g, ' ').trim();
+            };
+
+            const images = Array.isArray(product.images)
+                ? product.images
+                      .map((i) => i?.large || i?.thumb)
+                      .filter(Boolean)
+                : [];
+
+            const url = (() => {
+                try { return new URL(window.location.href).toString(); } catch { return ''; }
+            })();
+
+            const data = {
+                '@context': 'https://schema.org',
+                '@type': 'Product',
+                name: String(product.name || ''),
+                sku: String(product.id || ''),
+                category: String(product.category?.name || ''),
+                image: images,
+                description: toPlainText(product.description),
+                brand: { '@type': 'Brand', name: '塑梦潮玩' },
+                offers: {
+                    '@type': 'Offer',
+                    priceCurrency: 'CNY',
+                    price: typeof product.price === 'number' ? product.price.toFixed(2) : undefined,
+                    availability: 'https://schema.org/InStock',
+                    url: url || undefined,
+                },
+            };
+
+            // 移除 undefined 字段（保持 JSON 干净）
+            const cleaned = JSON.parse(JSON.stringify(data));
+
+            const script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.id = 'product-jsonld';
+            script.textContent = JSON.stringify(cleaned);
+            document.head.appendChild(script);
+        } catch {
+            // SEO 增强失败不影响页面主流程
+        }
+    }
+
     // --- Update DOM with Product Data --- (Modified error handling)
     function populatePage(product) {
          if (!product) {
@@ -1052,6 +1106,7 @@ const PDP = (function() {
 
         // Update Page Title
         document.title = `${product.name} - 塑梦潮玩`;
+        upsertProductJsonLd(product);
 
         // Update Product Info
         titleElement.textContent = product.name;
