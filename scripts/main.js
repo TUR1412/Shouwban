@@ -227,6 +227,7 @@ const Header = (function() {
         const currentHash = currentUrl.hash || '';
 
         // 先清理状态
+        headerElement?.querySelectorAll('a[aria-current]').forEach((a) => a.removeAttribute('aria-current'));
         allNavLinks.forEach(link => {
             link.classList.remove('header__nav-link--active');
             link.closest('.header__nav-item--dropdown')?.classList.remove('header__nav-link--active');
@@ -280,16 +281,19 @@ const Header = (function() {
         if (bestMatch) {
             bestMatch.classList.add('header__nav-link--active');
             bestMatch.closest('.header__nav-item--dropdown')?.classList.add('header__nav-link--active');
+            bestMatch.setAttribute('aria-current', 'page');
         }
 
         // 购物车页：高亮购物车图标
         if (currentPage === 'cart.html' && cartLink) {
             cartLink.classList.add('header__action-link--active');
+            cartLink.setAttribute('aria-current', 'page');
         }
 
         // 收藏页：高亮收藏图标
         if (currentPage === 'favorites.html' && favLink) {
             favLink.classList.add('header__action-link--active');
+            favLink.setAttribute('aria-current', 'page');
         }
     }
 
