@@ -1315,18 +1315,22 @@ const PDP = (function() {
             cart.push(productToAdd);
         }
 
-        try { localStorage.setItem('cart', JSON.stringify(cart)); } catch { /* ignore */ }
-
-        // **Always use Cart module's function**
-        if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
-            Cart.updateHeaderCartCount(cart);
+        // 优先走 Cart.setCart：统一归一化/事件派发/本地写入
+        if (typeof Cart !== 'undefined' && typeof Cart.setCart === 'function') {
+            Cart.setCart(cart);
         } else {
-             console.error("PDP Error: Cart module or updateHeaderCartCount function not available.");
-             // Attempt fallback (less ideal, kept for safety but should not be needed)
-             if (typeof Header !== 'undefined' && Header.updateCartCount) {
-                 const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-                 Header.updateCartCount(totalQuantity);
-             }
+            try { localStorage.setItem('cart', JSON.stringify(cart)); } catch { /* ignore */ }
+
+            // Fallback：至少更新头部角标
+            if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
+                Cart.updateHeaderCartCount(cart);
+            } else {
+                console.error("PDP Error: Cart module or updateHeaderCartCount function not available.");
+                if (typeof Header !== 'undefined' && Header.updateCartCount) {
+                    const totalQuantity = cart.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
+                    Header.updateCartCount(totalQuantity);
+                }
+            }
         }
 
         // Visual feedback (Keep existing)
