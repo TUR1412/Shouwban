@@ -63,6 +63,14 @@ const Utils = {
         } catch {
             return fallback;
         }
+    },
+
+    prefersReducedMotion: () => {
+        try {
+            return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch {
+            return false;
+        }
     }
 };
 
@@ -458,7 +466,7 @@ const SmoothScroll = (function() {
                     const headerOffset = document.querySelector('.header')?.offsetHeight || 0;
                     const elementPosition = targetElement.getBoundingClientRect().top;
                     const offsetPosition = elementPosition + window.pageYOffset - headerOffset - 10; // 10px buffer
-                    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+                    window.scrollTo({ top: offsetPosition, behavior: Utils.prefersReducedMotion() ? 'auto' : 'smooth' });
                 } catch (error) {
                     console.warn(`SmoothScroll: selector failed: ${hash}`, error);
                 }
@@ -474,14 +482,6 @@ const SmoothScroll = (function() {
 // ==============================================
 const BackToTop = (function() {
     let button = null;
-
-    function prefersReducedMotion() {
-        try {
-            return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-        } catch {
-            return false;
-        }
-    }
 
     function ensureButton() {
         if (button) return button;
@@ -505,7 +505,7 @@ const BackToTop = (function() {
 
     function scrollToTop() {
         try {
-            window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+            window.scrollTo({ top: 0, behavior: Utils.prefersReducedMotion() ? 'auto' : 'smooth' });
         } catch {
             window.scrollTo(0, 0);
         }
@@ -529,6 +529,15 @@ const BackToTop = (function() {
 const ScrollAnimations = (function() {
     function init() {
         const animatedElements = document.querySelectorAll('.fade-in-up:not(.is-visible)');
+
+        // 可访问性：减少动态效果时直接显示（避免眩晕/不适）
+        if (Utils.prefersReducedMotion()) {
+            animatedElements.forEach((element) => {
+                element.style.transitionDelay = '0ms';
+                element.classList.add('is-visible');
+            });
+            return;
+        }
 
         if (animatedElements.length > 0 && "IntersectionObserver" in window) {
             const observer = new IntersectionObserver((entries, observer) => {
