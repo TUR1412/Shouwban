@@ -20,6 +20,6 @@
 - [x] 新增收藏体系：`favorites.html` + 商品卡片收藏按钮 + 头部收藏入口与计数（`localStorage`）
 - [x] 新增主题切换：浅色/深色一键切换；head 预注入避免闪烁（跟随系统/记忆偏好）
 - [x] 新增 PWA 离线兜底：`sw.js` + `offline.html`（仅 https/localhost 生效）
-- [x] 缓存穿透统一版本号：`20251218.1`（`main.css`/`extensions.css`/`main.js`）
+- [x] 缓存穿透统一版本号：`20251218.2`（`main.css`/`extensions.css`/`main.js`）
 - [x] 强化校验脚本：`scripts/validate.mjs` 增加主题注入/扩展样式/离线与 SW 文件强校验
 - [x] CI 加固：GitHub Actions 增加 `sw.js` 语法检查
