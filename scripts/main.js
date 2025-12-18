@@ -1580,26 +1580,11 @@ const PDP = (function() {
 // Cart Module (Modified to use Cart.updateHeaderCartCount internally)
 // ==============================================
 const Cart = (function() {
-    const cartContainer = document.querySelector('.cart-main'); 
-    // Early exit if not on Cart page
-    if (!cartContainer) {
-        // Return expected functions for other modules, even if Cart page isn't active
-         return { 
-             init: () => {},
-             getCart: () => JSON.parse(localStorage.getItem('cart')) || [], // Still provide getCart
-             updateHeaderCartCount: (cartData) => { // Define updateHeaderCartCount here
-                  if (typeof Header !== 'undefined' && Header.updateCartCount) {
-                      const cart = cartData || (JSON.parse(localStorage.getItem('cart')) || []);
-                      const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-                      Header.updateCartCount(totalQuantity);
-                  }
-             }
-         };
-    }
+    const cartContainer = document.querySelector('.cart-main');
 
-    const cartItemsContainer = cartContainer.querySelector('.cart-items');
-    const cartSummaryContainer = cartContainer.querySelector('.cart-summary');
-    const emptyCartMessage = cartContainer.querySelector('.empty-cart-message');
+    const cartItemsContainer = cartContainer?.querySelector('.cart-items');
+    const cartSummaryContainer = cartContainer?.querySelector('.cart-summary');
+    const emptyCartMessage = cartContainer?.querySelector('.empty-cart-message');
     const checkoutButton = cartSummaryContainer?.querySelector('.checkout-button');
     let clearCartButton = cartSummaryContainer?.querySelector('.cart-clear-button') || null;
 
