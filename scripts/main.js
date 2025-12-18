@@ -1899,6 +1899,10 @@ const Checkout = (function() {
         if (!formGroup) return;
         const errorElement = formGroup.querySelector('.error-message');
         inputElement.classList.remove('input-error');
+        inputElement.removeAttribute('aria-invalid');
+        if (errorElement?.id && inputElement.getAttribute('aria-describedby') === errorElement.id) {
+            inputElement.removeAttribute('aria-describedby');
+        }
         if (errorElement) {
             errorElement.remove();
         }
@@ -1910,9 +1914,17 @@ const Checkout = (function() {
         if (!formGroup) return;
         clearError(inputElement); // Remove previous error first
         inputElement.classList.add('input-error');
+        inputElement.setAttribute('aria-invalid', 'true');
         const errorElement = document.createElement('span');
         errorElement.className = 'error-message';
         errorElement.textContent = message;
+        try {
+            const base = String(inputElement.id || inputElement.name || 'field').replace(/[^a-zA-Z0-9_-]/g, '');
+            errorElement.id = `error-${base || 'field'}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+            inputElement.setAttribute('aria-describedby', errorElement.id);
+        } catch {
+            // ignore
+        }
         inputElement.parentNode.insertBefore(errorElement, inputElement.nextSibling);
     }
 
@@ -2076,8 +2088,11 @@ const Checkout = (function() {
             }
              window.location.href = 'index.html?order=success';
         } else {
+            const firstInvalidInput = checkoutForm.querySelector('.input-error');
             const firstError = checkoutForm.querySelector('.input-error, .error-message');
-            firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const behavior = Utils.prefersReducedMotion() ? 'auto' : 'smooth';
+            firstError?.scrollIntoView({ behavior, block: 'center' });
+            firstInvalidInput?.focus?.();
         }
     }
 
