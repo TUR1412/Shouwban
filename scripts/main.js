@@ -54,6 +54,15 @@ const Utils = {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    },
+
+    // Safe JSON parse helper (never throws)
+    safeJsonParse: (raw, fallback) => {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return fallback;
+        }
     }
 };
 
@@ -1287,7 +1296,17 @@ const PDP = (function() {
             quantity: parseInt(quantityInput.value, 10) || 1
         };
 
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let cart = [];
+        try {
+            if (typeof Cart !== 'undefined' && typeof Cart.getCart === 'function') {
+                cart = Cart.getCart();
+            } else {
+                const parsed = Utils.safeJsonParse(localStorage.getItem('cart'), []);
+                cart = Array.isArray(parsed) ? parsed : [];
+            }
+        } catch {
+            cart = [];
+        }
         const existingItemIndex = cart.findIndex(item => item.id === productToAdd.id);
 
         if (existingItemIndex > -1) {
@@ -1296,7 +1315,7 @@ const PDP = (function() {
             cart.push(productToAdd);
         }
 
-        localStorage.setItem('cart', JSON.stringify(cart));
+        try { localStorage.setItem('cart', JSON.stringify(cart)); } catch { /* ignore */ }
 
         // **Always use Cart module's function**
         if (typeof Cart !== 'undefined' && Cart.updateHeaderCartCount) {
@@ -1390,41 +1409,90 @@ const Cart = (function() {
     const emptyCartMessage = cartContainer.querySelector('.empty-cart-message');
     const checkoutButton = cartSummaryContainer?.querySelector('.checkout-button');
 
+    function normalizeCartItems(items) {
+        if (!Array.isArray(items)) return [];
+        const out = [];
+
+        items.forEach((raw) => {
+            if (!raw || typeof raw !== 'object') return;
+            const id = typeof raw.id === 'string' ? raw.id.trim() : String(raw.id || '').trim();
+            if (!id) return;
+
+            const quantity = Number.parseInt(raw.quantity, 10);
+            const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+
+            const price = Number(raw.price);
+            const safePrice = Number.isFinite(price) && price >= 0 ? price : 0;
+
+            const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : '[手办名称]';
+            const series = typeof raw.series === 'string' ? raw.series.trim() : '';
+            const image =
+                typeof raw.image === 'string' && raw.image.trim().length > 0 ? raw.image.trim() : 'assets/images/figurine-1.svg';
+
+            out.push({ id, name, series, price: safePrice, quantity: safeQuantity, image });
+        });
+
+        return out;
+    }
+
     // --- Cart State Management --- 
     function getCart() {
-        return JSON.parse(localStorage.getItem('cart')) || [];
+        const parsed = Utils.safeJsonParse(localStorage.getItem('cart'), []);
+        return normalizeCartItems(parsed);
     }
 
     // Internal function to update header count
     function _updateHeaderCartCount(cart) {
          if (typeof Header !== 'undefined' && Header.updateCartCount) {
-            const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalQuantity = (Array.isArray(cart) ? cart : []).reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
             Header.updateCartCount(totalQuantity);
         }
     }
 
+    function updateHeaderCartCount(cartOrItems) {
+        const normalized = normalizeCartItems(cartOrItems);
+        _updateHeaderCartCount(normalized);
+        return normalized;
+    }
+
+    function dispatchChanged() {
+        try { window.dispatchEvent(new CustomEvent('cart:changed')); } catch { /* ignore */ }
+    }
+
     function saveCart(cart) {
-        localStorage.setItem('cart', JSON.stringify(cart));
-        _updateHeaderCartCount(cart); // Use internal function
+        const normalized = normalizeCartItems(cart);
+        try { localStorage.setItem('cart', JSON.stringify(normalized)); } catch { /* ignore */ }
+        _updateHeaderCartCount(normalized); // Use internal function
+        dispatchChanged();
     }
     
     // --- Rendering Functions --- (Keep existing renderCartItem, renderCart, updateCartSummary)
     function renderCartItem(item) {
          // ... (no changes needed here)
-          const price = typeof item.price === 'number' ? item.price : 0;
-        const quantity = typeof item.quantity === 'number' && item.quantity > 0 ? item.quantity : 1;
+          const rawId = String(item?.id || '').trim();
+        const encodedId = rawId ? encodeURIComponent(rawId) : '';
+        const detailHref = rawId ? `product-detail.html?id=${encodedId}` : 'products.html';
+
+        const safeIdAttr = Utils.escapeHtml(rawId);
+        const safeName = Utils.escapeHtml(item?.name || '[手办名称]');
+        const safeSeries = Utils.escapeHtml(item?.series || '[系列/来源占位]');
+        const safeImage = Utils.escapeHtml(item?.image || 'assets/images/figurine-1.svg');
+
+        const price = typeof item?.price === 'number' ? item.price : Number(item?.price) || 0;
+        const q = Number.parseInt(item?.quantity, 10);
+        const quantity = Number.isFinite(q) && q > 0 ? q : 1;
         const subtotal = price * quantity;
 
         return `
-            <div class="cart-item" data-product-id="${item.id}">
+            <div class="cart-item" data-product-id="${safeIdAttr}">
                 <div class="cart-item__image">
-                    <a href="product-detail.html?id=${item.id}">
-                        <img src="${item.image || 'assets/images/figurine-1.svg'}" alt="${item.name || '[手办名称]'}">
+                    <a href="${detailHref}">
+                        <img src="${safeImage}" alt="${safeName}">
                     </a>
                 </div>
                 <div class="cart-item__info">
-                    <h4 class="cart-item__title"><a href="product-detail.html?id=${item.id}">${item.name || '[手办名称]'}</a></h4>
-                    <p class="cart-item__series">${item.series || '[系列/来源占位]'}</p> 
+                    <h4 class="cart-item__title"><a href="${detailHref}">${safeName}</a></h4>
+                    <p class="cart-item__series">${safeSeries}</p> 
                     <span class="cart-item__price">¥${price.toFixed(2)}</span>
                 </div>
                 <div class="cart-item__quantity quantity-selector">
@@ -1565,21 +1633,24 @@ const Cart = (function() {
 
     // --- Initialization --- 
     function init() {
+        refresh();
+    }
+
+    function refresh() {
         // 始终更新 Header 购物车数量（让所有页面都能显示正确角标）
         const cart = getCart();
         _updateHeaderCartCount(cart);
 
         // 仅在购物车页做完整渲染
-        if (cartContainer) {
-            renderCart(); // Initial render
-        }
+        if (cartContainer) renderCart();
     }
 
     // Expose functions needed by other modules
     return { 
         init: init, 
         getCart: getCart,
-        updateHeaderCartCount: _updateHeaderCartCount // Expose the internal function
+        refresh: refresh,
+        updateHeaderCartCount: updateHeaderCartCount // Expose wrapper that normalizes input
     };
 })();
 
@@ -1714,11 +1785,20 @@ const Checkout = (function() {
             subtotal += item.price * item.quantity;
             const itemElement = document.createElement('div');
             itemElement.className = 'summary-item';
-            itemElement.innerHTML = `
-                <img src="${item.image}" alt="${item.name} 缩略图">
-                <span>${item.name} x ${item.quantity}</span>
-                <span>${formatPrice(item.price * item.quantity)}</span>
-            `;
+
+            const img = document.createElement('img');
+            img.src = String(item.image || 'assets/images/figurine-1.svg');
+            img.alt = `${String(item.name || '[手办名称]')} 缩略图`;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `${String(item.name || '[手办名称]')} x ${item.quantity}`;
+
+            const priceSpan = document.createElement('span');
+            priceSpan.textContent = formatPrice(item.price * item.quantity);
+
+            itemElement.appendChild(img);
+            itemElement.appendChild(nameSpan);
+            itemElement.appendChild(priceSpan);
             orderSummaryItemsContainer.appendChild(itemElement);
         });
 
@@ -1799,7 +1879,12 @@ const Checkout = (function() {
         }
     }
 
-    return { init: init };
+    function refresh() {
+        if (!checkoutContainer) return;
+        renderOrderSummary();
+    }
+
+    return { init: init, refresh };
 })();
 
 
@@ -2182,7 +2267,17 @@ const ProductListing = (function(){
             } else if (pageMode === 'favorites') {
                 message = '你还没有收藏任何商品。';
             }
-            emptyMessageElement.innerHTML = `<p>${message}</p><a href="products.html" class="cta-button-secondary">浏览所有商品</a>`;
+
+            const p = document.createElement('p');
+            p.textContent = message;
+
+            const link = document.createElement('a');
+            link.href = 'products.html';
+            link.className = 'cta-button-secondary';
+            link.textContent = '浏览所有商品';
+
+            emptyMessageElement.appendChild(p);
+            emptyMessageElement.appendChild(link);
             productGrid.appendChild(emptyMessageElement);
         } else {
             productsToRender.forEach(product => {
@@ -2313,6 +2408,51 @@ const Homepage = (function() {
 })();
 
 // ==============================================
+// Cross Tab Sync (storage event)
+// ==============================================
+const CrossTabSync = (function() {
+    function handleStorage(event) {
+        const key = event?.key;
+        if (!key) return;
+
+        try {
+            if (key === 'theme') {
+                if (typeof Theme !== 'undefined' && Theme.getResolvedTheme && Theme.applyTheme) {
+                    Theme.applyTheme(Theme.getResolvedTheme(), { persist: false });
+                }
+                return;
+            }
+
+            if (key === 'favorites') {
+                if (typeof Favorites !== 'undefined') {
+                    const ids = typeof Favorites.getIds === 'function' ? Favorites.getIds() : [];
+                    Favorites.updateHeaderCount?.(ids);
+                    Favorites.syncButtons?.(document);
+                }
+                try { window.dispatchEvent(new CustomEvent('favorites:changed')); } catch { /* ignore */ }
+                return;
+            }
+
+            if (key === 'cart') {
+                const cart = (typeof Cart !== 'undefined' && typeof Cart.getCart === 'function') ? Cart.getCart() : [];
+                Cart.updateHeaderCartCount?.(cart);
+                Cart.refresh?.();
+                Checkout.refresh?.();
+                return;
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    function init() {
+        window.addEventListener('storage', handleStorage);
+    }
+
+    return { init };
+})();
+
+// ==============================================
 // Application Initialization
 // ==============================================
 const App = {
@@ -2332,6 +2472,7 @@ const App = {
         StaticPage.init();
         ProductListing.init();
         ServiceWorker.init();
+        CrossTabSync.init();
 
         // URL 参数触发的一次性提示（避免刷新重复弹出）
         try {

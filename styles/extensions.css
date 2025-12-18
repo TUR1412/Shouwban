@@ -97,6 +97,9 @@ html[data-theme="dark"] {
   --color-background-dark: #111827;
   --color-background-darker: #070b14;
 
+  /* Surface / Cards */
+  --color-surface: rgba(17, 24, 39, 0.72);
+
   --color-text-base: #e5e7eb;
   --color-text-dark: #f9fafb;
   --color-text-muted: #9ca3af;
@@ -159,4 +162,3 @@ html[data-theme="dark"] .favorite-btn {
   border-color: rgba(255, 255, 255, 0.14);
   color: var(--color-text-dark);
 }
-

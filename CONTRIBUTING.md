@@ -26,6 +26,8 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 pwsh -NoLogo -NoProfile -Command 'node scripts/validate.mjs'
 ```
 
+该脚本会强制检查：HTML 引用版本号是否统一、`sw.js` 的缓存版本是否与 HTML 一致、以及关键文件/引用是否完整。
+
 如果改动涉及 JS/SW，推荐额外做语法检查：
 
 ```powershell
@@ -49,4 +51,3 @@ pwsh -NoLogo -NoProfile -Command 'node --check scripts/main.js; node --check sw.
 - `docs:` 文档更新
 - `chore:` 工程维护（例如版本号 bump）
 - `security:` 安全加固
-

@@ -1,0 +1,39 @@
+name: ✨ 功能/优化建议
+description: 提出一个改进点（UI/UX/性能/可访问性/工程化等）
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        建议尽量描述“为什么需要 + 成功标准（验收）+ 影响页面/模块”，这样更容易落地。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题？
+      placeholder: "例如：收藏页空状态不够明确，用户不知道下一步该做什么。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你期望的方案/交互（建议）
+      placeholder: |
+        - 交互：...
+        - 文案：...
+        - 动效：...
+        - 是否需要本地存储：localStorage / IndexedDB
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准（建议）
+      placeholder: |
+        - [ ] 在移动端/桌面端都表现正常
+        - [ ] 深色主题下对比度达标（至少 WCAG AA）
+        - [ ] 通过 node scripts/validate.mjs
+        - [ ] 不引入长驻服务，不新增后端依赖

@@ -14,6 +14,9 @@
 - [x] `StaticPage` 内容为占位对象，导致静态内容页出现 `undefined`/标题错误（已修复）
 - [x] `PDP` 选择器与 HTML 类名不一致，导致商品详情页无法渲染（已修复）
 - [x] `ProductListing` 排序监听被占位符替换，导致排序无效（已修复）
+- [x] 购物车/结算渲染直接拼接 `innerHTML` 且数据来自 `localStorage`（存在注入/XSS 风险，已修复）
+- [x] `styles/main.css` 存在误拼接重复段（体积膨胀、维护风险，已修复并加入校验防回归）
+- [x] 暗色主题下部分卡片背景误用“文字色变量”导致主题原子性不完整（已引入 `--color-surface` 修复）
 
 ## 3. 执行清单（2025-12-18）
 - [x] 修复关键功能：PDP 选择器、StaticPage 内容、列表页排序监听
@@ -24,7 +27,13 @@
 - [x] PWA 缓存策略：静态资源 `stale-while-revalidate` + 支持自动更新刷新（不影响首次安装）
 - [x] SEO 细化：商品详情注入 `schema.org/Product` JSON-LD
 - [x] 安全基线：动态文本 HTML 转义 + URL 参数 `encodeURIComponent`，避免注入风险
+- [x] 安全加固：购物车/结算等关键渲染改用安全 DOM API + HTML 转义（防 `localStorage` 注入）
 - [x] 可访问性：ESC 关闭搜索/菜单/下拉；购物车/收藏计数补齐 `aria-live`
-- [x] 缓存穿透统一版本号：`20251218.2`（`main.css`/`extensions.css`/`main.js`）
-- [x] 强化校验脚本：`scripts/validate.mjs` 增加主题注入/扩展样式/离线与 SW 文件强校验
+- [x] 缓存穿透统一版本号：`20251218.3`（`main.css`/`extensions.css`/`main.js`）
+- [x] 主题原子性：新增 `--color-surface`，暗色主题下卡片/导航/内容区块一致更新
+- [x] 样式体积治理：移除 `styles/main.css` 误拼接重复段（并在校验脚本中增加重复检测）
+- [x] 跨标签同步：监听 `storage` 同步主题/收藏/购物车（含结算页摘要刷新）
+- [x] 协作增强：新增 Issue 表单 + PR 模板（内置版本号/校验脚本自检清单）
+- [x] 强化校验脚本：`scripts/validate.mjs` 增加主题注入/扩展样式/离线与 SW 文件强校验 + 版本号一致性校验（HTML↔SW）+ main.css 重复检测
 - [x] CI 加固：GitHub Actions 增加 `sw.js` 语法检查
+

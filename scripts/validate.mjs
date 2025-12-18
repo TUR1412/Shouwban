@@ -122,13 +122,135 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
 }
 
 function assertRequiredRepoFilesExist() {
-  const required = ['robots.txt', 'sitemap.xml', 'sw.js', 'offline.html', 'styles/extensions.css'];
+  const required = [
+    'robots.txt',
+    'sitemap.xml',
+    'sw.js',
+    'offline.html',
+    'styles/main.css',
+    'styles/extensions.css',
+  ];
   const errors = [];
   for (const rel of required) {
     const abs = path.join(workspaceRoot, rel);
     if (!isFile(abs)) errors.push(`[REPO] 缺少必要文件: ${rel}`);
   }
   return errors;
+}
+
+function countOccurrences(haystack, needle) {
+  if (!haystack || !needle) return 0;
+  let count = 0;
+  let idx = 0;
+  while (true) {
+    const next = haystack.indexOf(needle, idx);
+    if (next === -1) return count;
+    count += 1;
+    idx = next + needle.length;
+  }
+}
+
+function extractAssetVersion(html, assetPath) {
+  const safe = assetPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`${safe}\\?v=([^"']+)`, 'i');
+  const m = String(html || '').match(re);
+  return m ? String(m[1] || '').trim() : null;
+}
+
+function assertHtmlAssetVersionsConsistent(htmlFiles) {
+  const errors = [];
+  const versions = {
+    mainCss: new Set(),
+    extensionsCss: new Set(),
+    mainJs: new Set(),
+  };
+
+  for (const f of htmlFiles) {
+    const c = readText(f);
+    const rel = path.relative(workspaceRoot, f);
+
+    const mainCssV = extractAssetVersion(c, 'styles/main.css');
+    const extCssV = extractAssetVersion(c, 'styles/extensions.css');
+    const mainJsV = extractAssetVersion(c, 'scripts/main.js');
+
+    if (!mainCssV) errors.push(`[HTML] 无法解析 main.css 版本号: ${rel}`);
+    if (!extCssV) errors.push(`[HTML] 无法解析 extensions.css 版本号: ${rel}`);
+    if (!mainJsV) errors.push(`[HTML] 无法解析 main.js 版本号: ${rel}`);
+
+    if (mainCssV) versions.mainCss.add(mainCssV);
+    if (extCssV) versions.extensionsCss.add(extCssV);
+    if (mainJsV) versions.mainJs.add(mainJsV);
+  }
+
+  if (versions.mainCss.size > 1) {
+    errors.push(`[VERSION] main.css 版本号不一致: ${Array.from(versions.mainCss).join(', ')}`);
+  }
+  if (versions.extensionsCss.size > 1) {
+    errors.push(
+      `[VERSION] extensions.css 版本号不一致: ${Array.from(versions.extensionsCss).join(', ')}`,
+    );
+  }
+  if (versions.mainJs.size > 1) {
+    errors.push(`[VERSION] main.js 版本号不一致: ${Array.from(versions.mainJs).join(', ')}`);
+  }
+
+  const mainCssV = versions.mainCss.size === 1 ? Array.from(versions.mainCss)[0] : null;
+  const extCssV =
+    versions.extensionsCss.size === 1 ? Array.from(versions.extensionsCss)[0] : null;
+  const mainJsV = versions.mainJs.size === 1 ? Array.from(versions.mainJs)[0] : null;
+
+  if (mainCssV && extCssV && mainCssV !== extCssV) {
+    errors.push(`[VERSION] main.css 与 extensions.css 版本号不一致: ${mainCssV} vs ${extCssV}`);
+  }
+  if (mainCssV && mainJsV && mainCssV !== mainJsV) {
+    errors.push(`[VERSION] main.css 与 main.js 版本号不一致: ${mainCssV} vs ${mainJsV}`);
+  }
+
+  return { errors, version: mainCssV };
+}
+
+function assertServiceWorkerVersionMatches(version) {
+  if (!version) return ['[VERSION] 无法确定统一版本号（请先修复 HTML 版本号解析问题）'];
+
+  const swPath = path.join(workspaceRoot, 'sw.js');
+  if (!isFile(swPath)) return ['[REPO] 缺少 sw.js'];
+
+  const sw = readText(swPath);
+  const m = sw.match(/const\s+CACHE_NAME\s*=\s*['"]shouwban-([^'"]+)['"]\s*;/i);
+  const swVersion = m ? String(m[1] || '').trim() : null;
+
+  const errors = [];
+  if (!swVersion) {
+    errors.push('[SW] 无法解析 CACHE_NAME 版本号');
+    return errors;
+  }
+  if (swVersion !== version) {
+    errors.push(`[VERSION] sw.js CACHE_NAME 与 HTML 版本号不一致: ${swVersion} vs ${version}`);
+  }
+
+  const expected = [
+    `styles/main.css?v=${version}`,
+    `styles/extensions.css?v=${version}`,
+    `scripts/main.js?v=${version}`,
+  ];
+  for (const s of expected) {
+    if (!sw.includes(s)) errors.push(`[SW] PRECACHE_URLS 缺少: ${s}`);
+  }
+
+  return errors;
+}
+
+function assertMainCssNotDuplicated() {
+  const cssPath = path.join(workspaceRoot, 'styles', 'main.css');
+  if (!isFile(cssPath)) return [];
+
+  const css = readText(cssPath);
+  const marker = 'Main CSS styles for the figurine landing page';
+  const count = countOccurrences(css, marker);
+  if (count > 1) {
+    return [`[CSS] styles/main.css 疑似被重复拼接：检测到 ${count} 次标识注释（应为 1 次）`];
+  }
+  return [];
 }
 
 function assertAllHtmlHaveManifest(htmlFiles) {
@@ -259,19 +381,28 @@ function main() {
 
   const structuralErrors = assertAllHtmlHaveCacheBusting(htmlFiles);
   const repoErrors = assertRequiredRepoFilesExist();
+  const cssDupErrors = assertMainCssNotDuplicated();
   const pwaErrors = assertAllHtmlHaveManifest(htmlFiles);
   const targetBlankErrors = assertNoTargetBlankWithoutNoopener(htmlFiles);
   const sitemapErrors = assertSitemapLocAreAbsolute();
   const robotsErrors = assertRobotsHasAbsoluteSitemap();
+
+  const versionResult = assertHtmlAssetVersionsConsistent(htmlFiles);
+  const versionErrors = versionResult.errors;
+  const swVersionErrors = assertServiceWorkerVersionMatches(versionResult.version);
+
   const refErrors = validateReferences([...htmlFiles, ...cssFiles]);
 
   const errors = [
     ...structuralErrors,
     ...repoErrors,
+    ...cssDupErrors,
     ...pwaErrors,
     ...targetBlankErrors,
     ...sitemapErrors,
     ...robotsErrors,
+    ...versionErrors,
+    ...swVersionErrors,
     ...refErrors,
   ];
 
@@ -281,7 +412,9 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`校验通过：HTML=${htmlFiles.length} CSS=${cssFiles.length}，未发现缺失引用与结构问题。`);
+  console.log(
+    `校验通过：HTML=${htmlFiles.length} CSS=${cssFiles.length}，版本=${versionResult.version || '未知'}，未发现缺失引用与结构问题。`,
+  );
 }
 
 main();

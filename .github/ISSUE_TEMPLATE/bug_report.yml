@@ -1,0 +1,72 @@
+name: 🐞 Bug 报告
+description: 报告一个可复现的问题（页面/交互/样式/缓存/可访问性等）
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请尽量提供“可复现步骤 + 预期/实际结果 + 环境信息”。
+        如果属于“改了没生效”，请优先确认是否是浏览器缓存 / Service Worker 缓存导致（README 有排查方法）。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - 首页（index.html）
+        - 商品列表（products.html）
+        - 分类页（category.html）
+        - 商品详情（product-detail.html）
+        - 购物车（cart.html）
+        - 结算（checkout.html）
+        - 收藏（favorites.html）
+        - 静态页（static-page.html）
+        - PWA / Service Worker（sw.js / offline.html）
+        - CI 校验（scripts/validate.mjs / GitHub Actions）
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 选择 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境信息
+      placeholder: |
+        - OS：Windows 11 / macOS / Linux / iOS / Android
+        - 浏览器：Chrome / Edge / Safari / Firefox（版本号）
+        - 部署：本地（http://localhost:5173）/ GitHub Pages / 其他
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 额外信息（可选）
+      placeholder: |
+        - 截图 / 录屏
+        - Console 报错（请粘贴关键段）
+        - 是否开启了深色模式 / 是否 prefers-reduced-motion

@@ -4,6 +4,24 @@
 
 一个「纯静态、无后端依赖」的手办电商多页面模板：开箱即用，可直接部署到 GitHub Pages 或任意静态托管。
 
+<p align="center">
+  <img src="assets/images/hero-placeholder.svg" width="880" alt="塑梦潮玩（Shouwban）预览图">
+</p>
+
+## 目录
+
+- [预览](#预览)
+- [亮点](#亮点)
+- [页面与路由](#页面与路由)
+- [目录结构（核心）](#目录结构核心)
+- [本地预览（推荐）](#本地预览推荐)
+- [原子级自检（推荐）](#原子级自检推荐)
+- [缓存版本号（重要）](#缓存版本号重要)
+- [PWA 调试（开发时常用）](#pwa-调试开发时常用)
+- [部署](#部署)
+- [二次开发（最常见）](#二次开发最常见)
+- [贡献](#贡献)
+
 ## 预览
 
 - GitHub Pages（需在仓库 `Settings -> Pages` 开启）：`https://tur1412.github.io/Shouwban/`
@@ -12,14 +30,14 @@
 ## 亮点
 
 - 多页面结构：首页 / 列表 / 分类 / 详情 / 购物车 / 结算 / 收藏 / 静态内容
-- 本地数据闭环：购物车 + 收藏（`localStorage`），刷新不丢
+- 本地数据闭环：购物车 + 收藏（`localStorage`），刷新不丢；多标签页自动同步
 - 主题切换：浅色/深色一键切换（记忆偏好，默认跟随系统）
 - PWA 离线兜底：Service Worker + `offline.html`（仅在 https/localhost 生效）
 - SEO 基础：`robots.txt` + `sitemap.xml` + OG/Twitter meta + Product JSON-LD（详情页）
 - 可访问性：ESC 一键关闭搜索/菜单/下拉；计数徽标具备 `aria-live`
-- 安全基线：动态文本 HTML 转义，避免注入风险
+- 安全基线：动态文本 HTML 转义 + 关键渲染使用安全 DOM API，降低注入风险
 - 原子级自检脚本：`node scripts/validate.mjs`（零依赖）
-- CI 校验：GitHub Actions 自动执行 `node --check` + 校验脚本
+- 工程化防线：CI 自动执行 `node --check` + 校验脚本；PR/Issue 模板内置自检清单
 
 > 说明：本项目不包含真实支付/订单后端，结算页为模拟下单流程；适合作为前端原型或后续对接真实 API 的模板。
 
@@ -72,9 +90,11 @@ pwsh -NoLogo -NoProfile -Command 'npx --yes http-server . -p 5173 -c-1'
 该仓库提供一个零依赖校验脚本，用于检查：
 
 - 全部页面是否带缓存版本号（避免“改了没生效”）
+- 版本号是否统一（HTML 与 `sw.js` 必须一致，避免“更新了但缓存没更新”）
 - HTML/CSS 引用的本地资源是否存在（避免缺图/404）
 - 是否注入主题脚本、是否包含扩展样式（保证主题/收藏能力完整）
 - `robots.txt` / `sitemap.xml` / `sw.js` / `offline.html` 等关键文件是否齐全
+- `styles/main.css` 是否存在误拼接重复段（防止样式体积异常增长）
 
 在项目根目录执行：
 
