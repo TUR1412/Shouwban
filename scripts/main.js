@@ -85,6 +85,24 @@ const Header = (function() {
 
     const scrollThreshold = 50;
 
+    function getBreakpointMd() {
+        try {
+            const raw = getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-md') || '768px';
+            const v = raw.trim();
+            return v || '768px';
+        } catch {
+            return '768px';
+        }
+    }
+
+    function isDesktopNav() {
+        return window.matchMedia(`(min-width: ${getBreakpointMd()})`).matches;
+    }
+
+    function isMobileNav() {
+        return window.matchMedia(`(max-width: ${getBreakpointMd()})`).matches;
+    }
+
     function handleScroll() {
         if (!headerElement) return;
         if (window.scrollY > scrollThreshold) {
@@ -146,9 +164,12 @@ const Header = (function() {
 
     function handleDropdown(dropdownItem, show) {
         const menu = dropdownItem.querySelector('.header__dropdown-menu');
+        const toggle = dropdownItem.querySelector('.header__dropdown-toggle');
         if (menu) {
             if (show) {
                 dropdownItem.classList.add('is-open');
+                toggle?.setAttribute('aria-expanded', 'true');
+                menu.setAttribute('aria-hidden', 'false');
                 menu.style.display = 'block'; // Necessary for transition
                 // Force reflow for transition
                 void menu.offsetWidth;
@@ -157,6 +178,8 @@ const Header = (function() {
                 menu.style.transform = 'translateY(0)';
             } else {
                 dropdownItem.classList.remove('is-open');
+                toggle?.setAttribute('aria-expanded', 'false');
+                menu.setAttribute('aria-hidden', 'true');
                 menu.style.opacity = '0';
                 menu.style.visibility = 'hidden';
                 menu.style.transform = 'translateY(10px)';
@@ -300,18 +323,45 @@ const Header = (function() {
         document.addEventListener('keydown', handleGlobalKeydown);
 
         // Dropdown handling (Desktop hover, Mobile click can be added)
-         dropdownItems.forEach(item => {
+         dropdownItems.forEach((item, index) => {
+             const toggle = item.querySelector('.header__dropdown-toggle');
+             const menu = item.querySelector('.header__dropdown-menu');
+             if (toggle) {
+                 toggle.setAttribute('aria-haspopup', 'true');
+                 toggle.setAttribute('aria-expanded', item.classList.contains('is-open') ? 'true' : 'false');
+                 if (menu) {
+                     // Ensure deterministic id for aria-controls (stable across reloads)
+                     if (!menu.id) menu.id = `header-dropdown-${index + 1}`;
+                     toggle.setAttribute('aria-controls', menu.id);
+                     menu.setAttribute('aria-hidden', item.classList.contains('is-open') ? 'false' : 'true');
+                 }
+
+                 // Keyboard: allow opening submenu without sacrificing "Enter to navigate"
+                 toggle.addEventListener('keydown', (e) => {
+                     if (!e) return;
+                     if (e.key === 'ArrowDown' || e.key === ' ') {
+                         e.preventDefault();
+                         const currentlyOpen = item.classList.contains('is-open');
+                         dropdownItems.forEach(otherItem => {
+                             if (otherItem !== item) handleDropdown(otherItem, false);
+                         });
+                         handleDropdown(item, !currentlyOpen);
+                         const firstLink = item.querySelector('.header__dropdown-menu a');
+                         if (!currentlyOpen) firstLink?.focus?.();
+                     }
+                 });
+             }
+
              // Desktop hover
-             if (window.matchMedia("(min-width: " + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-md') + ")").matches) {
+             if (isDesktopNav()) {
                 item.addEventListener('mouseenter', () => handleDropdown(item, true));
                 item.addEventListener('mouseleave', () => handleDropdown(item, false));
              }
              // Mobile Click (Toggle)
-             const toggle = item.querySelector('.header__dropdown-toggle');
              if (toggle) {
                  toggle.addEventListener('click', (e) => {
                      // Prevent default link behavior only if menu needs toggling on mobile
-                     if (window.matchMedia("(max-width: " + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-md') + ")").matches) {
+                     if (isMobileNav()) {
                           e.preventDefault();
                           const currentlyOpen = item.classList.contains('is-open');
                           // Close other open dropdowns first
