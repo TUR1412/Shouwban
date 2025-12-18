@@ -11,15 +11,20 @@
 > - 不添加后端依赖（支付/订单/库存仅做前端演示）。
 
 ## 2. 风险清单（本轮发现）
-- [!] `StaticPage` 内容为占位对象，导致静态内容页出现 `undefined`/标题错误
-- [!] `PDP` 选择器与 HTML 类名不一致，导致商品详情页无法渲染
-- [!] `ProductListing` 排序监听被占位符替换，导致排序无效
+- [x] `StaticPage` 内容为占位对象，导致静态内容页出现 `undefined`/标题错误（已修复）
+- [x] `PDP` 选择器与 HTML 类名不一致，导致商品详情页无法渲染（已修复）
+- [x] `ProductListing` 排序监听被占位符替换，导致排序无效（已修复）
 
 ## 3. 执行清单（2025-12-18）
 - [x] 修复关键功能：PDP 选择器、StaticPage 内容、列表页排序监听
 - [x] 新增收藏体系：`favorites.html` + 商品卡片收藏按钮 + 头部收藏入口与计数（`localStorage`）
+- [x] 导航增强：Footer 增加收藏快捷入口
 - [x] 新增主题切换：浅色/深色一键切换；head 预注入避免闪烁（跟随系统/记忆偏好）
 - [x] 新增 PWA 离线兜底：`sw.js` + `offline.html`（仅 https/localhost 生效）
+- [x] PWA 缓存策略：静态资源 `stale-while-revalidate` + 支持自动更新刷新（不影响首次安装）
+- [x] SEO 细化：商品详情注入 `schema.org/Product` JSON-LD
+- [x] 安全基线：动态文本 HTML 转义 + URL 参数 `encodeURIComponent`，避免注入风险
+- [x] 可访问性：ESC 关闭搜索/菜单/下拉；购物车/收藏计数补齐 `aria-live`
 - [x] 缓存穿透统一版本号：`20251218.2`（`main.css`/`extensions.css`/`main.js`）
 - [x] 强化校验脚本：`scripts/validate.mjs` 增加主题注入/扩展样式/离线与 SW 文件强校验
 - [x] CI 加固：GitHub Actions 增加 `sw.js` 语法检查
