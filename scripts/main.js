@@ -89,6 +89,13 @@ const Header = (function() {
         // menuToggle.innerHTML = '&#9776;';
     }
 
+    function closeSearch() {
+        if (!searchBar || !searchToggle) return;
+        if (!searchBar.classList.contains('is-open')) return;
+        searchBar.classList.remove('is-open');
+        searchToggle.setAttribute('aria-expanded', 'false');
+    }
+
     function toggleSearch() {
         if (!searchBar || !searchInput || !searchToggle) return;
         const isOpen = searchBar.classList.toggle('is-open');
@@ -136,6 +143,37 @@ const Header = (function() {
                  // Reset display after transition (optional but good practice)
                  // setTimeout(() => { if (!dropdownItem.classList.contains('is-open')) menu.style.display = 'none'; }, 300); // Match transition duration
             }
+        }
+    }
+
+    function closeAllDropdowns() {
+        if (!dropdownItems || dropdownItems.length === 0) return;
+        dropdownItems.forEach((item) => handleDropdown(item, false));
+    }
+
+    function handleGlobalKeydown(event) {
+        if (!event || event.key !== 'Escape') return;
+
+        const shouldCloseSearch = Boolean(searchBar?.classList.contains('is-open'));
+        const shouldCloseMenu = Boolean(navigation?.classList.contains('is-open'));
+        const shouldCloseDropdowns =
+            Boolean(dropdownItems && Array.from(dropdownItems).some((item) => item.classList.contains('is-open')));
+
+        if (!shouldCloseSearch && !shouldCloseMenu && !shouldCloseDropdowns) return;
+
+        // 统一拦截一次默认行为，避免在某些浏览器里触发“退出全屏”等副作用
+        event.preventDefault();
+
+        if (shouldCloseSearch) {
+            closeSearch();
+            searchToggle?.focus();
+        }
+
+        if (shouldCloseDropdowns) closeAllDropdowns();
+
+        if (shouldCloseMenu) {
+            closeMobileMenu();
+            menuToggle?.focus();
         }
     }
 
@@ -233,12 +271,13 @@ const Header = (function() {
 
             if (!isClickInsideHeader) {
                 closeMobileMenu();
-                if (searchBar?.classList.contains('is-open')) {
-                    toggleSearch(); // Close search if open
-                }
-                dropdownItems.forEach(item => handleDropdown(item, false)); // Close dropdowns
+                closeSearch();
+                closeAllDropdowns();
             }
         });
+
+        // Keyboard: ESC closes search/menu/dropdowns (可访问性增强)
+        document.addEventListener('keydown', handleGlobalKeydown);
 
         // Dropdown handling (Desktop hover, Mobile click can be added)
          dropdownItems.forEach(item => {
