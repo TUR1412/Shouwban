@@ -125,7 +125,7 @@ self.addEventListener('fetch', (event) => {
         return cached;
       }
 
-      return fetchPromise.then((r) => r || cached);
+      return fetchPromise.then((r) => r || new Response('', { status: 504, statusText: 'Offline' }));
     }),
   );
 });
