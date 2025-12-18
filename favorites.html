@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="塑梦潮玩 - 浏览所有精选高品质手办">
-    <meta name="robots" content="index,follow">
+    <meta name="description" content="塑梦潮玩 - 我的收藏，快速查看已收藏的手办商品。">
+    <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#00BCD4">
     <meta name="color-scheme" content="light dark">
-    <meta property="og:title" content="所有手办 - 塑梦潮玩">
-    <meta property="og:description" content="浏览所有精选高品质手办。">
+    <meta property="og:title" content="我的收藏 - 塑梦潮玩">
+    <meta property="og:description" content="快速查看已收藏的手办商品。">
     <meta property="og:type" content="website">
     <meta property="og:image" content="assets/images/hero-placeholder.svg">
     <meta property="og:locale" content="zh_CN">
     <meta name="twitter:card" content="summary_large_image">
-    <title>所有手办 - 塑梦潮玩</title>
+    <title>我的收藏 - 塑梦潮玩</title>
     <script>
         document.documentElement.classList.add('js');
         (function () {
@@ -107,22 +107,20 @@
         </div>
     </header>
 
-    <main id="main" class="plp-main">
+    <main id="main" class="plp-main favorites-main">
         <div class="container">
              <!-- Breadcrumb Navigation -->
             <nav aria-label="breadcrumb" class="breadcrumb-nav">
                 <ol class="breadcrumb">
-                    <!-- Breadcrumb items will be filled by JS -->
                     <li class="breadcrumb-item"><a href="index.html">首页</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">所有手办</li>
+                    <li class="breadcrumb-item active" aria-current="page">我的收藏</li>
                 </ol>
             </nav>
 
-            <h2 class="page-title">所有手办</h2>
+            <h2 class="page-title">我的收藏</h2>
 
-            <!-- Filter/Sort Placeholder -->
             <div class="filter-sort-bar">
-                <button>筛选 <i class="fas fa-filter"></i></button>
+                <button type="button" aria-label="筛选（示例）">筛选 <i class="fas fa-filter" aria-hidden="true"></i></button>
                 <select name="sort" id="sort-select" aria-label="商品排序方式">
                     <option value="default">默认排序</option>
                     <option value="price-asc">价格升序</option>
@@ -131,18 +129,12 @@
                 </select>
             </div>
 
-            <!-- Re-use product grid -->
             <div class="gallery-grid product-listing">
-                <!-- Product cards will be dynamically inserted here by scripts/main.js -->
-                <!-- Optional: Add a loading indicator -->
-                <!-- <p class="loading-message text-center">正在加载商品...</p> -->
+                <!-- 由 scripts/main.js 动态渲染收藏商品 -->
             </div>
 
-            <!-- Pagination Placeholder -->
             <div class="pagination">
-                <!-- Pagination links will be dynamically inserted here by scripts/main.js -->
             </div>
-
         </div>
     </main>
 
@@ -158,8 +150,8 @@
                     <li><a href="products.html">所有手办</a></li>
                     <li><a href="index.html#about">品牌理念</a></li>
                     <li><a href="static-page.html?page=faq">常见问题</a></li>
-                    <li><a href="static-page.html?page=privacy">隐私政策</a></li> <!-- Link to static page -->
-                    <li><a href="static-page.html?page=tos">服务条款</a></li>   <!-- Link to static page -->
+                    <li><a href="static-page.html?page=privacy">隐私政策</a></li>
+                    <li><a href="static-page.html?page=tos">服务条款</a></li>
                 </ul>
             </div>
             <div class="footer__social">
@@ -181,3 +173,4 @@
     <script src="scripts/main.js?v=20251218.1"></script>
 </body>
 </html>
+

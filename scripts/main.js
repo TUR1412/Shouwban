@@ -154,6 +154,9 @@ const Header = (function() {
         const cartLink = headerElement?.querySelector('.header__action-link[href="cart.html"]');
         cartLink?.classList.remove('header__action-link--active');
 
+        const favLink = headerElement?.querySelector('.header__action-link[href="favorites.html"]');
+        favLink?.classList.remove('header__action-link--active');
+
         // 评分选择最佳匹配（兼容 http(s) 与 file://）
         let bestMatch = null;
         let bestScore = -1;
@@ -201,6 +204,11 @@ const Header = (function() {
         // 购物车页：高亮购物车图标
         if (currentPage === 'cart.html' && cartLink) {
             cartLink.classList.add('header__action-link--active');
+        }
+
+        // 收藏页：高亮收藏图标
+        if (currentPage === 'favorites.html' && favLink) {
+            favLink.classList.add('header__action-link--active');
         }
     }
 
@@ -280,14 +288,10 @@ const Header = (function() {
     }
 
     function init() {
-        if (!headerElement) {
-            console.log('Header element not found.');
-            return;
-        }
+        if (!headerElement) return;
         handleScroll(); // Initial check
         setActiveLink(); // Set active link on load
         addEventListeners();
-        console.log('Header module initialized.');
     }
 
     return {
@@ -344,7 +348,6 @@ const SmoothScroll = (function() {
                 }
             });
         });
-        console.log('SmoothScroll module initialized.');
     }
 
     return { init: init };
@@ -375,13 +378,9 @@ const ScrollAnimations = (function() {
                 element.style.transitionDelay = `${delay}ms`;
                 observer.observe(element);
             });
-            console.log('ScrollAnimations module initialized with IntersectionObserver.');
         } else {
             // Fallback for older browsers or no elements
             animatedElements.forEach(element => element.classList.add('is-visible'));
-            if (animatedElements.length > 0) {
-                console.log('ScrollAnimations: IntersectionObserver not supported, showing elements directly.');
-            }
         }
     }
 
@@ -425,7 +424,6 @@ const LazyLoad = (function() {
             lazyImages.forEach(lazyImage => {
                 lazyImageObserver.observe(lazyImage);
             });
-            console.log('LazyLoad module initialized with IntersectionObserver.');
         } else {
             // Fallback
             lazyImages.forEach(lazyImage => {
@@ -435,9 +433,6 @@ const LazyLoad = (function() {
                     lazyImage.classList.remove('lazyload');
                 }
             });
-            if (lazyImages.length > 0) {
-                console.log('LazyLoad: IntersectionObserver not supported, loading images directly.');
-            }
         }
     }
 
@@ -482,6 +477,241 @@ const Toast = (function() {
     }
 
     return { show };
+})();
+
+// ==============================================
+// Theme Module (Light/Dark, persisted)
+// ==============================================
+const Theme = (function() {
+    const storageKey = 'theme'; // 'light' | 'dark' | null(跟随系统)
+
+    function getStoredTheme() {
+        try {
+            const v = localStorage.getItem(storageKey);
+            if (v === 'light' || v === 'dark') return v;
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
+    function getSystemTheme() {
+        try {
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        } catch {
+            return 'light';
+        }
+    }
+
+    function getResolvedTheme() {
+        return getStoredTheme() || getSystemTheme();
+    }
+
+    function setMetaThemeColor(theme) {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) return;
+        meta.setAttribute('content', theme === 'dark' ? '#0B1220' : '#00BCD4');
+    }
+
+    function updateToggleUI(theme) {
+        const btn = document.querySelector('.header__theme-toggle');
+        if (!btn) return;
+
+        const isDark = theme === 'dark';
+        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        btn.setAttribute('aria-label', isDark ? '切换到浅色模式' : '切换到深色模式');
+        btn.innerHTML = isDark
+            ? '<i class="fas fa-sun" aria-hidden="true"></i>'
+            : '<i class="fas fa-moon" aria-hidden="true"></i>';
+    }
+
+    function applyTheme(theme, { persist = false } = {}) {
+        const next = theme === 'dark' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        setMetaThemeColor(next);
+        updateToggleUI(next);
+
+        if (persist) {
+            try { localStorage.setItem(storageKey, next); } catch { /* ignore */ }
+        }
+    }
+
+    function toggleTheme() {
+        const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        applyTheme(next, { persist: true });
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show(next === 'dark' ? '已切换深色模式' : '已切换浅色模式', 'info', 1600);
+        }
+    }
+
+    function init() {
+        // 由 head 内联脚本提前设置 data-theme，避免闪烁；这里负责补齐 UI 状态与监听
+        const theme = document.documentElement.dataset.theme || getResolvedTheme();
+        applyTheme(theme, { persist: false });
+
+        const btn = document.querySelector('.header__theme-toggle');
+        if (btn) btn.addEventListener('click', toggleTheme);
+
+        // 当未设置手动偏好时，跟随系统变化
+        try {
+            const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+            if (!mql) return;
+            const onChange = () => {
+                const stored = getStoredTheme();
+                if (stored) return;
+                applyTheme(getSystemTheme(), { persist: false });
+            };
+            if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onChange);
+            else if (typeof mql.addListener === 'function') mql.addListener(onChange);
+        } catch {
+            // ignore
+        }
+    }
+
+    return { init, applyTheme, toggleTheme, getResolvedTheme };
+})();
+
+// ==============================================
+// Favorites / Wishlist Module (localStorage)
+// ==============================================
+const Favorites = (function() {
+    const storageKey = 'favorites'; // string[] of product IDs
+
+    function safeParseArray(raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter((x) => typeof x === 'string' && x.trim().length > 0);
+        } catch {
+            return [];
+        }
+    }
+
+    function getIds() {
+        try {
+            return safeParseArray(localStorage.getItem(storageKey));
+        } catch {
+            return [];
+        }
+    }
+
+    function setIds(ids) {
+        try {
+            const clean = Array.from(new Set((ids || []).filter((x) => typeof x === 'string' && x.trim().length > 0)));
+            localStorage.setItem(storageKey, JSON.stringify(clean));
+            return clean;
+        } catch {
+            return [];
+        }
+    }
+
+    function isFavorite(id) {
+        if (!id) return false;
+        return getIds().includes(id);
+    }
+
+    function updateHeaderCount(idsOrCount) {
+        const el = document.querySelector('.header__fav-count');
+        if (!el) return;
+
+        const count = Array.isArray(idsOrCount) ? idsOrCount.length : Number(idsOrCount) || 0;
+        el.textContent = String(count);
+        el.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+
+    function applyButtonState(btn, active) {
+        if (!btn) return;
+        const isActive = Boolean(active);
+        btn.classList.toggle('is-favorite', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        btn.setAttribute('aria-label', isActive ? '取消收藏' : '加入收藏');
+
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-solid', isActive);
+            icon.classList.toggle('fa-regular', !isActive);
+        }
+    }
+
+    function syncButtons(root = document) {
+        if (!root || !root.querySelectorAll) return;
+        const ids = getIds();
+        root.querySelectorAll('.favorite-btn[data-product-id]').forEach((btn) => {
+            const productId = btn.dataset.productId;
+            applyButtonState(btn, ids.includes(productId));
+        });
+    }
+
+    function dispatchChanged() {
+        try {
+            window.dispatchEvent(new CustomEvent('favorites:changed'));
+        } catch {
+            // ignore
+        }
+    }
+
+    function toggle(id) {
+        if (!id) return false;
+        const current = new Set(getIds());
+        const has = current.has(id);
+        if (has) current.delete(id);
+        else current.add(id);
+        const next = setIds(Array.from(current));
+        updateHeaderCount(next);
+        dispatchChanged();
+        return !has;
+    }
+
+    function handleClick(event) {
+        const btn = event.target?.closest?.('.favorite-btn');
+        if (!btn) return;
+        const id = btn.dataset.productId;
+        if (!id) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nowActive = toggle(id);
+        applyButtonState(btn, nowActive);
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show(nowActive ? '已加入收藏' : '已取消收藏', nowActive ? 'success' : 'info', 1600);
+        }
+    }
+
+    function init() {
+        updateHeaderCount(getIds());
+        document.addEventListener('click', handleClick);
+        syncButtons(document);
+    }
+
+    return { init, getIds, setIds, isFavorite, toggle, syncButtons, updateHeaderCount };
+})();
+
+// ==============================================
+// Service Worker Module (PWA offline support)
+// ==============================================
+const ServiceWorker = (function() {
+    function canRegister() {
+        try {
+            if (!('serviceWorker' in navigator)) return false;
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            return window.location.protocol === 'https:' || isLocalhost;
+        } catch {
+            return false;
+        }
+    }
+
+    async function init() {
+        if (!canRegister()) return;
+        try {
+            await navigator.serviceWorker.register('sw.js');
+        } catch (e) {
+            console.warn('ServiceWorker 注册失败（可忽略）:', e);
+        }
+    }
+
+    return { init };
 })();
 
 // ==============================================
@@ -699,8 +929,8 @@ const PDP = (function() {
     const breadcrumbList = pdpContainer.querySelector('.breadcrumb');
     const mainImage = pdpContainer.querySelector('#main-product-image');
     const thumbnailContainer = pdpContainer.querySelector('.product-gallery-pdp__thumbnails');
-    const titleElement = pdpContainer.querySelector('.product-info-pdp .product-title-pdp');
-    const seriesElement = pdpContainer.querySelector('.product-info-pdp .product-series-pdp');
+    const titleElement = pdpContainer.querySelector('.product-info-pdp__title');
+    const seriesElement = pdpContainer.querySelector('.product-info-pdp__series');
     const priceElement = pdpContainer.querySelector('.product-info-pdp .price-value');
     const originalPriceElement = pdpContainer.querySelector('.product-info-pdp .original-price');
     const specsList = pdpContainer.querySelector('.product-specs ul');
@@ -709,8 +939,29 @@ const PDP = (function() {
     const minusBtn = pdpContainer.querySelector('.quantity-selector .minus');
     const plusBtn = pdpContainer.querySelector('.quantity-selector .plus');
     const addToCartBtn = pdpContainer.querySelector('.add-to-cart-btn');
+    const actionsContainer = pdpContainer.querySelector('.product-actions');
+
+    let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
 
     let currentProductData = null;
+
+    function ensureFavoriteButton(productId) {
+        if (!actionsContainer) return null;
+        if (!favoriteBtn) {
+            favoriteBtn = document.createElement('button');
+            favoriteBtn.type = 'button';
+            favoriteBtn.className = 'favorite-btn favorite-btn--pdp';
+            favoriteBtn.setAttribute('aria-label', '加入收藏');
+            favoriteBtn.setAttribute('aria-pressed', 'false');
+            favoriteBtn.innerHTML =
+                '<i class="fa-regular fa-heart" aria-hidden="true"></i><span class="favorite-btn__text">收藏</span>';
+            actionsContainer.appendChild(favoriteBtn);
+        }
+
+        if (productId) favoriteBtn.dataset.productId = productId;
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(actionsContainer);
+        return favoriteBtn;
+    }
 
     // --- Update DOM with Product Data --- (Modified error handling)
     function populatePage(product) {
@@ -731,6 +982,7 @@ const PDP = (function() {
          }
 
         currentProductData = product;
+        ensureFavoriteButton(product.id);
 
         // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
         if (breadcrumbList) {
@@ -924,9 +1176,6 @@ const PDP = (function() {
             const addedCount = productToAdd.quantity > 1 ? ` ×${productToAdd.quantity}` : '';
             Toast.show(`已加入购物车${addedCount}`, 'success');
         }
-
-        console.log('Added to cart:', productToAdd);
-        console.log('Current Cart:', cart);
     }
 
     function initAddToCart() {
@@ -937,7 +1186,6 @@ const PDP = (function() {
 
     // --- Initialization --- (Modified to use SharedData)
     function init() {
-        console.log("PDP Module Initializing...");
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
         let productToDisplay = null;
@@ -959,7 +1207,6 @@ const PDP = (function() {
         if (populated) {
             initQuantitySelector();
             initAddToCart();
-            console.log(`PDP module initialized for product: ${productToDisplay?.name || 'Not Found'}.`);
         } else {
             console.error("PDP module initialization failed due to population errors.");
         }
@@ -1175,7 +1422,6 @@ const Cart = (function() {
 
         // 仅在购物车页做完整渲染
         if (cartContainer) {
-            console.log('Cart module initialized.');
             renderCart(); // Initial render
         }
     }
@@ -1348,10 +1594,8 @@ const Checkout = (function() {
     function handlePlaceOrder(event) {
         // ... (no changes needed here, but uses Cart.updateHeaderCartCount now)
          event.preventDefault(); 
-        console.log("尝试提交订单...");
 
         if (validateForm()) {
-            console.log("表单验证通过，准备提交...");
             const formData = new FormData(checkoutForm);
             const shippingAddress = {
                 name: formData.get('name'),
@@ -1366,7 +1610,6 @@ const Checkout = (function() {
                 cartItems: currentCart,
             };
 
-            console.log("模拟订单数据:", orderData);
              // 订单提交成功（模拟）：跳回首页并展示提示
             localStorage.removeItem('cart');
              // Use Cart module's function to update header
@@ -1377,7 +1620,6 @@ const Checkout = (function() {
              }
              window.location.href = 'index.html?order=success';
         } else {
-            console.log("表单验证失败。");
             const firstError = checkoutForm.querySelector('.input-error, .error-message');
             firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -1403,7 +1645,6 @@ const Checkout = (function() {
     // --- Initialization ---
     function init() {
         if (checkoutContainer) { // Check if on checkout page
-             console.log("Checkout Module Initializing...");
              renderOrderSummary();
              addEventListeners();
         }
@@ -1426,15 +1667,111 @@ const StaticPage = (function() {
     const breadcrumbPageNameElement = staticContainer.querySelector('#breadcrumb-page-name');
     const metaDescriptionTag = document.querySelector('meta[name="description"]');
 
-    const pageContents = { /* ... Keep existing page contents ... */ 
-         'faq': { /* ... */ }, 'privacy': { /* ... */ }, 'tos': { /* ... */ }, 'default': { /* ... */ } 
-     };
+    const pageContents = {
+        faq: {
+            title: '常见问题',
+            description: '关于购买、预售、物流、售后与正品保障的常见问题解答。',
+            content: `
+                <section class="static-section">
+                    <h2>关于本项目</h2>
+                    <p>这是一个纯静态多页电商示例站点，用于演示落地页、商品列表/详情、购物车与结算流程。</p>
+                    <p><strong>注意：</strong>本站不接入真实支付与后端订单系统，结算页为模拟下单。</p>
+                </section>
+
+                <section class="static-section">
+                    <h2>商品与预售</h2>
+                    <h3>Q：商品数据来自哪里？</h3>
+                    <p>A：示例商品数据内置在 <code>scripts/main.js</code> 的 <code>SharedData</code> 中，便于快速修改与二次开发。</p>
+                    <h3>Q：可以对接真实 API 吗？</h3>
+                    <p>A：可以。推荐将商品与库存改为接口拉取，并将购物车/订单写入服务端数据库。</p>
+                </section>
+
+                <section class="static-section">
+                    <h2>购物车与结算</h2>
+                    <h3>Q：购物车会丢失吗？</h3>
+                    <p>A：购物车使用浏览器 <code>localStorage</code> 存储，刷新页面不会丢失（但清理浏览器数据会清空）。</p>
+                    <h3>Q：为什么我双击打开 HTML 会有跳转/资源问题？</h3>
+                    <p>A：某些浏览器在 <code>file://</code> 下对资源与导航有安全限制，建议使用本地静态服务器预览（README 有命令）。</p>
+                </section>
+
+                <section class="static-section">
+                    <h2>联系我们</h2>
+                    <p>如需定制为真实项目（会员/支付/订单/库存/后台管理），欢迎基于此模板继续扩展。</p>
+                    <p><a class="cta-button-secondary" href="index.html#contact">前往联系</a></p>
+                </section>
+            `.trim(),
+        },
+        privacy: {
+            title: '隐私政策',
+            description: '说明本示例站点在本地存储、外部资源与信息安全方面的行为与边界。',
+            content: `
+                <section class="static-section">
+                    <h2>我们收集什么信息？</h2>
+                    <p>本项目为纯静态示例站点，不包含后端服务，默认情况下不会将您的个人信息上传到服务器。</p>
+                    <ul>
+                        <li><strong>本地存储：</strong>为了模拟购物车，本项目会在浏览器 <code>localStorage</code> 中保存购物车条目（商品 ID、数量等）。</li>
+                        <li><strong>表单输入：</strong>结算页表单仅用于前端校验与演示，不会提交到服务器。</li>
+                    </ul>
+                </section>
+
+                <section class="static-section">
+                    <h2>第三方资源</h2>
+                    <p>页面可能使用第三方公共资源（例如字体与图标 CDN）。这些服务可能会记录基础访问日志（如 IP、User-Agent）。</p>
+                    <p>若你需要完全离线/内网可用，建议将字体与图标改为本地自托管，并在部署时配置严格的内容安全策略（CSP）。</p>
+                </section>
+
+                <section class="static-section">
+                    <h2>如何清理本地数据？</h2>
+                    <p>你可以在浏览器开发者工具中清理站点数据，或手动删除本地存储项。</p>
+                    <p>示例：清空购物车会移除 <code>localStorage</code> 中的 <code>cart</code>。</p>
+                </section>
+            `.trim(),
+        },
+        tos: {
+            title: '服务条款',
+            description: '本项目作为示例站点的使用条款与免责声明。',
+            content: `
+                <section class="static-section">
+                    <h2>项目性质</h2>
+                    <p>本仓库为演示用途的静态前端模板，旨在展示页面结构、交互与基础电商流程。</p>
+                </section>
+
+                <section class="static-section">
+                    <h2>免责声明</h2>
+                    <ul>
+                        <li>本项目不提供真实支付、真实订单履约、真实库存同步等商业能力。</li>
+                        <li>示例数据、价格与品牌名称仅用于展示，不构成任何商业承诺。</li>
+                        <li>在将本模板用于生产环境前，请自行完成安全审计、隐私合规与接口鉴权等工作。</li>
+                    </ul>
+                </section>
+
+                <section class="static-section">
+                    <h2>许可与二次开发</h2>
+                    <p>你可以在遵守仓库许可（如已添加）与第三方资源许可的前提下进行二次开发与商业化部署。</p>
+                </section>
+            `.trim(),
+        },
+        default: {
+            title: '页面未找到',
+            description: '请求的页面不存在，建议返回首页或浏览商品列表。',
+            content: `
+                <section class="static-section">
+                    <h2>抱歉，页面不存在</h2>
+                    <p>你访问的页面不存在或参数不正确。</p>
+                    <p>
+                        <a class="cta-button-secondary" href="index.html">返回首页</a>
+                        <a class="cta-button-secondary" href="products.html">浏览所有商品</a>
+                    </p>
+                </section>
+            `.trim(),
+        },
+    };
      
      function loadContent() {
         // ... (Keep existing loadContent)
          if (!contentArea || !pageTitleElement || !breadcrumbPageNameElement || !metaDescriptionTag) {
             console.error('Static page elements not found.');
-            if(contentArea) contentArea.innerHTML = pageContents['default'].content;
+            if(contentArea) contentArea.innerHTML = pageContents.default.content;
             return;
         }
         const urlParams = new URLSearchParams(window.location.search);
@@ -1443,10 +1780,11 @@ const StaticPage = (function() {
         if (pageKey && pageContents[pageKey]) {
             pageData = pageContents[pageKey];
         } else {
-            pageData = pageContents['default'];
+            pageData = pageContents.default;
         }
+        if (!pageData?.title || !pageData?.content) pageData = pageContents.default;
         document.title = `${pageData.title} - 塑梦潮玩`;
-        metaDescriptionTag.setAttribute('content', pageData.description);
+        if (pageData.description) metaDescriptionTag.setAttribute('content', pageData.description);
         pageTitleElement.textContent = pageData.title;
         breadcrumbPageNameElement.textContent = pageData.title;
         contentArea.innerHTML = pageData.content;
@@ -1471,23 +1809,12 @@ const StaticPage = (function() {
     function init() {
         if (staticContainer) { // Check if on static page
              loadContent();
-             console.log('StaticPage module initialized.');
         }
     }
 
     return { init: init };
 })();
 
-
-// ==============================================
-// Animations Module (Keep existing)
-// ==============================================
-const Animations = (function() {
-    // ... (Keep existing Animations code)
-    const animatedElements = document.querySelectorAll('.fade-in-up');
-    function init() { /* ... */ }
-    return { init: init };
-})();
 
 // ==============================================
 // Product Listing / Category / Search Results Module (Modified to use SharedData)
@@ -1502,6 +1829,11 @@ const ProductListing = (function(){
         const image = (safeProduct.images && safeProduct.images.length > 0 ? safeProduct.images[0].thumb : 'assets/images/figurine-1.svg');
         const id = safeProduct.id || '#';
         const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">¥${price}</p>` : '';
+        const favBtnHTML = id !== '#'
+            ? `<button class="favorite-btn" type="button" data-product-id="${id}" aria-label="加入收藏" aria-pressed="false">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+               </button>`
+            : '';
 
         return `
           <div class="product-card fade-in-up">
@@ -1509,6 +1841,7 @@ const ProductListing = (function(){
                   <a href="product-detail.html?id=${id}">
                        <img src="assets/images/placeholder-lowquality.svg" data-src="${image}" alt="${name} - ${series}" loading="lazy" class="lazyload">
                   </a>
+                  ${favBtnHTML}
               </div>
               <div class="product-card__content">
                   <h4 class="product-card__title">
@@ -1540,6 +1873,22 @@ const ProductListing = (function(){
     let pageMode = 'all';
     let currentQuery = '';
     let currentCategory = '';
+    let allProductsCache = [];
+
+    function getFavoriteIdsSafe() {
+        if (typeof Favorites === 'undefined' || !Favorites.getIds) return [];
+        return Favorites.getIds();
+    }
+
+    function getFavoriteProducts(products) {
+        const favIds = new Set(getFavoriteIdsSafe());
+        return (products || []).filter((p) => favIds.has(p.id));
+    }
+
+    function setTitle(title) {
+        if (pageTitleElement) pageTitleElement.textContent = title;
+        document.title = `${title} - 塑梦潮玩`;
+    }
 
     // --- Sorting Logic --- (Keep existing)
     function sortProducts(products, sortType) {
@@ -1635,6 +1984,9 @@ const ProductListing = (function(){
             breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${categoryNames(currentCategory)}</li>`;
         } else if (pageMode === 'search') {
              breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">搜索结果: ${currentQuery}</li>`;
+        } else if (pageMode === 'favorites') {
+            breadcrumbHTML += `<li class="breadcrumb-item"><a href="products.html">所有手办</a></li>`;
+            breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">我的收藏</li>`;
         } else {
              breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${categoryNames('all')}</li>`;
         }
@@ -1671,6 +2023,8 @@ const ProductListing = (function(){
             } else if (pageMode === 'category') {
                 const categoryName = (typeof SharedData !== 'undefined' && SharedData.getCategoryName) ? SharedData.getCategoryName(currentCategory) : currentCategory;
                 message = `抱歉，分类 "${categoryName}" 下暂无商品。`;
+            } else if (pageMode === 'favorites') {
+                message = '你还没有收藏任何商品。';
             }
             emptyMessageElement.innerHTML = `<p>${message}</p><a href="products.html" class="cta-button-secondary">浏览所有商品</a>`;
             productGrid.appendChild(emptyMessageElement);
@@ -1680,12 +2034,19 @@ const ProductListing = (function(){
             });
         }
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
     }
 
     // --- Event Listeners Setup --- (Keep existing)
     function addEventListeners() {
         // ... (no changes needed here)
-         if (sortSelect) { sortSelect.addEventListener('change', (event) => { /* ... */ }); }
+         if (sortSelect) {
+             sortSelect.addEventListener('change', (event) => {
+                 currentSort = event?.target?.value || 'default';
+                 currentPage = 1;
+                 renderPage();
+             });
+         }
     }
 
     // --- Initialization --- (Modified to use SharedData)
@@ -1694,6 +2055,8 @@ const ProductListing = (function(){
 
         const allProducts = (typeof SharedData !== 'undefined') ? SharedData.getAllProducts() : [];
         const categoryNames = (typeof SharedData !== 'undefined') ? SharedData.getCategoryName : (key)=>key;
+        allProductsCache = [...allProducts];
+        const pageName = Utils.getPageName();
         
         const urlParams = new URLSearchParams(window.location.search);
         const categoryKey = urlParams.get('cat');
@@ -1703,7 +2066,20 @@ const ProductListing = (function(){
         pageMode = 'all';
         currentCategory = 'all';
 
-        if (searchQuery) {
+        if (pageName === 'favorites.html') {
+            pageMode = 'favorites';
+            currentProducts = getFavoriteProducts(allProductsCache);
+            title = `我的收藏${currentProducts.length > 0 ? `（${currentProducts.length}）` : ''}`;
+
+            // 收藏变化时：实时刷新视图
+            window.addEventListener('favorites:changed', () => {
+                if (pageMode !== 'favorites') return;
+                currentProducts = getFavoriteProducts(allProductsCache);
+                currentPage = 1;
+                setTitle(`我的收藏${currentProducts.length > 0 ? `（${currentProducts.length}）` : ''}`);
+                renderPage();
+            });
+        } else if (searchQuery) {
             pageMode = 'search';
             currentQuery = searchQuery.trim();
             title = `搜索结果: "${currentQuery}"`;
@@ -1717,19 +2093,17 @@ const ProductListing = (function(){
             currentCategory = categoryKey;
             title = categoryNames(currentCategory);
             currentProducts = allProducts.filter(p => p.category?.key === currentCategory);
-        } else if (Utils.getPageName() === 'products.html') {
+        } else if (pageName === 'products.html') {
              pageMode = 'all'; title = categoryNames('all'); currentProducts = [...allProducts];
         } else {
              currentProducts = [...allProducts]; // Fallback
         }
 
-        pageTitleElement.textContent = title;
-        document.title = `${title} - 塑梦潮玩`;
+        setTitle(title);
         currentPage = 1;
         currentSort = sortSelect ? sortSelect.value : 'default';
         renderPage();
         addEventListeners();
-        console.log(`ProductListing module initialized in '${pageMode}' mode.`);
     }
 
     return { init: init, createProductCardHTML };
@@ -1770,18 +2144,13 @@ const Homepage = (function() {
 
         // Re-initialize lazy/animations (Keep existing)
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(featuredGrid); }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
-        console.log('Homepage featured products populated.');
     }
 
     function init() {
         // ... (Keep existing check for homepage)
-         if (Utils.getPageName() === 'index.html') {
-             if (featuredGrid) {
-                console.log('Homepage module Initializing...');
-                populateFeaturedProducts();
-            } else { console.log('Homepage module: Featured grid not found.'); }
-        }
+         if (Utils.getPageName() === 'index.html' && featuredGrid) populateFeaturedProducts();
     }
 
     return { init: init };
@@ -1792,20 +2161,21 @@ const Homepage = (function() {
 // ==============================================
 const App = {
     init: function() {
-        console.log("App Initializing...");
         // Initialize modules in order of dependency or desired execution
         // SharedData doesn't need init as it's just data
-        Utils; // Ensure Utils is processed (though it has no init)
         Header.init();
+        Theme.init();
         SmoothScroll.init();
         ScrollAnimations.init(); 
         LazyLoad.init(); 
+        Favorites.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
         Homepage.init(); 
         PDP.init(); 
         Checkout.init();
         StaticPage.init();
         ProductListing.init();
+        ServiceWorker.init();
 
         // URL 参数触发的一次性提示（避免刷新重复弹出）
         try {
@@ -1826,7 +2196,6 @@ const App = {
         } catch (e) {
             console.warn('App: URL toast init failed.', e);
         }
-        console.log("App Initialization Complete.");
     }
 };
 

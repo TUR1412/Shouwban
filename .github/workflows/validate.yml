@@ -17,8 +17,9 @@ jobs:
           node-version: 20
 
       - name: Syntax Check
-        run: node --check scripts/main.js
+        run: |
+          node --check scripts/main.js
+          node --check sw.js
 
       - name: Validate References
         run: node scripts/validate.mjs
-

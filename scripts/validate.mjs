@@ -99,18 +99,30 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
     if (!c.includes('document.documentElement.classList.add(\'js\')')) {
       errors.push(`[HTML] 缺少 JS 标识脚本: ${rel}`);
     }
+    if (!c.includes('document.documentElement.dataset.theme')) {
+      errors.push(`[HTML] 缺少主题注入脚本（避免闪烁）: ${rel}`);
+    }
     if (!/styles\/main\.css\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 CSS 版本号: ${rel}`);
     }
+    if (!/styles\/extensions\.css\?v=/.test(c)) {
+      errors.push(`[HTML] 缺少 Extensions CSS 版本号: ${rel}`);
+    }
     if (!/scripts\/main\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 JS 版本号: ${rel}`);
+    }
+    const hasColorScheme = /\bname\s*=\s*["']color-scheme["'][^>]*\bcontent\s*=\s*["'][^"']*light[^"']*dark[^"']*["']/i.test(
+      c,
+    );
+    if (!hasColorScheme) {
+      errors.push(`[HTML] 缺少 color-scheme: light dark: ${rel}`);
     }
   }
   return errors;
 }
 
 function assertRequiredRepoFilesExist() {
-  const required = ['robots.txt', 'sitemap.xml'];
+  const required = ['robots.txt', 'sitemap.xml', 'sw.js', 'offline.html', 'styles/extensions.css'];
   const errors = [];
   for (const rel of required) {
     const abs = path.join(workspaceRoot, rel);
@@ -273,4 +285,3 @@ function main() {
 }
 
 main();
-

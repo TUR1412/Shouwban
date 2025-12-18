@@ -6,7 +6,7 @@
     <meta name="description" content="塑梦潮玩 - 填写收货信息并完成您的手办订单结算">
     <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#00BCD4">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
     <meta property="og:title" content="结算 - 塑梦潮玩">
     <meta property="og:description" content="填写收货信息并完成订单结算（示例站点）。">
     <meta property="og:type" content="website">
@@ -14,13 +14,25 @@
     <meta property="og:locale" content="zh_CN">
     <meta name="twitter:card" content="summary_large_image">
     <title>结算 - 塑梦潮玩</title>
-    <script>document.documentElement.classList.add('js');</script>
+    <script>
+        document.documentElement.classList.add('js');
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                var theme = stored === 'dark' || stored === 'light'
+                    ? stored
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.theme = theme;
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251217.4">
+    <link rel="stylesheet" href="styles/main.css?v=20251218.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251218.1">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -64,10 +76,19 @@
                     <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
 
+                <a href="favorites.html" class="header__action-link" aria-label="收藏">
+                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <span class="header__fav-count" aria-label="收藏数量" style="display:none;">0</span>
+                </a>
+
                 <a href="cart.html" class="header__action-link" aria-label="购物车">
                     <i class="fas fa-shopping-cart" aria-hidden="true"></i>
-                    <span class="header__cart-count" aria-label="购物车商品数量">0</span>
+                    <span class="header__cart-count" aria-label="购物车商品数量" style="display:none;">0</span>
                 </a>
+
+                <button type="button" class="header__action-link header__theme-toggle" aria-label="切换主题" aria-pressed="false">
+                    <i class="fas fa-moon" aria-hidden="true"></i>
+                </button>
 
                 <button class="header__menu-toggle" type="button" aria-label="切换导航" aria-expanded="false">
                     &#9776;
@@ -197,6 +218,6 @@
         </div>
     </footer>
 
-    <script src="scripts/main.js?v=20251217.4"></script>
+    <script src="scripts/main.js?v=20251218.1"></script>
 </body>
 </html>

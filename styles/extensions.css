@@ -1,0 +1,162 @@
+/* Extensions / 2025-12-18
+   - Theme (Light/Dark) + Favorites (Wishlist)
+   - Loaded after styles/main.css to override safely
+*/
+
+html {
+  color-scheme: light dark;
+}
+
+/* Header: favorites count badge aligned with cart count */
+.header__fav-count {
+  position: absolute;
+  top: -2px;
+  right: -5px;
+  background-color: var(--color-accent);
+  color: var(--text-light-color);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  border-radius: var(--border-radius-pill);
+  padding: 0.2em 0.5em;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Favorites button base */
+.favorite-btn {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-text-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.favorite-btn:active {
+  transform: scale(0.95);
+}
+
+.favorite-btn.is-favorite {
+  border-color: rgba(233, 30, 99, 0.45);
+  color: #e91e63;
+}
+
+/* Card overlay placement */
+.product-card__image .favorite-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+}
+
+.product-card__image .favorite-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* PDP inline favorite button */
+.favorite-btn--pdp {
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-background-medium);
+  border: var(--border-width) var(--border-style) var(--color-border);
+}
+
+.favorite-btn--pdp:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary-light);
+}
+
+.favorite-btn--pdp .favorite-btn__text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.favorite-btn--pdp.is-favorite {
+  background-color: rgba(233, 30, 99, 0.12);
+}
+
+/* Theme: dark
+   - 注意：主样式中 --text-light-color 同时被用于“浅色背景”和“深色文字”
+     因此这里不直接重写该变量，改为在暗色主题下对关键组件做覆写。
+*/
+html[data-theme="dark"] {
+  --color-background-light: #0b1220;
+  --color-background-medium: #0f172a;
+  --color-background-dark: #111827;
+  --color-background-darker: #070b14;
+
+  --color-text-base: #e5e7eb;
+  --color-text-dark: #f9fafb;
+  --color-text-muted: #9ca3af;
+  --color-border: rgba(255, 255, 255, 0.14);
+
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.45);
+
+  --color-text-link: #80deea;
+  --color-text-link-hover: #00bcd4;
+}
+
+html[data-theme="dark"] body {
+  background-color: var(--color-background-light);
+  background-image:
+    radial-gradient(1200px 800px at 12% 10%, rgba(0, 188, 212, 0.22), transparent 60%),
+    radial-gradient(900px 700px at 86% 14%, rgba(255, 152, 0, 0.1), transparent 55%),
+    radial-gradient(1000px 820px at 55% 92%, rgba(99, 102, 241, 0.12), transparent 58%);
+}
+
+html[data-theme="dark"] body::before {
+  opacity: 0.08;
+}
+
+html[data-theme="dark"] .header {
+  background-color: rgba(15, 23, 42, 0.72);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .header--scrolled {
+  background-color: rgba(15, 23, 42, 0.86);
+}
+
+html[data-theme="dark"] .header__navigation {
+  background-color: rgba(15, 23, 42, 0.96);
+  border-top-color: rgba(255, 255, 255, 0.10);
+}
+
+html[data-theme="dark"] .header__logo a {
+  color: var(--color-primary-light);
+}
+
+/* Dark theme: key surfaces */
+html[data-theme="dark"] .product-card,
+html[data-theme="dark"] .static-content,
+html[data-theme="dark"] .cart-summary,
+html[data-theme="dark"] .order-summary,
+html[data-theme="dark"] .checkout-form,
+html[data-theme="dark"] .filter-sort-bar,
+html[data-theme="dark"] .breadcrumb-nav,
+html[data-theme="dark"] .product-gallery-pdp,
+html[data-theme="dark"] .product-info-pdp {
+  background-color: rgba(17, 24, 39, 0.68);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+html[data-theme="dark"] .favorite-btn {
+  background: rgba(17, 24, 39, 0.65);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--color-text-dark);
+}
+
