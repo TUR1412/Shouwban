@@ -2432,6 +2432,36 @@ const Homepage = (function() {
 })();
 
 // ==============================================
+// Offline Page Module (offline.html)
+// ==============================================
+const OfflinePage = (function() {
+    const container = document.querySelector('.offline-main');
+    if (!container) return { init: () => {} };
+
+    const statusEl = container.querySelector('#offline-status');
+    const retryBtn = container.querySelector('#offline-retry');
+
+    function renderStatus() {
+        if (!statusEl) return;
+        const online = Boolean(navigator && navigator.onLine);
+        statusEl.textContent = online ? '网络已恢复，可重试加载。' : '当前离线：可浏览已缓存内容。';
+    }
+
+    function handleRetry() {
+        try { window.location.reload(); } catch { /* ignore */ }
+    }
+
+    function init() {
+        renderStatus();
+        window.addEventListener('online', renderStatus);
+        window.addEventListener('offline', renderStatus);
+        if (retryBtn) retryBtn.addEventListener('click', handleRetry);
+    }
+
+    return { init };
+})();
+
+// ==============================================
 // Cross Tab Sync (storage event)
 // ==============================================
 const CrossTabSync = (function() {
@@ -2494,6 +2524,7 @@ const App = {
         PDP.init(); 
         Checkout.init();
         StaticPage.init();
+        OfflinePage.init();
         ProductListing.init();
         ServiceWorker.init();
         CrossTabSync.init();

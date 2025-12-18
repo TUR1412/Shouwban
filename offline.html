@@ -111,12 +111,16 @@
         <div class="container">
             <h1>离线模式</h1>
             <div class="static-content">
-                <p>当前网络不可用，但你仍可以浏览已缓存的页面与资源。</p>
+                <p id="offline-status">正在检测网络状态…</p>
+                <p>当前网络不可用时，你仍可以浏览已缓存的页面与资源。</p>
                 <ul>
                     <li>尝试返回 <a href="index.html">首页</a> 或 <a href="products.html">商品列表</a>（若已缓存）。</li>
                     <li>恢复网络后刷新页面，以获取最新内容。</li>
                 </ul>
-                <p><a class="cta-button-secondary" href="index.html">返回首页</a></p>
+                <p class="offline-actions">
+                    <button id="offline-retry" type="button" class="cta-button-secondary">重试加载</button>
+                    <a class="cta-button-secondary" href="index.html">返回首页</a>
+                </p>
             </div>
         </div>
     </main>
@@ -157,4 +161,3 @@
     <script src="scripts/main.js?v=20251218.3"></script>
 </body>
 </html>
-
