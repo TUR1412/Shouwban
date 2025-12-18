@@ -1158,6 +1158,7 @@ const PDP = (function() {
     const actionsContainer = pdpContainer.querySelector('.product-actions');
 
     let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
+    let shareBtn = actionsContainer?.querySelector('.share-btn--pdp') || null;
 
     let currentProductData = null;
 
@@ -1177,6 +1178,66 @@ const PDP = (function() {
         if (productId) favoriteBtn.dataset.productId = productId;
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(actionsContainer);
         return favoriteBtn;
+    }
+
+    function ensureShareButton() {
+        if (!actionsContainer) return null;
+        if (!shareBtn) {
+            shareBtn = document.createElement('button');
+            shareBtn.type = 'button';
+            shareBtn.className = 'share-btn share-btn--pdp';
+            shareBtn.setAttribute('aria-label', '复制当前商品链接');
+            shareBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i><span class="share-btn__text">复制链接</span>';
+            actionsContainer.appendChild(shareBtn);
+        }
+        return shareBtn;
+    }
+
+    async function copyToClipboard(text) {
+        const value = String(text || '');
+        if (!value) return false;
+
+        // Prefer modern clipboard API (requires secure context)
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(value);
+                return true;
+            }
+        } catch {
+            // ignore and fallback
+        }
+
+        // Fallback: temporary textarea + execCommand (legacy)
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = value;
+            textarea.setAttribute('readonly', 'true');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            textarea.remove();
+            return Boolean(ok);
+        } catch {
+            return false;
+        }
+    }
+
+    function initShareButton() {
+        const btn = ensureShareButton();
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            const url = (() => {
+                try { return new URL(window.location.href).toString(); } catch { return window.location.href; }
+            })();
+
+            const ok = await copyToClipboard(url);
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show(ok ? '链接已复制' : '复制失败，请手动复制地址栏链接', ok ? 'success' : 'info', 2200);
+            }
+        });
     }
 
     function upsertProductJsonLd(product) {
@@ -1253,6 +1314,7 @@ const PDP = (function() {
 
         currentProductData = product;
         ensureFavoriteButton(product.id);
+        ensureShareButton();
 
         // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
         if (breadcrumbList) {
@@ -1496,6 +1558,7 @@ const PDP = (function() {
         if (populated) {
             initQuantitySelector();
             initAddToCart();
+            initShareButton();
         } else {
             console.error("PDP module initialization failed due to population errors.");
         }

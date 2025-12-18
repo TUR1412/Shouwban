@@ -87,6 +87,46 @@ html {
   background-color: rgba(233, 30, 99, 0.12);
 }
 
+/* Share button base (separate class to avoid Favorites click delegation) */
+.share-btn {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-text-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.share-btn:active {
+  transform: scale(0.95);
+}
+
+.share-btn--pdp {
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-background-medium);
+  border: var(--border-width) var(--border-style) var(--color-border);
+}
+
+.share-btn--pdp:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary-light);
+}
+
+.share-btn--pdp .share-btn__text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
 /* Theme: dark
    - 注意：主样式中 --text-light-color 同时被用于“浅色背景”和“深色文字”
      因此这里不直接重写该变量，改为在暗色主题下对关键组件做覆写。
@@ -158,6 +198,12 @@ html[data-theme="dark"] .product-info-pdp {
 }
 
 html[data-theme="dark"] .favorite-btn {
+  background: rgba(17, 24, 39, 0.65);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--color-text-dark);
+}
+
+html[data-theme="dark"] .share-btn {
   background: rgba(17, 24, 39, 0.65);
   border-color: rgba(255, 255, 255, 0.14);
   color: var(--color-text-dark);
