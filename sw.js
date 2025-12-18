@@ -55,6 +55,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  const data = event?.data;
+  if (data && data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 function isSameOrigin(request) {
   try {
     const url = new URL(request.url);

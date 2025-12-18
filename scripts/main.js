@@ -755,7 +755,42 @@ const ServiceWorker = (function() {
     async function init() {
         if (!canRegister()) return;
         try {
-            await navigator.serviceWorker.register('sw.js');
+            const registration = await navigator.serviceWorker.register('sw.js');
+
+            // 自动更新：发现新 SW 后跳过等待并刷新（仅在“更新”场景触发）
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+            });
+
+            const trySkipWaiting = (worker) => {
+                if (!worker) return;
+                if (!navigator.serviceWorker.controller) return; // 首次安装不刷新
+                try {
+                    if (typeof Toast !== 'undefined' && Toast.show) {
+                        Toast.show('发现新版本，正在更新…', 'info', 1600);
+                    }
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                } catch {
+                    // ignore
+                }
+            };
+
+            // 如果已经处于 waiting，立即触发
+            if (registration.waiting) trySkipWaiting(registration.waiting);
+
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed') {
+                        trySkipWaiting(newWorker);
+                    }
+                });
+            });
         } catch (e) {
             console.warn('ServiceWorker 注册失败（可忽略）:', e);
         }
