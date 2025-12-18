@@ -407,11 +407,11 @@ select:focus-visible {
 }
 
 /* Remove default outline when using custom focus styles */
-a:focus,
-button:focus,
-input:focus,
-textarea:focus,
-select:focus {
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
     outline: none;
 }
 
@@ -2861,4 +2861,3 @@ header:not(.header).scrolled {
 .faq-answer {
     /* Styles for answer panel */
 }
-
