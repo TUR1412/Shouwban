@@ -88,15 +88,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 静态资源：stale-while-revalidate（先用缓存保证速度，再后台更新）
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
-        return response;
-      });
+      const fetchPromise = fetch(request)
+        .then((response) => {
+          // 仅缓存成功响应（避免缓存 404/opaque）
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => null);
+
+      if (cached) {
+        event.waitUntil(fetchPromise.catch(() => {}));
+        return cached;
+      }
+
+      return fetchPromise.then((r) => r || cached);
     }),
   );
 });
-
