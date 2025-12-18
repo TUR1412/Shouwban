@@ -90,7 +90,18 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('offline.html'))),
+        .catch(() =>
+          caches.match(request).then((cached) => {
+            if (cached) return cached;
+            try {
+              const url = new URL(request.url);
+              if (url.pathname.endsWith('/')) return caches.match('index.html');
+            } catch {
+              // ignore
+            }
+            return caches.match('offline.html');
+          }),
+        ),
     );
     return;
   }
