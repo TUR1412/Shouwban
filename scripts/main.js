@@ -349,8 +349,11 @@ const Header = (function() {
         updateCartCount: function(count) { // Expose function to update cart count
              const cartCountElement = headerElement?.querySelector('.header__cart-count');
              if (cartCountElement) {
-                 cartCountElement.textContent = count;
-                 cartCountElement.style.display = count > 0 ? 'inline-block' : 'none';
+                 const safeCount = Number(count) || 0;
+                 cartCountElement.textContent = String(safeCount);
+                 cartCountElement.style.display = safeCount > 0 ? 'inline-block' : 'none';
+                 cartCountElement.setAttribute('aria-live', 'polite');
+                 cartCountElement.setAttribute('aria-label', `购物车商品数量：${safeCount}`);
              }
          }
     };
@@ -668,6 +671,8 @@ const Favorites = (function() {
         const count = Array.isArray(idsOrCount) ? idsOrCount.length : Number(idsOrCount) || 0;
         el.textContent = String(count);
         el.style.display = count > 0 ? 'inline-block' : 'none';
+        el.setAttribute('aria-live', 'polite');
+        el.setAttribute('aria-label', `收藏数量：${count}`);
     }
 
     function applyButtonState(btn, active) {
