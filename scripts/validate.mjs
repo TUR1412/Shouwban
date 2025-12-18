@@ -240,6 +240,49 @@ function assertServiceWorkerVersionMatches(version) {
   return errors;
 }
 
+function extractPrecacheUrlsFromSw(swText) {
+  const text = String(swText || '');
+  const m = text.match(/const\s+PRECACHE_URLS\s*=\s*\[([\s\S]*?)\]\s*;/i);
+  if (!m) return null;
+
+  const body = m[1] || '';
+  const urls = [];
+  const urlRegex = /['"]([^'"]+)['"]/g;
+  let mm;
+  while ((mm = urlRegex.exec(body))) {
+    urls.push(mm[1]);
+  }
+  return urls;
+}
+
+function normalizeRelPath(p) {
+  return String(p || '').replace(/\\/g, '/');
+}
+
+function assertServiceWorkerPrecacheCoversHtml(htmlFiles) {
+  const swPath = path.join(workspaceRoot, 'sw.js');
+  if (!isFile(swPath)) return ['[REPO] 缺少 sw.js'];
+
+  const sw = readText(swPath);
+  const urls = extractPrecacheUrlsFromSw(sw);
+  if (!urls || urls.length === 0) return ['[SW] 无法解析 PRECACHE_URLS（或列表为空）'];
+
+  const precacheSet = new Set(urls.map((u) => normalizeRelPath(stripQueryAndHash(u))));
+  const errors = [];
+
+  for (const abs of htmlFiles) {
+    const rel = normalizeRelPath(path.relative(workspaceRoot, abs));
+    if (!precacheSet.has(rel)) errors.push(`[SW] PRECACHE_URLS 缺少 HTML: ${rel}`);
+  }
+
+  // 额外约束：PRECACHE_URLS 不应包含外链（避免 install 阶段因外链失败导致 SW 装不上）
+  for (const raw of urls) {
+    if (isExternalUrl(raw)) errors.push(`[SW] PRECACHE_URLS 不应包含外部 URL: ${raw}`);
+  }
+
+  return errors;
+}
+
 function assertMainCssNotDuplicated() {
   const cssPath = path.join(workspaceRoot, 'styles', 'main.css');
   if (!isFile(cssPath)) return [];
@@ -390,6 +433,7 @@ function main() {
   const versionResult = assertHtmlAssetVersionsConsistent(htmlFiles);
   const versionErrors = versionResult.errors;
   const swVersionErrors = assertServiceWorkerVersionMatches(versionResult.version);
+  const swPrecacheErrors = assertServiceWorkerPrecacheCoversHtml(htmlFiles);
 
   const refErrors = validateReferences([...htmlFiles, ...cssFiles]);
 
@@ -403,6 +447,7 @@ function main() {
     ...robotsErrors,
     ...versionErrors,
     ...swVersionErrors,
+    ...swPrecacheErrors,
     ...refErrors,
   ];
 
