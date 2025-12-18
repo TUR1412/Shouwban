@@ -1,0 +1,12 @@
+{
+  "name": "shouwban",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check scripts/main.js && node --check sw.js",
+    "validate": "node scripts/validate.mjs",
+    "verify": "npm run check && npm run validate",
+    "bump:version": "node scripts/bump-version.mjs"
+  }
+}
+
