@@ -21,7 +21,7 @@
 - [x] `Cart` 模块在非购物车页“早退”导致 API 不一致、容错不足（已修复）
 - [x] `:focus` 覆盖 `:focus-visible` 导致键盘焦点提示弱化（已修复）
 
-## 3. 执行清单（2025-12-18）
+## 3. 执行清单（2025-12-19）
 - [x] 修复关键功能：PDP 选择器、StaticPage 内容、列表页排序监听
 - [x] 新增收藏体系：`favorites.html` + 商品卡片收藏按钮 + 头部收藏入口与计数（`localStorage`）
 - [x] 导航增强：Footer 增加收藏快捷入口
@@ -32,7 +32,7 @@
 - [x] 安全基线：动态文本 HTML 转义 + URL 参数 `encodeURIComponent`，避免注入风险
 - [x] 安全加固：购物车/结算等关键渲染改用安全 DOM API + HTML 转义（防 `localStorage` 注入）
 - [x] 可访问性：ESC 关闭搜索/菜单/下拉；购物车/收藏计数补齐 `aria-live`
-- [x] 缓存穿透统一版本号：`20251218.4`（`main.css`/`extensions.css`/`main.js`）
+- [x] 缓存穿透统一版本号：`20251219.2`（`main.css`/`extensions.css`/`main.js`）
 - [x] 主题原子性：新增 `--color-surface`，暗色主题下卡片/导航/内容区块一致更新
 - [x] 样式体积治理：移除 `styles/main.css` 误拼接重复段（并在校验脚本中增加重复检测）
 - [x] 跨标签同步：监听 `storage` 同步主题/收藏/购物车（含结算页摘要刷新）
@@ -48,6 +48,21 @@
 - [x] A11y 增强：结算表单错误补齐 `aria-invalid`/`aria-describedby`，并聚焦首个错误
 - [x] 工具链：新增 `scripts/bump-version.mjs` 与 `package.json`（零依赖）便于一键校验与版本号 bump
 - [x] 文档：新增 `SECURITY.md`、`TROUBLESHOOTING.md`、`QUARK_ITERATIONS.md`，并进一步美化 README
+- [x] 新增搜索联想：Header 搜索即输即提示，支持键盘选择直达详情
+- [x] 新增最近浏览：首页复盘最近查看商品（PDP 记录 + 本地存储）
+- [x] 结算草稿：收货信息本地自动保存 + 一键清空
+- [x] 视觉升级：Bento 高亮区 + 最近浏览空态插画
+- [x] 搜索体验升级：清除按钮 + 高亮匹配 + 键盘提示
+- [x] 列表体验升级：结果数量显示 + 排序偏好记忆
+- [x] 商品卡片升级：NEW/优惠角标 + 4:5 比例 + 文案行数限制
+- [x] 图片稳健性：懒加载 shimmer 占位 + 失败兜底占位
+- [x] PDP 优化：主图/缩略图 decoding + 缩略图懒加载
+- [x] 交互回馈：滚动进度条全站提示
+- [x] 购物车增强：数量上限 99 + 禁用态同步
+- [x] 可访问性增强：列表/购物车 aria-live + aria-busy
+- [x] 表单增强：autocomplete/inputmode + 摘要 aria-live
+- [x] PWA 增强：Manifest shortcuts（收藏/购物车/商品）
+- [x] SEO 增强：首页 Organization JSON-LD
 
 ## 4. 验收命令（推荐）
 

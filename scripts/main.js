@@ -84,7 +84,9 @@ const Header = (function() {
     const dropdownItems = headerElement?.querySelectorAll('.header__nav-item--dropdown');
     const searchToggle = headerElement?.querySelector('.header__action-link[aria-label="搜索"]');
     const searchBar = headerElement?.querySelector('.header__search-bar');
+    const searchContainer = searchBar?.querySelector('.container');
     const searchInput = searchBar?.querySelector('.header__search-input');
+    const searchClearBtn = searchBar?.querySelector('.header__search-clear');
     const searchForm = searchBar?.querySelector('form');
     const searchSubmitBtn = searchBar?.querySelector('.header__search-submit');
     const navLinks = headerElement?.querySelectorAll('.header__nav-link:not(.header__dropdown-toggle)'); // Exclude dropdown toggle itself
@@ -92,6 +94,8 @@ const Header = (function() {
     const allNavLinks = Array.from(navLinks || []).concat(Array.from(dropdownLinks || []));
 
     const scrollThreshold = 50;
+    let searchSuggestionsBox = null;
+    let activeSuggestionIndex = -1;
 
     function getBreakpointMd() {
         try {
@@ -141,6 +145,7 @@ const Header = (function() {
         searchBar.classList.remove('is-open');
         searchToggle.setAttribute('aria-expanded', 'false');
         searchBar.setAttribute('aria-hidden', 'true');
+        clearSearchSuggestions();
     }
 
     function toggleSearch() {
@@ -152,8 +157,10 @@ const Header = (function() {
             closeMobileMenu();
             closeAllDropdowns();
             searchInput.focus();
+            updateSearchClearButton();
             // Optional: Change search icon to close icon
         } else {
+            clearSearchSuggestions();
             // Optional: Change close icon back to search icon
         }
     }
@@ -172,6 +179,204 @@ const Header = (function() {
         // if (searchBar?.classList.contains('is-open')) {
         //     toggleSearch();
         // }
+    }
+
+    function updateSearchClearButton() {
+        if (!searchClearBtn || !searchInput) return;
+        const hasValue = searchInput.value.trim().length > 0;
+        searchClearBtn.classList.toggle('is-visible', hasValue);
+        searchClearBtn.setAttribute('aria-hidden', hasValue ? 'false' : 'true');
+    }
+
+    function ensureSearchSuggestions() {
+        if (!searchContainer) return null;
+        if (searchSuggestionsBox) return searchSuggestionsBox;
+        searchSuggestionsBox = searchContainer.querySelector('.header__search-suggestions');
+        if (!searchSuggestionsBox) {
+            searchSuggestionsBox = document.createElement('div');
+            searchSuggestionsBox.className = 'header__search-suggestions';
+            searchSuggestionsBox.id = 'header-search-suggestions';
+            searchSuggestionsBox.setAttribute('role', 'listbox');
+            searchSuggestionsBox.setAttribute('aria-label', '搜索建议');
+            searchContainer.appendChild(searchSuggestionsBox);
+        }
+        return searchSuggestionsBox;
+    }
+
+    function clearSearchSuggestions() {
+        const box = ensureSearchSuggestions();
+        if (!box) return;
+        box.innerHTML = '';
+        box.classList.remove('is-visible');
+        activeSuggestionIndex = -1;
+        if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
+        if (searchInput) searchInput.removeAttribute('aria-activedescendant');
+        updateSearchClearButton();
+    }
+
+    function getSearchSuggestions(query) {
+        const q = String(query || '').trim().toLowerCase();
+        if (!q) return [];
+        if (typeof SharedData === 'undefined' || !SharedData.getAllProducts) return [];
+        const all = SharedData.getAllProducts() || [];
+        return all
+            .filter((item) => {
+                const name = String(item?.name || '').toLowerCase();
+                const series = String(item?.series || '').toLowerCase();
+                return name.includes(q) || series.includes(q);
+            })
+            .slice(0, 6);
+    }
+
+    function setActiveSuggestion(index) {
+        const box = ensureSearchSuggestions();
+        if (!box) return;
+        const items = Array.from(box.querySelectorAll('.header__search-suggestion'));
+        if (items.length === 0) return;
+        const clamped = Math.max(0, Math.min(index, items.length - 1));
+        items.forEach((el, i) => {
+            const isActive = i === clamped;
+            el.classList.toggle('is-active', isActive);
+            el.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        activeSuggestionIndex = clamped;
+        const activeId = items[clamped]?.id;
+        if (searchInput && activeId) {
+            searchInput.setAttribute('aria-activedescendant', activeId);
+        }
+    }
+
+    function buildHighlightedText(text, query) {
+        const fragment = document.createDocumentFragment();
+        const raw = String(text || '');
+        const q = String(query || '').trim();
+        if (!q) {
+            fragment.appendChild(document.createTextNode(raw));
+            return fragment;
+        }
+        const lower = raw.toLowerCase();
+        const lowerQ = q.toLowerCase();
+        const idx = lower.indexOf(lowerQ);
+        if (idx === -1) {
+            fragment.appendChild(document.createTextNode(raw));
+            return fragment;
+        }
+        const before = raw.slice(0, idx);
+        const match = raw.slice(idx, idx + q.length);
+        const after = raw.slice(idx + q.length);
+        if (before) fragment.appendChild(document.createTextNode(before));
+        const mark = document.createElement('mark');
+        mark.className = 'search-highlight';
+        mark.textContent = match;
+        fragment.appendChild(mark);
+        if (after) fragment.appendChild(document.createTextNode(after));
+        return fragment;
+    }
+
+    function renderSearchSuggestions(suggestions) {
+        const box = ensureSearchSuggestions();
+        if (!box) return;
+        box.innerHTML = '';
+        if (searchInput) searchInput.removeAttribute('aria-activedescendant');
+
+        if (!suggestions || suggestions.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'search-suggestions__empty';
+            empty.textContent = '暂无匹配的手办';
+            box.appendChild(empty);
+            box.classList.add('is-visible');
+            if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
+            activeSuggestionIndex = -1;
+            return;
+        }
+
+        suggestions.forEach((item, index) => {
+            const link = document.createElement('a');
+            link.className = 'header__search-suggestion';
+            link.setAttribute('role', 'option');
+            link.setAttribute('aria-selected', 'false');
+            link.id = `search-suggestion-${index + 1}`;
+            link.dataset.index = String(index);
+
+            const id = String(item?.id || '').trim();
+            link.href = id ? `product-detail.html?id=${encodeURIComponent(id)}` : 'products.html';
+
+            const textWrap = document.createElement('div');
+            textWrap.className = 'header__search-suggestion-text';
+
+            const name = document.createElement('span');
+            const query = searchInput?.value || '';
+            name.appendChild(buildHighlightedText(String(item?.name || '未命名手办'), query));
+            textWrap.appendChild(name);
+
+            const series = String(item?.series || '').trim();
+            const category = String(item?.category?.name || '').trim();
+            if (series || category) {
+                const seriesEl = document.createElement('small');
+                const line = series || category;
+                seriesEl.appendChild(buildHighlightedText(line, query));
+                textWrap.appendChild(seriesEl);
+            }
+
+            const price = document.createElement('span');
+            price.textContent =
+                typeof item?.price === 'number' ? `￥${item.price.toFixed(2)}` : '价格待定';
+
+            link.appendChild(textWrap);
+            link.appendChild(price);
+            link.addEventListener('click', () => {
+                clearSearchSuggestions();
+            });
+
+            box.appendChild(link);
+        });
+
+        const hint = document.createElement('div');
+        hint.className = 'search-suggestions__hint';
+        hint.textContent = '↑↓ 选择，回车进入详情';
+        box.appendChild(hint);
+
+        box.classList.add('is-visible');
+        if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
+        activeSuggestionIndex = -1;
+        updateSearchClearButton();
+    }
+
+    function handleSearchInput() {
+        const value = searchInput?.value || '';
+        const suggestions = getSearchSuggestions(value);
+        if (!value.trim()) {
+            clearSearchSuggestions();
+            return;
+        }
+        renderSearchSuggestions(suggestions);
+    }
+
+    function handleSearchKeydown(event) {
+        const box = ensureSearchSuggestions();
+        if (!box || !box.classList.contains('is-visible')) return;
+        const items = Array.from(box.querySelectorAll('.header__search-suggestion'));
+        if (items.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            const next = activeSuggestionIndex + 1 >= items.length ? 0 : activeSuggestionIndex + 1;
+            setActiveSuggestion(next);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            const next = activeSuggestionIndex - 1 < 0 ? items.length - 1 : activeSuggestionIndex - 1;
+            setActiveSuggestion(next);
+        } else if (event.key === 'Enter') {
+            if (activeSuggestionIndex >= 0) {
+                event.preventDefault();
+                items[activeSuggestionIndex].click();
+            }
+        } else if (event.key === 'Escape') {
+            if (searchInput && searchInput.value) {
+                searchInput.value = '';
+            }
+            clearSearchSuggestions();
+        }
     }
 
     function handleDropdown(dropdownItem, show) {
@@ -327,6 +532,11 @@ const Header = (function() {
         document.addEventListener('click', (event) => {
             if (!headerElement) return;
             const isClickInsideHeader = headerElement.contains(event.target);
+            const isClickInsideSearch = searchBar?.contains(event.target);
+
+            if (!isClickInsideSearch) {
+                clearSearchSuggestions();
+            }
 
             if (!isClickInsideHeader) {
                 closeMobileMenu();
@@ -404,12 +614,25 @@ const Header = (function() {
 
         // Optional: Allow Enter key in search input to trigger submit
          if (searchInput) {
+             const debouncedSuggest = Utils.debounce(handleSearchInput, 160);
+             searchInput.addEventListener('input', debouncedSuggest);
+             searchInput.addEventListener('focus', handleSearchInput);
+             searchInput.addEventListener('keydown', handleSearchKeydown);
              searchInput.addEventListener('keypress', (event) => {
-                 if (event.key === 'Enter') {
+                 if (event.key === 'Enter' && activeSuggestionIndex < 0) {
                      handleSearchSubmit(event);
                  }
              });
          }
+
+        if (searchClearBtn && searchInput) {
+            searchClearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearSearchSuggestions();
+                searchInput.focus();
+                updateSearchClearButton();
+            });
+        }
     }
 
     function init() {
@@ -418,6 +641,18 @@ const Header = (function() {
             if (!searchBar.id) searchBar.id = 'header-search-bar';
             searchBar.setAttribute('aria-hidden', searchBar.classList.contains('is-open') ? 'false' : 'true');
             searchToggle?.setAttribute('aria-controls', searchBar.id);
+        }
+        if (searchClearBtn) {
+            searchClearBtn.setAttribute('aria-hidden', 'true');
+        }
+        const suggestionBox = ensureSearchSuggestions();
+        if (searchInput && suggestionBox) {
+            if (!suggestionBox.id) suggestionBox.id = 'header-search-suggestions';
+            searchInput.setAttribute('aria-controls', suggestionBox.id);
+            searchInput.setAttribute('aria-autocomplete', 'list');
+            searchInput.setAttribute('aria-expanded', 'false');
+            searchInput.setAttribute('role', 'combobox');
+            searchInput.setAttribute('aria-haspopup', 'listbox');
         }
         handleScroll(); // Initial check
         setActiveLink(); // Set active link on load
@@ -484,6 +719,30 @@ const SmoothScroll = (function() {
     }
 
     return { init: init };
+})();
+
+// ==============================================
+// Scroll Progress Indicator
+// ==============================================
+const ScrollProgress = (function() {
+    const bar = document.querySelector('.scroll-progress');
+
+    function update() {
+        if (!bar) return;
+        const doc = document.documentElement;
+        const max = Math.max(0, doc.scrollHeight - window.innerHeight);
+        const progress = max > 0 ? (window.scrollY / max) * 100 : 0;
+        bar.style.width = `${Math.min(100, Math.max(0, progress)).toFixed(2)}%`;
+    }
+
+    function init() {
+        if (!bar) return;
+        update();
+        window.addEventListener('scroll', Utils.throttle(update, 50), { passive: true });
+        window.addEventListener('resize', Utils.throttle(update, 100));
+    }
+
+    return { init };
 })();
 
 // ==============================================
@@ -599,6 +858,7 @@ const LazyLoad = (function() {
                                 console.error(`Failed to load image: ${lazyImage.dataset.src}`);
                                 lazyImage.classList.add('error'); // Add an error class for potential styling
                                 lazyImage.classList.remove('lazyload');
+                                lazyImage.src = 'assets/images/placeholder-lowquality.svg';
                             };
                         }
                         observer.unobserve(lazyImage);
@@ -625,6 +885,30 @@ const LazyLoad = (function() {
     }
 
     return { init: init };
+})();
+
+// ==============================================
+// Global Image Fallback
+// ==============================================
+const ImageFallback = (function() {
+    const fallbackSrc = 'assets/images/placeholder-lowquality.svg';
+
+    function handle(event) {
+        const target = event?.target;
+        if (!target || target.tagName !== 'IMG') return;
+        if (target.dataset && target.dataset.fallbackApplied === '1') return;
+        target.dataset.fallbackApplied = '1';
+        target.classList.add('error');
+        if (target.src !== fallbackSrc) {
+            target.src = fallbackSrc;
+        }
+    }
+
+    function init() {
+        document.addEventListener('error', handle, true);
+    }
+
+    return { init };
 })();
 
 // ==============================================
@@ -1135,10 +1419,142 @@ const SharedData = (function() {
         all: '所有手办'
     };
 
+    function getProductById(id) {
+        const key = String(id || '').trim();
+        if (!key) return null;
+        return allProducts.find((item) => item.id === key) || null;
+    }
+
+    function getProductsByIds(ids) {
+        const list = Array.isArray(ids) ? ids : [];
+        if (list.length === 0) return [];
+        const map = new Map(allProducts.map((item) => [item.id, item]));
+        return list
+            .map((id) => map.get(String(id || '').trim()))
+            .filter(Boolean);
+    }
+
     return {
         getAllProducts: () => allProducts,
-        getCategoryName: (key) => categoryNames[key] || key // Helper to get category name
+        getCategoryName: (key) => categoryNames[key] || key, // Helper to get category name
+        getProductById,
+        getProductsByIds
     };
+})();
+
+// ==============================================
+// Recently Viewed Module (localStorage)
+// ==============================================
+const RecentlyViewed = (function() {
+    const storageKey = 'recentlyViewed';
+    const maxItems = 6;
+
+    const container = document.querySelector('.recently-viewed');
+    const grid = container?.querySelector('.recently-viewed__grid');
+    const emptyState = container?.querySelector('.recently-viewed__empty');
+    const clearBtn = container?.querySelector('.recently-viewed__clear');
+
+    function getIds() {
+        try {
+            const parsed = Utils.safeJsonParse(localStorage.getItem(storageKey), []);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter((id) => typeof id === 'string' && id.trim().length > 0);
+        } catch {
+            return [];
+        }
+    }
+
+    function saveIds(ids) {
+        try {
+            const clean = Array.from(
+                new Set((ids || []).map((id) => String(id || '').trim()).filter((id) => id)),
+            );
+            localStorage.setItem(storageKey, JSON.stringify(clean));
+            return clean;
+        } catch {
+            return [];
+        }
+    }
+
+    function record(id) {
+        const key = String(id || '').trim();
+        if (!key) return;
+        const ids = getIds();
+        const next = [key, ...ids.filter((x) => x !== key)].slice(0, maxItems);
+        saveIds(next);
+        try {
+            window.dispatchEvent(new CustomEvent('recent:changed'));
+        } catch {
+            // ignore
+        }
+    }
+
+    function clearAll() {
+        saveIds([]);
+        try {
+            window.dispatchEvent(new CustomEvent('recent:changed'));
+        } catch {
+            // ignore
+        }
+    }
+
+    function render() {
+        if (!container || !grid) return;
+        const ids = getIds();
+        if (ids.length === 0) {
+            grid.innerHTML = '';
+            container.classList.add('is-empty');
+            if (clearBtn) clearBtn.disabled = true;
+            return;
+        }
+
+        const products = typeof SharedData !== 'undefined' && SharedData.getProductsByIds
+            ? SharedData.getProductsByIds(ids)
+            : [];
+
+        if (!products.length) {
+            grid.innerHTML = '';
+            container.classList.add('is-empty');
+            if (clearBtn) clearBtn.disabled = true;
+            return;
+        }
+
+        grid.innerHTML = '';
+        products.forEach((product) => {
+            if (typeof ProductListing !== 'undefined' && ProductListing.createProductCardHTML) {
+                grid.innerHTML += ProductListing.createProductCardHTML(product);
+            }
+        });
+
+        container.classList.remove('is-empty');
+        if (clearBtn) clearBtn.disabled = false;
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) LazyLoad.init();
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(grid);
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init();
+    }
+
+    function init() {
+        if (!container) return;
+        render();
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (getIds().length === 0) return;
+                const ok = window.confirm('确定清空最近浏览记录吗？');
+                if (!ok) return;
+                clearAll();
+                if (typeof Toast !== 'undefined' && Toast.show) {
+                    Toast.show('最近浏览已清空', 'info', 1600);
+                }
+            });
+        }
+        try {
+            window.addEventListener('recent:changed', render);
+        } catch {
+            // ignore
+        }
+    }
+
+    return { init, record, getIds, clear: clearAll, refresh: render };
 })();
 
 // ==============================================
@@ -1165,6 +1581,7 @@ const PDP = (function() {
     const plusBtn = pdpContainer.querySelector('.quantity-selector .plus');
     const addToCartBtn = pdpContainer.querySelector('.add-to-cart-btn');
     const actionsContainer = pdpContainer.querySelector('.product-actions');
+    const maxQuantity = 99;
 
     let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
     let shareBtn = actionsContainer?.querySelector('.share-btn--pdp') || null;
@@ -1324,6 +1741,9 @@ const PDP = (function() {
         currentProductData = product;
         ensureFavoriteButton(product.id);
         ensureShareButton();
+        if (typeof RecentlyViewed !== 'undefined' && RecentlyViewed.record) {
+            RecentlyViewed.record(product.id);
+        }
 
         // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
         if (breadcrumbList) {
@@ -1362,6 +1782,7 @@ const PDP = (function() {
         if (product.images && product.images.length > 0) {
             mainImage.src = product.images[0].large;
             mainImage.alt = product.images[0].alt || product.name;
+            mainImage.decoding = 'async';
             if (thumbnailContainer) {
                  thumbnailContainer.innerHTML = '';
                  product.images.forEach((img, index) => {
@@ -1370,6 +1791,8 @@ const PDP = (function() {
                     thumb.alt = img.alt ? img.alt.replace('图', '缩略图') : `${product.name} 缩略图 ${index + 1}`;
                     thumb.dataset.large = img.large;
                     thumb.classList.add('product-gallery-pdp__thumbnail');
+                    thumb.loading = 'lazy';
+                    thumb.decoding = 'async';
                     if (index === 0) {
                         thumb.classList.add('product-gallery-pdp__thumbnail--active');
                     }
@@ -1450,6 +1873,7 @@ const PDP = (function() {
         if (isNaN(currentValue)) currentValue = 1;
         let newValue = currentValue + change;
         if (newValue < 1) newValue = 1;
+        if (newValue > maxQuantity) newValue = maxQuantity;
         quantityInput.value = newValue;
         minusBtn.disabled = newValue <= 1;
     }
@@ -1462,9 +1886,9 @@ const PDP = (function() {
          plusBtn.addEventListener('click', () => updateQuantity(1));
          quantityInput.addEventListener('change', () => {
              let currentValue = parseInt(quantityInput.value, 10);
-             if (isNaN(currentValue) || currentValue < 1) {
-                 quantityInput.value = 1;
-             }
+             if (isNaN(currentValue) || currentValue < 1) currentValue = 1;
+             if (currentValue > maxQuantity) currentValue = maxQuantity;
+             quantityInput.value = currentValue;
              minusBtn.disabled = parseInt(quantityInput.value, 10) <= 1;
          });
           quantityInput.addEventListener('input', () => {
@@ -1598,7 +2022,8 @@ const Cart = (function() {
             if (!id) return;
 
             const quantity = Number.parseInt(raw.quantity, 10);
-            const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+            const safeQuantityRaw = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+            const safeQuantity = Math.min(99, safeQuantityRaw);
 
             const price = Number(raw.price);
             const safePrice = Number.isFinite(price) && price >= 0 ? price : 0;
@@ -1676,7 +2101,7 @@ const Cart = (function() {
                 </div>
                 <div class="cart-item__quantity quantity-selector">
                     <button class="quantity-selector__button minus" aria-label="减少数量" ${quantity <= 1 ? 'disabled' : ''}>-</button>
-                    <input class="quantity-selector__input" type="number" value="${quantity}" min="1" aria-label="商品数量">
+                    <input class="quantity-selector__input" type="number" value="${quantity}" min="1" max="99" inputmode="numeric" aria-label="商品数量">
                     <button class="quantity-selector__button plus" aria-label="增加数量">+</button>
                 </div>
                 <div class="cart-item__total">
@@ -1694,6 +2119,7 @@ const Cart = (function() {
          if (!cartItemsContainer || !cartSummaryContainer || !emptyCartMessage) return;
 
         const cart = getCart();
+        cartItemsContainer.setAttribute('aria-busy', 'true');
         cartItemsContainer.innerHTML = ''; // Clear existing items
 
         if (cart.length === 0) {
@@ -1711,6 +2137,7 @@ const Cart = (function() {
             updateCartSummary(cart);
             addCartItemEventListeners(); // Re-attach listeners after rendering
         }
+        cartItemsContainer.setAttribute('aria-busy', 'false');
     }
 
     function updateCartSummary(cart) {
@@ -1776,7 +2203,8 @@ const Cart = (function() {
         const itemIndex = cart.findIndex(item => item.id === productId);
 
         if (itemIndex > -1 && newQuantity >= 1) {
-            cart[itemIndex].quantity = newQuantity;
+            const safeQuantity = Math.min(99, Math.max(1, newQuantity));
+            cart[itemIndex].quantity = safeQuantity;
             saveCart(cart);
             renderCart(); // Re-render the cart to update subtotals and summary
         } else if (itemIndex > -1 && newQuantity < 1) {
@@ -1804,18 +2232,29 @@ const Cart = (function() {
             const removeBtn = itemElement.querySelector('.remove-btn');
             
             if (quantityInput && minusBtn && plusBtn) {
+                const syncButtons = () => {
+                    const qty = parseInt(quantityInput.value, 10) || 1;
+                    minusBtn.disabled = qty <= 1;
+                    plusBtn.disabled = qty >= 99;
+                };
+                syncButtons();
+
                 minusBtn.addEventListener('click', () => {
                     let currentQuantity = parseInt(quantityInput.value, 10);
                     if (currentQuantity > 1) {
                         quantityInput.value = currentQuantity - 1;
                         handleQuantityChange(productId, currentQuantity - 1);
                     }
+                    syncButtons();
                 });
 
                 plusBtn.addEventListener('click', () => {
                     let currentQuantity = parseInt(quantityInput.value, 10);
-                    quantityInput.value = currentQuantity + 1;
-                    handleQuantityChange(productId, currentQuantity + 1);
+                    if (currentQuantity < 99) {
+                        quantityInput.value = currentQuantity + 1;
+                        handleQuantityChange(productId, currentQuantity + 1);
+                    }
+                    syncButtons();
                 });
 
                 quantityInput.addEventListener('change', () => {
@@ -1824,7 +2263,12 @@ const Cart = (function() {
                         newQuantity = 1;
                         quantityInput.value = 1;
                     }
+                    if (newQuantity > 99) {
+                        newQuantity = 99;
+                        quantityInput.value = 99;
+                    }
                     handleQuantityChange(productId, newQuantity);
+                    syncButtons();
                 });
                  quantityInput.addEventListener('input', () => {
                     quantityInput.value = quantityInput.value.replace(/[^0-9]/g, '');
@@ -1842,6 +2286,10 @@ const Cart = (function() {
     // --- Initialization --- 
     function init() {
         refresh();
+        if (cartItemsContainer) {
+            cartItemsContainer.setAttribute('aria-live', 'polite');
+            cartItemsContainer.setAttribute('aria-busy', 'false');
+        }
     }
 
     function refresh() {
@@ -1882,6 +2330,12 @@ const Checkout = (function() {
     const summaryTotalEl = checkoutContainer.querySelector('.order-summary .total-price');
     const paymentOptions = checkoutContainer.querySelectorAll('.payment-options input[name="payment"]');
     const placeOrderButton = checkoutContainer.querySelector('.place-order-button');
+    const clearFormButton = checkoutContainer.querySelector('.checkout-clear-button');
+
+    const draftKey = 'checkoutDraft';
+    const nameInput = checkoutForm?.querySelector('#name');
+    const phoneInput = checkoutForm?.querySelector('#phone');
+    const addressInput = checkoutForm?.querySelector('#address');
 
     // --- Helper Functions --- (Keep formatPrice, clearError, showError)
      function formatPrice(price) {
@@ -1920,6 +2374,64 @@ const Checkout = (function() {
             // ignore
         }
         inputElement.parentNode.insertBefore(errorElement, inputElement.nextSibling);
+    }
+
+    function readDraft() {
+        try {
+            const parsed = Utils.safeJsonParse(localStorage.getItem(draftKey), null);
+            if (!parsed || typeof parsed !== 'object') return null;
+            return parsed;
+        } catch {
+            return null;
+        }
+    }
+
+    function writeDraft(data) {
+        try {
+            localStorage.setItem(draftKey, JSON.stringify(data));
+        } catch {
+            // ignore
+        }
+    }
+
+    function clearDraft() {
+        try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    }
+
+    function collectDraft() {
+        return {
+            name: nameInput?.value?.trim() || '',
+            phone: phoneInput?.value?.trim() || '',
+            address: addressInput?.value?.trim() || '',
+            payment: checkoutForm?.querySelector('input[name="payment"]:checked')?.value || '',
+        };
+    }
+
+    function applyDraft() {
+        const draft = readDraft();
+        if (!draft) return;
+
+        if (nameInput && draft.name) nameInput.value = draft.name;
+        if (phoneInput && draft.phone) phoneInput.value = draft.phone;
+        if (addressInput && draft.address) addressInput.value = draft.address;
+
+        if (draft.payment && paymentOptions && paymentOptions.length > 0) {
+            paymentOptions.forEach((option) => {
+                option.checked = option.value === draft.payment;
+            });
+        }
+
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show('已恢复上次填写的收货信息（本地保存）', 'info', 2000);
+        }
+    }
+
+    function clearForm() {
+        if (!checkoutForm) return;
+        checkoutForm.reset();
+        clearDraft();
+        checkoutForm.querySelectorAll('.input-error').forEach((el) => el.classList.remove('input-error'));
+        checkoutForm.querySelectorAll('.error-message').forEach((el) => el.remove());
     }
 
     // --- Validation Logic --- (Keep validateInput, validateForm)
@@ -2080,6 +2592,7 @@ const Checkout = (function() {
                     console.error("Checkout Error: Cannot update header cart count.");
                 }
             }
+            clearDraft();
              window.location.href = 'index.html?order=success';
         } else {
             const firstInvalidInput = checkoutForm.querySelector('.input-error');
@@ -2101,9 +2614,29 @@ const Checkout = (function() {
                 input.addEventListener('input', () => clearError(input)); 
             });
 
+            const inputsToDraft = checkoutForm.querySelectorAll('input, textarea, select');
+            const debouncedSaveDraft = Utils.debounce(() => {
+                writeDraft(collectDraft());
+            }, 240);
+            inputsToDraft.forEach((input) => {
+                input.addEventListener('input', debouncedSaveDraft);
+                input.addEventListener('change', debouncedSaveDraft);
+            });
+
             paymentOptions.forEach(option => {
                 option.addEventListener('change', handlePaymentSelection);
             });
+
+            if (clearFormButton) {
+                clearFormButton.addEventListener('click', () => {
+                    const ok = window.confirm('确定清空当前填写的收货信息吗？');
+                    if (!ok) return;
+                    clearForm();
+                    if (typeof Toast !== 'undefined' && Toast.show) {
+                        Toast.show('已清空收货信息', 'info', 1800);
+                    }
+                });
+            }
         }
     }
 
@@ -2111,6 +2644,7 @@ const Checkout = (function() {
     function init() {
         if (checkoutContainer) { // Check if on checkout page
              renderOrderSummary();
+             applyDraft();
              addEventListeners();
 
              // 同标签页内购物车变化（例如从其他模块写入）时刷新摘要
@@ -2312,7 +2846,22 @@ const ProductListing = (function(){
         const safeAlt = Utils.escapeHtml(`${rawName} - ${rawSeries}`);
         const encodedId = id !== '#' ? encodeURIComponent(id) : '';
         const detailHref = id !== '#' ? `product-detail.html?id=${encodedId}` : '#';
-        const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">¥${price}</p>` : '';
+        const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">￥${price}</p>` : '';
+
+        const badges = [];
+        const dateAdded = safeProduct.dateAdded ? Date.parse(safeProduct.dateAdded) : NaN;
+        const isNew = Number.isFinite(dateAdded) && (Date.now() - dateAdded) <= (1000 * 60 * 60 * 24 * 90);
+        if (isNew) {
+            badges.push('<span class="product-card__badge product-card__badge--new">NEW</span>');
+        }
+
+        const originalPrice = Number(safeProduct.originalPrice);
+        if (Number.isFinite(originalPrice) && typeof safeProduct.price === 'number' && originalPrice > safeProduct.price) {
+            const save = Math.max(1, Math.round(originalPrice - safeProduct.price));
+            badges.push(`<span class="product-card__badge product-card__badge--sale">省￥${save}</span>`);
+        }
+
+        const badgesHTML = badges.length > 0 ? `<div class="product-card__badges">${badges.join('')}</div>` : '';
         const favBtnHTML = id !== '#'
             ? `<button class="favorite-btn" type="button" data-product-id="${safeIdAttr}" aria-label="加入收藏" aria-pressed="false">
                     <i class="fa-regular fa-heart" aria-hidden="true"></i>
@@ -2322,8 +2871,9 @@ const ProductListing = (function(){
         return `
           <div class="product-card fade-in-up">
               <div class="product-card__image">
+                  ${badgesHTML}
                   <a href="${detailHref}">
-                       <img src="assets/images/placeholder-lowquality.svg" data-src="${safeImage}" alt="${safeAlt}" loading="lazy" class="lazyload">
+                       <img src="assets/images/placeholder-lowquality.svg" data-src="${safeImage}" alt="${safeAlt}" loading="lazy" decoding="async" class="lazyload">
                    </a>
                   ${favBtnHTML}
               </div>
@@ -2348,6 +2898,7 @@ const ProductListing = (function(){
     const sortSelect = listingContainer.querySelector('#sort-select');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
+    const sortStorageKey = 'plpSort';
 
     // State Variables (Keep existing)
     let currentPage = 1;
@@ -2496,6 +3047,7 @@ const ProductListing = (function(){
     function renderProducts(productsToRender) {
          // ... (no changes needed here)
           if (!productGrid) return;
+        productGrid.setAttribute('aria-busy', 'true');
         productGrid.innerHTML = '';
         if (productsToRender.length === 0) {
             // Show empty message
@@ -2527,6 +3079,7 @@ const ProductListing = (function(){
                 productGrid.innerHTML += createProductCardHTML(product);
             });
         }
+        productGrid.setAttribute('aria-busy', 'false');
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
     }
@@ -2537,6 +3090,7 @@ const ProductListing = (function(){
          if (sortSelect) {
              sortSelect.addEventListener('change', (event) => {
                  currentSort = event?.target?.value || 'default';
+                 try { localStorage.setItem(sortStorageKey, currentSort); } catch { /* ignore */ }
                  currentPage = 1;
                  renderPage();
              });
@@ -2546,6 +3100,7 @@ const ProductListing = (function(){
     // --- Initialization --- (Modified to use SharedData)
     function init() {
         if (!listingContainer || !pageTitleElement || !productGrid) return;
+        productGrid.setAttribute('aria-live', 'polite');
 
         const allProducts = (typeof SharedData !== 'undefined') ? SharedData.getAllProducts() : [];
         const categoryNames = (typeof SharedData !== 'undefined') ? SharedData.getCategoryName : (key)=>key;
@@ -2576,25 +3131,34 @@ const ProductListing = (function(){
         } else if (searchQuery) {
             pageMode = 'search';
             currentQuery = searchQuery.trim();
-            title = `搜索结果: "${currentQuery}"`;
             const lowerCaseQuery = currentQuery.toLowerCase();
             currentProducts = allProducts.filter(p =>
                 p.name.toLowerCase().includes(lowerCaseQuery) ||
                 p.series.toLowerCase().includes(lowerCaseQuery)
             );
+            title = `搜索结果: "${currentQuery}"（${currentProducts.length}）`;
         } else if (categoryKey && categoryNames(categoryKey) !== categoryKey) { // Check if key is valid
             pageMode = 'category';
             currentCategory = categoryKey;
-            title = categoryNames(currentCategory);
             currentProducts = allProducts.filter(p => p.category?.key === currentCategory);
+            title = `${categoryNames(currentCategory)}（${currentProducts.length}）`;
         } else if (pageName === 'products.html') {
-             pageMode = 'all'; title = categoryNames('all'); currentProducts = [...allProducts];
+             pageMode = 'all'; currentProducts = [...allProducts]; title = `${categoryNames('all')}（${currentProducts.length}）`;
         } else {
              currentProducts = [...allProducts]; // Fallback
+             title = `${categoryNames('all')}（${currentProducts.length}）`;
         }
 
         setTitle(title);
         currentPage = 1;
+        if (sortSelect) {
+            try {
+                const storedSort = localStorage.getItem(sortStorageKey);
+                if (storedSort && Array.from(sortSelect.options || []).some((opt) => opt.value === storedSort)) {
+                    sortSelect.value = storedSort;
+                }
+            } catch { /* ignore */ }
+        }
         currentSort = sortSelect ? sortSelect.value : 'default';
         renderPage();
         addEventListeners();
@@ -2713,6 +3277,11 @@ const CrossTabSync = (function() {
                 Checkout.refresh?.();
                 return;
             }
+
+            if (key === 'recentlyViewed') {
+                RecentlyViewed?.refresh?.();
+                return;
+            }
         } catch {
             // ignore
         }
@@ -2735,12 +3304,15 @@ const App = {
         Header.init();
         Theme.init();
         SmoothScroll.init();
+        ScrollProgress.init();
         BackToTop.init();
         ScrollAnimations.init(); 
+        ImageFallback.init();
         LazyLoad.init(); 
         Favorites.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
         Homepage.init(); 
+        RecentlyViewed.init();
         PDP.init(); 
         Checkout.init();
         StaticPage.init();

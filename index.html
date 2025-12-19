@@ -26,13 +26,22 @@
             } catch (e) { /* ignore */ }
         })();
     </script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "塑梦潮玩",
+            "url": "https://tur1412.github.io/Shouwban/",
+            "logo": "https://tur1412.github.io/Shouwban/assets/favicon.svg"
+        }
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251218.4">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251218.4">
+    <link rel="stylesheet" href="styles/main.css?v=20251219.2">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251219.2">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -40,6 +49,8 @@
     <link rel="manifest" href="assets/manifest.webmanifest">
 </head>
 <body>
+
+    <div class="scroll-progress" aria-hidden="true"></div>
 
     <a class="skip-link" href="#main">跳到主要内容</a>
 
@@ -100,7 +111,8 @@
         <div class="header__search-bar">
             <div class="container">
                 <form action="products.html" method="get" class="header__search-form">
-                    <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索">
+                    <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索" autocomplete="off" enterkeyhint="search">
+                    <button type="button" class="header__search-clear" aria-label="清除搜索"><i class="fas fa-times" aria-hidden="true"></i></button>
                     <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search" aria-hidden="true"></i></button>
                 </form>
             </div>
@@ -117,11 +129,70 @@
             </div>
         </section>
 
+        <section class="bento" id="highlights">
+            <div class="container">
+                <div class="section-heading fade-in-up">
+                    <h3>收藏体验护城河</h3>
+                    <p>从选品到交付，每一步都被打磨成可预期的惊喜。</p>
+                </div>
+                <div class="bento-grid">
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-certificate" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>正品溯源</h4>
+                            <p>授权信息、编号与厂牌透明展示，确保每一件收藏可被证明。</p>
+                        </div>
+                    </article>
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-bell" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>预售提醒</h4>
+                            <p>关键档期自动提示，热门款不再错过开订窗口。</p>
+                        </div>
+                    </article>
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-box" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>安全包装</h4>
+                            <p>多层缓冲与加固盒型，专为易损收藏品设计。</p>
+                        </div>
+                    </article>
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-users" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>收藏社区</h4>
+                            <p>分享开箱、搭配展示与改造心得，热爱在此共鸣。</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
         <section class="product-gallery" id="product-gallery"> <!-- Added ID for navigation -->
             <div class="container">
                 <h3>精选展示</h3>
                 <div class="gallery-grid">
                     <!-- 由 scripts/main.js 动态渲染精选商品 -->
+                </div>
+            </div>
+        </section>
+
+        <section class="recently-viewed" id="recently-viewed">
+            <div class="container">
+                <div class="section-heading fade-in-up">
+                    <h3>最近浏览</h3>
+                    <p>你的灵感路线图，随时续上。</p>
+                    <div class="section-heading__actions">
+                        <button type="button" class="cta-button-secondary recently-viewed__clear">清空最近浏览</button>
+                    </div>
+                </div>
+                <div class="gallery-grid recently-viewed__grid">
+                    <!-- 由 scripts/main.js 动态渲染最近浏览 -->
+                </div>
+                <div class="recently-viewed__empty">
+                    <img class="lazyload" loading="lazy" decoding="async" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="最近浏览为空占位插画">
+                    <p>你还没有浏览过商品，先去挑一件喜欢的吧。</p>
+                    <a href="products.html" class="cta-button-secondary">浏览全部商品</a>
                 </div>
             </div>
         </section>
@@ -136,7 +207,7 @@
                     <a href="index.html#contact" class="cta-button-secondary">联系我们 <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
                 <div class="about-image fade-in-up"> <!-- Add animation class -->
-                     <img class="lazyload" loading="lazy" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="塑梦潮玩工作室或产品展示">
+                     <img class="lazyload" loading="lazy" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="塑梦潮玩工作室或产品展示" decoding="async">
                 </div>
             </div>
         </section>
@@ -200,7 +271,9 @@
         </div>
     </footer>
 
-    <script src="scripts/main.js?v=20251218.4"></script>
+    <script src="scripts/main.js?v=20251219.2"></script>
 </body>
 </html>
+
+
 
