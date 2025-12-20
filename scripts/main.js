@@ -3229,6 +3229,7 @@ const ProductListing = (function(){
     const viewToggleButtons = listingContainer.querySelectorAll('.view-toggle__btn');
     const listingSummary = listingContainer.querySelector('[data-listing-summary]');
     const resetListingBtn = listingContainer.querySelector('[data-reset-listing]');
+    const activeFiltersContainer = listingContainer.querySelector('[data-active-filters]');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
     const sortStorageKey = 'plpSort';
@@ -3295,6 +3296,23 @@ const ProductListing = (function(){
         const sortLabel = getSortLabel(currentSort);
         const filterLabel = getFilterLabel(currentFilter);
         listingSummary.textContent = `共 ${safeTotal} 件藏品 · ${sortLabel} · ${filterLabel}`;
+        updateActiveFilterPills(sortLabel, filterLabel);
+    }
+
+    function updateActiveFilterPills(sortLabel, filterLabel) {
+        if (!activeFiltersContainer) return;
+        const pills = [];
+        if (currentFilter && currentFilter !== 'all') {
+            pills.push(`<span class="filter-pill filter-pill--accent">筛选：${Utils.escapeHtml(filterLabel)}</span>`);
+        }
+        if (currentSort && currentSort !== 'default') {
+            pills.push(`<span class="filter-pill">排序：${Utils.escapeHtml(sortLabel)}</span>`);
+        }
+        if (currentView && currentView !== 'grid') {
+            const viewLabel = currentView === 'list' ? '列表视图' : '网格视图';
+            pills.push(`<span class="filter-pill">视图：${Utils.escapeHtml(viewLabel)}</span>`);
+        }
+        activeFiltersContainer.innerHTML = pills.join('');
     }
 
     function applyViewMode(nextView, options = {}) {
@@ -3313,6 +3331,7 @@ const ProductListing = (function(){
         if (!options.silent) {
             try { localStorage.setItem(viewStorageKey, mode); } catch { /* ignore */ }
         }
+        updateActiveFilterPills(getSortLabel(currentSort), getFilterLabel(currentFilter));
     }
 
     function resetListingState(options = {}) {
@@ -3374,6 +3393,7 @@ const ProductListing = (function(){
             case 'price-asc': sortedProducts.sort((a, b) => a.price - b.price); break;
             case 'price-desc': sortedProducts.sort((a, b) => b.price - a.price); break;
             case 'newest': sortedProducts.sort((a, b) => (b.dateAdded || '').localeCompare(a.dateAdded || '')); break;
+            case 'rating-desc': sortedProducts.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0)); break;
             case 'name-asc': sortedProducts.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')); break;
             default: break;
         }
