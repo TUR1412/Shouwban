@@ -299,6 +299,17 @@ html[data-theme="dark"] .view-toggle {
   border-color: rgba(148, 163, 184, 0.2);
 }
 
+html[data-theme="dark"] .listing-meta__action {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #bfdbfe;
+}
+
+html[data-theme="dark"] .filter-sort-bar {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
 html[data-theme="dark"] .view-toggle__btn {
   color: var(--color-text-muted);
 }

@@ -3228,6 +3228,7 @@ const ProductListing = (function(){
     const filterButtons = listingContainer.querySelectorAll('.filter-chip');
     const viewToggleButtons = listingContainer.querySelectorAll('.view-toggle__btn');
     const listingSummary = listingContainer.querySelector('[data-listing-summary]');
+    const resetListingBtn = listingContainer.querySelector('[data-reset-listing]');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
     const sortStorageKey = 'plpSort';
@@ -3311,6 +3312,26 @@ const ProductListing = (function(){
         }
         if (!options.silent) {
             try { localStorage.setItem(viewStorageKey, mode); } catch { /* ignore */ }
+        }
+    }
+
+    function resetListingState(options = {}) {
+        const resetView = options.resetView !== false;
+        currentFilter = 'all';
+        currentSort = 'default';
+        currentPage = 1;
+        if (sortSelect) sortSelect.value = 'default';
+        syncFilterButtons();
+        try {
+            localStorage.setItem(filterStorageKey, 'all');
+            localStorage.setItem(sortStorageKey, 'default');
+        } catch { /* ignore */ }
+        if (resetView) {
+            applyViewMode('grid');
+        }
+        renderPage();
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show('已重置筛选与排序', 'info', 1600);
         }
     }
 
@@ -3533,6 +3554,14 @@ const ProductListing = (function(){
 
             emptyMessageElement.appendChild(img);
             emptyMessageElement.appendChild(title);
+            if (currentFilter !== 'all') {
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'cta-button-secondary';
+                clearBtn.textContent = '清除筛选';
+                clearBtn.addEventListener('click', () => resetListingState({ resetView: false }));
+                emptyMessageElement.appendChild(clearBtn);
+            }
             emptyMessageElement.appendChild(link);
             productGrid.appendChild(emptyMessageElement);
         } else {
@@ -3571,6 +3600,9 @@ const ProductListing = (function(){
                     applyViewMode(mode);
                 });
             });
+        }
+        if (resetListingBtn) {
+            resetListingBtn.addEventListener('click', () => resetListingState({ resetView: true }));
         }
     }
 
