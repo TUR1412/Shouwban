@@ -271,3 +271,27 @@ html[data-theme="dark"] .hero__badge {
   background: rgba(148, 163, 184, 0.16);
   color: var(--color-text-base);
 }
+
+html[data-theme="dark"] .listing-meta {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .listing-meta__badge {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+}
+
+html[data-theme="dark"] .view-toggle {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+html[data-theme="dark"] .view-toggle__btn {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .view-toggle__btn.is-active {
+  background: rgba(59, 130, 246, 0.24);
+  color: #fff;
+}

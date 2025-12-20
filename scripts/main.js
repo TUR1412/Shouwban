@@ -3226,16 +3226,20 @@ const ProductListing = (function(){
     const productGrid = listingContainer.querySelector('.gallery-grid.product-listing');
     const sortSelect = listingContainer.querySelector('#sort-select');
     const filterButtons = listingContainer.querySelectorAll('.filter-chip');
+    const viewToggleButtons = listingContainer.querySelectorAll('.view-toggle__btn');
+    const listingSummary = listingContainer.querySelector('[data-listing-summary]');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
     const sortStorageKey = 'plpSort';
     const filterStorageKey = 'plpFilter';
+    const viewStorageKey = 'plpViewMode';
 
     // State Variables (Keep existing)
     let currentPage = 1;
     let itemsPerPage = 6;
     let currentSort = 'default';
     let currentFilter = 'all';
+    let currentView = 'grid';
     let currentProducts = []; // This will hold the filtered/searched results
     let pageMode = 'all';
     let currentQuery = '';
@@ -3261,6 +3265,53 @@ const ProductListing = (function(){
     function updateTitleCount(total) {
         const countText = Number.isFinite(total) ? `（${total}）` : '';
         setTitle(`${baseTitle}${countText}`);
+    }
+
+    function getFilterLabel(filterKey) {
+        const map = {
+            all: '全部',
+            hot: '热门',
+            limited: '限定',
+            preorder: '预售'
+        };
+        return map[filterKey] || '全部';
+    }
+
+    function getSortLabel(sortKey) {
+        const map = {
+            default: '默认排序',
+            'price-asc': '价格升序',
+            'price-desc': '价格降序',
+            newest: '最新上架',
+            'name-asc': '名称排序'
+        };
+        return map[sortKey] || '默认排序';
+    }
+
+    function updateListingMeta(total) {
+        if (!listingSummary) return;
+        const safeTotal = Number.isFinite(total) ? total : 0;
+        const sortLabel = getSortLabel(currentSort);
+        const filterLabel = getFilterLabel(currentFilter);
+        listingSummary.textContent = `共 ${safeTotal} 件藏品 · ${sortLabel} · ${filterLabel}`;
+    }
+
+    function applyViewMode(nextView, options = {}) {
+        const mode = nextView === 'list' ? 'list' : 'grid';
+        currentView = mode;
+        if (productGrid) {
+            productGrid.dataset.view = mode;
+        }
+        if (viewToggleButtons && viewToggleButtons.length > 0) {
+            viewToggleButtons.forEach((btn) => {
+                const active = btn.dataset.view === mode;
+                btn.classList.toggle('is-active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+        if (!options.silent) {
+            try { localStorage.setItem(viewStorageKey, mode); } catch { /* ignore */ }
+        }
     }
 
     // --- Sorting Logic --- (Keep existing)
@@ -3408,6 +3459,7 @@ const ProductListing = (function(){
         renderPagination(sortedProducts.length);
         updateBreadcrumbs();
         updateTitleCount(sortedProducts.length);
+        updateListingMeta(sortedProducts.length);
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) {
              ScrollAnimations.init();
         }
@@ -3481,6 +3533,14 @@ const ProductListing = (function(){
                 });
             });
         }
+        if (viewToggleButtons && viewToggleButtons.length > 0) {
+            viewToggleButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.dataset.view || 'grid';
+                    applyViewMode(mode);
+                });
+            });
+        }
     }
 
     // --- Initialization --- (Modified to use SharedData)
@@ -3545,6 +3605,15 @@ const ProductListing = (function(){
             } catch { /* ignore */ }
         }
         currentSort = sortSelect ? sortSelect.value : 'default';
+        if (viewToggleButtons && viewToggleButtons.length > 0) {
+            try {
+                const storedView = localStorage.getItem(viewStorageKey);
+                if (storedView) currentView = storedView;
+            } catch { /* ignore */ }
+            applyViewMode(currentView, { silent: true });
+        } else if (productGrid) {
+            productGrid.dataset.view = currentView;
+        }
         if (filterButtons && filterButtons.length > 0) {
             try {
                 const storedFilter = localStorage.getItem(filterStorageKey);

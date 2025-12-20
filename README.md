@@ -52,6 +52,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 - 购物车拖拽排序：调整收藏展示顺序，立刻写回本地
 - 购物车推荐：同系列/同品类智能补齐
 - PDP 增强：评分与状态标签即时展示
+- 视图切换：网格/列表一键切换，偏好记忆不丢
 - 多页面结构：首页 / 列表 / 分类 / 详情 / 购物车 / 结算 / 收藏 / 静态内容
 - 本地数据闭环：购物车 + 收藏（`localStorage`），刷新不丢；多标签页自动同步
 - 搜索联想：顶部搜索即输即提示，支持键盘选择直达详情
@@ -160,13 +161,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 仓库提供了一个零依赖脚本用于统一更新版本号：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251220.1000'
+pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251220.2000'
 ```
 
 或使用 `npm`：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251220.1000'
+pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251220.2000'
 ```
 
 运行后建议执行：`npm run verify` 确认一致性。
@@ -210,7 +211,7 @@ pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251220.1000'
 
 ## 迭代记录
 
-夸克级 2000 次迭代记录：见 `QUARK_ITERATIONS.md`。
+夸克级 3000 次迭代记录：见 `QUARK_ITERATIONS.md`。
 
 ## 贡献
 
