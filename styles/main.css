@@ -3950,6 +3950,30 @@ body {
     outline-offset: 2px;
 }
 
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.filter-chip__count {
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    background: rgba(31, 111, 235, 0.12);
+    color: var(--color-primary-dark);
+    border: 1px solid rgba(31, 111, 235, 0.2);
+    min-width: 28px;
+    text-align: center;
+}
+
+.filter-chip.is-active .filter-chip__count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
 /* List view layout */
 .product-listing[data-view="list"] {
     grid-template-columns: 1fr;

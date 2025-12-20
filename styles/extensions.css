@@ -272,6 +272,18 @@ html[data-theme="dark"] .hero__badge {
   color: var(--color-text-base);
 }
 
+html[data-theme="dark"] .filter-chip__count {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+}
+
+html[data-theme="dark"] .filter-chip.is-active .filter-chip__count {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
 html[data-theme="dark"] .listing-meta {
   color: var(--color-text-muted);
 }

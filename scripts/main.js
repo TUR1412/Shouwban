@@ -3314,6 +3314,37 @@ const ProductListing = (function(){
         }
     }
 
+    function updateFilterCounts(products) {
+        if (!filterButtons || filterButtons.length === 0) return;
+        const list = Array.isArray(products) ? products : [];
+        const counts = {
+            all: list.length,
+            hot: 0,
+            limited: 0,
+            preorder: 0
+        };
+
+        list.forEach((product) => {
+            const tags = Array.isArray(product?.tags) ? product.tags : [];
+            if (tags.includes('hot')) counts.hot += 1;
+            if (tags.includes('limited') || product?.rarity === '限定') counts.limited += 1;
+            if (tags.includes('preorder') || product?.status === '预售') counts.preorder += 1;
+        });
+
+        filterButtons.forEach((btn) => {
+            const key = btn.dataset.filter || 'all';
+            const count = Number.isFinite(counts[key]) ? counts[key] : 0;
+            let countEl = btn.querySelector('.filter-chip__count');
+            if (!countEl) {
+                countEl = document.createElement('span');
+                countEl.className = 'filter-chip__count';
+                countEl.setAttribute('aria-hidden', 'true');
+                btn.appendChild(countEl);
+            }
+            countEl.textContent = String(count);
+        });
+    }
+
     // --- Sorting Logic --- (Keep existing)
     function sortProducts(products, sortType) {
         // ... (no changes needed here)
@@ -3571,6 +3602,7 @@ const ProductListing = (function(){
                 if (pageMode !== 'favorites') return;
                 currentProducts = getFavoriteProducts(allProductsCache);
                 currentPage = 1;
+                updateFilterCounts(currentProducts);
                 renderPage();
             });
         } else if (searchQuery) {
@@ -3621,6 +3653,7 @@ const ProductListing = (function(){
             } catch { /* ignore */ }
             syncFilterButtons();
         }
+        updateFilterCounts(currentProducts);
         renderPage();
         addEventListeners();
     }
