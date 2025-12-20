@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="塑梦潮玩 - 探索官方授权、匠心打造的高品质动漫、游戏及原创手办。"> <!-- SEO: 优化描述 -->
     <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#00BCD4">
+    <meta name="theme-color" content="#1F6FEB">
     <meta name="color-scheme" content="light dark">
     <meta property="og:title" content="塑梦潮玩 - 高端手办与潮流收藏品">
     <meta property="og:description" content="探索官方授权、匠心打造的高品质动漫、游戏及原创手办。">
@@ -38,10 +38,10 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251219.2">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251219.2">
+    <link rel="stylesheet" href="styles/main.css?v=20251220.1000">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251220.1000">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -120,12 +120,67 @@
     </header>
 
     <main id="main">
-        <!-- 页面主要内容将放在这里 -->
         <section class="hero">
-            <div class="container hero-content"> <!-- Added container and class -->
-                <h2>塑形热爱，珍藏梦想</h2>
-                <p>探索官方授权、匠心打造的高品质动漫、游戏及原创手办。</p>
-                <a href="products.html" class="cta-button">立即探索</a> <!-- Changed from #product-gallery -->
+            <div class="container hero__grid">
+                <div class="hero__content fade-in-up">
+                    <p class="hero__eyebrow">官方授权 · 典藏级工艺 · 全链路鉴证</p>
+                    <h1 class="hero__title">塑梦潮玩，把每一次收藏变成仪式感。</h1>
+                    <p class="hero__description">从预售提醒到开箱时刻，我们为收藏者打造一条可追溯、可兑现、可炫耀的热爱通道。</p>
+                    <div class="hero__actions">
+                        <a href="products.html" class="cta-button">立即探索</a>
+                        <a href="#curation" class="cta-button-secondary">获取策展推荐</a>
+                    </div>
+                    <div class="hero__stats">
+                        <div class="stat-card">
+                            <span class="stat-card__value">4.9</span>
+                            <span class="stat-card__label">收藏评分</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card__value">48h</span>
+                            <span class="stat-card__label">极速交付</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card__value">100%</span>
+                            <span class="stat-card__label">授权可溯</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero__visual fade-in-up">
+                    <div class="hero__glass">
+                        <span class="hero__badge">本周策展</span>
+                        <div class="hero__figures" aria-hidden="true">
+                            <img class="hero__figure hero__figure--front" src="assets/images/figurine-1.svg" alt="">
+                            <img class="hero__figure hero__figure--mid" src="assets/images/figurine-3.svg" alt="">
+                            <img class="hero__figure hero__figure--back" src="assets/images/figurine-5.svg" alt="">
+                        </div>
+                        <div class="hero__chips">
+                            <span class="hero__chip">限量联名</span>
+                            <span class="hero__chip">版号可查</span>
+                            <span class="hero__chip">包装加固</span>
+                        </div>
+                    </div>
+                    <div class="hero__orbit hero__orbit--one" aria-hidden="true"></div>
+                    <div class="hero__orbit hero__orbit--two" aria-hidden="true"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="curation" id="curation">
+            <div class="container">
+                <div class="section-heading fade-in-up">
+                    <h3>策展上新</h3>
+                    <p>不同情绪、不同风格、不同场景，一键进入你的收藏主题。</p>
+                </div>
+                <div class="curation-tabs" role="tablist" aria-label="策展切换">
+                    <button type="button" class="curation-tab is-active" data-curation-tab="hot" role="tab" aria-selected="true">本周热门</button>
+                    <button type="button" class="curation-tab" data-curation-tab="new" role="tab" aria-selected="false">最新上架</button>
+                    <button type="button" class="curation-tab" data-curation-tab="limited" role="tab" aria-selected="false">限定企划</button>
+                    <span class="curation-tabs__indicator" aria-hidden="true"></span>
+                </div>
+                <div class="gallery-grid curation-grid" data-curation-grid aria-live="polite"></div>
+                <div class="curation-actions">
+                    <a href="products.html" class="cta-button-secondary">浏览全部藏品</a>
+                </div>
             </div>
         </section>
 
@@ -133,10 +188,10 @@
             <div class="container">
                 <div class="section-heading fade-in-up">
                     <h3>收藏体验护城河</h3>
-                    <p>从选品到交付，每一步都被打磨成可预期的惊喜。</p>
+                    <p>每一步都被打磨成可预期的惊喜，从选品到交付毫不妥协。</p>
                 </div>
                 <div class="bento-grid">
-                    <article class="bento-card fade-in-up">
+                    <article class="bento-card bento-card--wide fade-in-up">
                         <div class="bento-card__icon"><i class="fas fa-certificate" aria-hidden="true"></i></div>
                         <div>
                             <h4>正品溯源</h4>
@@ -150,7 +205,7 @@
                             <p>关键档期自动提示，热门款不再错过开订窗口。</p>
                         </div>
                     </article>
-                    <article class="bento-card fade-in-up">
+                    <article class="bento-card bento-card--tall fade-in-up">
                         <div class="bento-card__icon"><i class="fas fa-box" aria-hidden="true"></i></div>
                         <div>
                             <h4>安全包装</h4>
@@ -164,13 +219,33 @@
                             <p>分享开箱、搭配展示与改造心得，热爱在此共鸣。</p>
                         </div>
                     </article>
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-star" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>策展评分</h4>
+                            <p>由资深收藏顾问提供评分与入手建议，避免踩雷。</p>
+                        </div>
+                    </article>
+                    <article class="bento-card fade-in-up">
+                        <div class="bento-card__icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
+                        <div>
+                            <h4>防伪档案</h4>
+                            <p>入库前完成多维检视，配套防伪档案随箱提供。</p>
+                        </div>
+                    </article>
                 </div>
             </div>
         </section>
 
-        <section class="product-gallery" id="product-gallery"> <!-- Added ID for navigation -->
+        <section class="product-gallery" id="product-gallery">
             <div class="container">
-                <h3>精选展示</h3>
+                <div class="section-heading fade-in-up">
+                    <h3>馆藏精选</h3>
+                    <p>从上千款藏品中精选，快速进入你的收藏风格。</p>
+                    <div class="section-heading__actions">
+                        <a href="products.html" class="cta-button-secondary">查看全部</a>
+                    </div>
+                </div>
                 <div class="gallery-grid">
                     <!-- 由 scripts/main.js 动态渲染精选商品 -->
                 </div>
@@ -190,49 +265,73 @@
                     <!-- 由 scripts/main.js 动态渲染最近浏览 -->
                 </div>
                 <div class="recently-viewed__empty">
-                    <img class="lazyload" loading="lazy" decoding="async" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="最近浏览为空占位插画">
+                    <img class="lazyload" loading="lazy" decoding="async" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/empty-collector.svg" alt="最近浏览为空占位插画">
                     <p>你还没有浏览过商品，先去挑一件喜欢的吧。</p>
                     <a href="products.html" class="cta-button-secondary">浏览全部商品</a>
                 </div>
             </div>
         </section>
 
-        <section class="about" id="about"> <!-- Added ID for navigation -->
+        <section class="drops" id="drops">
+            <div class="container">
+                <div class="section-heading fade-in-up">
+                    <h3>档期日历</h3>
+                    <p>锁定即将发售与补货节点，提前布局你的收藏计划。</p>
+                </div>
+                <div class="drops-grid">
+                    <article class="drop-card fade-in-up">
+                        <span class="drop-card__date">2026/01</span>
+                        <h4>冬季联名企划</h4>
+                        <p>限定涂装与金属铭牌套装，收藏编号独立。</p>
+                    </article>
+                    <article class="drop-card fade-in-up">
+                        <span class="drop-card__date">2026/02</span>
+                        <h4>经典回归补货</h4>
+                        <p>补货窗口仅开放 72 小时，支持到货提醒。</p>
+                    </article>
+                    <article class="drop-card fade-in-up">
+                        <span class="drop-card__date">2026/03</span>
+                        <h4>限定雕塑系列</h4>
+                        <p>工作室直签监制，附带制作幕后纪录卡。</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="about" id="about">
              <div class="container about-container">
-                <div class="about-content fade-in-up"> <!-- Add animation class -->
+                <div class="about-content fade-in-up">
                     <h3>品牌理念</h3>
                     <h4>匠心独运，复刻热爱</h4>
                     <p>在塑梦潮玩，我们相信每一件手办都承载着一份独特的情感与记忆。我们与全球顶尖的原型师和制造商紧密合作，严选材质，精雕细琢，力求还原角色的每一处神韵与细节。</p>
                     <p>我们不仅销售产品，更致力于构建一个连接创作者与爱好者的社区，分享收藏的喜悦，传递对 ACG 文化的热爱。选择塑梦潮玩，选择一份值得珍藏的匠心之作。</p>
                     <a href="index.html#contact" class="cta-button-secondary">联系我们 <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
-                <div class="about-image fade-in-up"> <!-- Add animation class -->
+                <div class="about-image fade-in-up">
                      <img class="lazyload" loading="lazy" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="塑梦潮玩工作室或产品展示" decoding="async">
                 </div>
             </div>
         </section>
 
-        <section class="contact" id="contact"> <!-- Added ID for navigation -->
-             <div class="container fade-in-up"> <!-- Add animation class to the container -->
+        <section class="contact" id="contact">
+             <div class="container fade-in-up">
                 <h3>保持联系</h3>
                 <p class="contact-intro">欢迎垂询合作、咨询预售或分享您的收藏故事！我们期待与您交流。</p>
                 <div class="contact-details">
                     <div class="contact-item">
-                        <span class="contact-icon"><i class="fas fa-envelope"></i></span> <!-- Font Awesome Icon -->
+                        <span class="contact-icon"><i class="fas fa-envelope"></i></span>
                         <a href="mailto:info@sumengtoys.com">info@sumengtoys.com</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon"><i class="fas fa-phone"></i></span> <!-- Font Awesome Icon -->
+                        <span class="contact-icon"><i class="fas fa-phone"></i></span>
                         <span>(可留空或填写客服热线)</span>
                     </div>
-                    <!-- Add more contact items if needed -->
                  </div>
                  <div class="social-links">
                     <h4>关注我们</h4>
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo"></i></a> <!-- Use actual link -->
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili"></i></a> <!-- Use actual link -->
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin"></i></a> <!-- Use actual link -->
-                    <!-- Add more social links as needed -->
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo"></i></a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili"></i></a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin"></i></a>
                  </div>
             </div>
         </section>
@@ -271,7 +370,7 @@
         </div>
     </footer>
 
-    <script src="scripts/main.js?v=20251219.2"></script>
+    <script src="scripts/main.js?v=20251220.1000"></script>
 </body>
 </html>
 

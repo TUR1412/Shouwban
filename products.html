@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="塑梦潮玩 - 浏览所有精选高品质手办">
     <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#00BCD4">
+    <meta name="theme-color" content="#1F6FEB">
     <meta name="color-scheme" content="light dark">
     <meta property="og:title" content="所有手办 - 塑梦潮玩">
     <meta property="og:description" content="浏览所有精选高品质手办。">
@@ -29,10 +29,10 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251219.2">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251219.2">
+    <link rel="stylesheet" href="styles/main.css?v=20251220.1000">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251220.1000">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -125,13 +125,21 @@
 
             <!-- Filter/Sort Placeholder -->
             <div class="filter-sort-bar">
-                <button>筛选 <i class="fas fa-filter"></i></button>
-                <select name="sort" id="sort-select" aria-label="商品排序方式">
-                    <option value="default">默认排序</option>
-                    <option value="price-asc">价格升序</option>
-                    <option value="price-desc">价格降序</option>
-                    <option value="newest">最新上架</option>
-                </select>
+                <div class="filter-chips" role="tablist" aria-label="快速筛选">
+                    <button type="button" class="filter-chip is-active" data-filter="all" role="tab" aria-selected="true">全部</button>
+                    <button type="button" class="filter-chip" data-filter="hot" role="tab" aria-selected="false">热门</button>
+                    <button type="button" class="filter-chip" data-filter="limited" role="tab" aria-selected="false">限定</button>
+                    <button type="button" class="filter-chip" data-filter="preorder" role="tab" aria-selected="false">预售</button>
+                </div>
+                <div class="filter-actions">
+                    <button type="button" class="filter-toggle" aria-label="筛选（示例）">筛选 <i class="fas fa-filter" aria-hidden="true"></i></button>
+                    <select name="sort" id="sort-select" aria-label="商品排序方式">
+                        <option value="default">默认排序</option>
+                        <option value="price-asc">价格升序</option>
+                        <option value="price-desc">价格降序</option>
+                        <option value="newest">最新上架</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Re-use product grid -->
@@ -182,9 +190,10 @@
         </div>
     </footer>
 
-    <script src="scripts/main.js?v=20251219.2"></script>
+    <script src="scripts/main.js?v=20251220.1000"></script>
 </body>
 </html>
+
 
 
 

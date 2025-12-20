@@ -1,0 +1,40 @@
+<svg width="560" height="420" viewBox="0 0 560 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B8C4FF" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#FFE0B8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#A7F3D0" stop-opacity="0.35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(280 180) rotate(90) scale(140 220)">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#C7D2FE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plinth" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="figure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="496" height="356" rx="32" fill="url(#bg)"/>
+  <ellipse cx="280" cy="210" rx="180" ry="120" fill="url(#glow)"/>
+  <ellipse cx="280" cy="312" rx="160" ry="36" fill="#101827" opacity="0.12"/>
+  <g filter="url(#softBlur)">
+    <circle cx="140" cy="120" r="38" fill="#93C5FD" opacity="0.55"/>
+    <circle cx="420" cy="140" r="48" fill="#FBCFE8" opacity="0.5"/>
+  </g>
+  <path d="M190 286C190 264 208 246 230 246H330C352 246 370 264 370 286V306C370 314 364 320 356 320H204C196 320 190 314 190 306V286Z" fill="url(#plinth)"/>
+  <path d="M244 158C244 132 265 110 291 110C316 110 338 132 338 158V214C338 227 327 238 314 238H268C255 238 244 227 244 214V158Z" fill="url(#figure)"/>
+  <circle cx="292" cy="144" r="24" fill="#F9FAFB"/>
+  <rect x="254" y="188" width="76" height="10" rx="5" fill="#E2E8F0"/>
+  <rect x="264" y="204" width="56" height="10" rx="5" fill="#E2E8F0"/>
+  <path d="M236 250L262 238H322L348 250V270H236V250Z" fill="#0F172A" opacity="0.8"/>
+  <circle cx="206" cy="176" r="6" fill="#F97316"/>
+  <circle cx="380" cy="206" r="6" fill="#38BDF8"/>
+  <circle cx="356" cy="122" r="6" fill="#A78BFA"/>
+</svg>

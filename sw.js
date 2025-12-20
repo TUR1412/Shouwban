@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20251219.2
+   - Cache version follows asset query: 20251220.1000
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20251219.2';
+const CACHE_NAME = 'shouwban-20251220.1000';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -19,9 +19,9 @@ const PRECACHE_URLS = [
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20251219.2',
-  'styles/extensions.css?v=20251219.2',
-  'scripts/main.js?v=20251219.2',
+  'styles/main.css?v=20251220.1000',
+  'styles/extensions.css?v=20251220.1000',
+  'scripts/main.js?v=20251220.1000',
 
   'assets/favicon.svg',
   'assets/manifest.webmanifest',
@@ -29,6 +29,7 @@ const PRECACHE_URLS = [
   'assets/images/hero-placeholder.svg',
   'assets/images/placeholder-about.svg',
   'assets/images/placeholder-lowquality.svg',
+  'assets/images/empty-collector.svg',
   'assets/images/figurine-1.svg',
   'assets/images/figurine-2.svg',
   'assets/images/figurine-3.svg',

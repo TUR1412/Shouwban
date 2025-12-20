@@ -46,6 +46,12 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 
 ## 亮点
 
+- 2025 Quark UI 体系：Bento Grid + 玻璃拟态 + 极光背景 + 影院级分层
+- 策展 Tab：热门/最新/限定一键切换，记忆偏好不丢
+- 快速加购：列表/推荐卡片一键入车 + 庆祝动效反馈
+- 购物车拖拽排序：调整收藏展示顺序，立刻写回本地
+- 购物车推荐：同系列/同品类智能补齐
+- PDP 增强：评分与状态标签即时展示
 - 多页面结构：首页 / 列表 / 分类 / 详情 / 购物车 / 结算 / 收藏 / 静态内容
 - 本地数据闭环：购物车 + 收藏（`localStorage`），刷新不丢；多标签页自动同步
 - 搜索联想：顶部搜索即输即提示，支持键盘选择直达详情
@@ -69,9 +75,10 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 
 ## 体验与视觉升级
 
-- **Bento 布局**：首页高亮区采用模块化卡片，信息分层更清晰。
-- **玻璃拟态 & 极光背景**：兼顾层级与可读性，保证主题原子性与 WCAG 对比度。
-- **细节微交互**：搜索联想、收藏反馈、购物车提示与滚动进度统一节奏。
+- **Bento 布局 + 双栏 Hero**：信息结构化，关键价值更聚焦。
+- **玻璃拟态 & 极光背景**：层级更清晰，保持 WCAG AA 对比度。
+- **策展动效**：Tab 指示器顺滑切换，内容分段进入视野。
+- **庆祝反馈**：收藏/加购带有轻量 confetti 与 Toast。
 
 ## 页面与路由
 
@@ -153,13 +160,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 仓库提供了一个零依赖脚本用于统一更新版本号：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251218.4'
+pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251220.1000'
 ```
 
 或使用 `npm`：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251218.4'
+pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251220.1000'
 ```
 
 运行后建议执行：`npm run verify` 确认一致性。
@@ -203,7 +210,7 @@ pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251218.4'
 
 ## 迭代记录
 
-夸克级 30 次迭代记录：见 `QUARK_ITERATIONS.md`。
+夸克级 1000 次迭代记录：见 `QUARK_ITERATIONS.md`。
 
 ## 贡献
 

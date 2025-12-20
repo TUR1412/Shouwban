@@ -952,6 +952,46 @@ const Toast = (function() {
 })();
 
 // ==============================================
+// Celebration / Confetti Module
+// ==============================================
+const Celebration = (function() {
+    const palette = ['#1f6feb', '#ffb454', '#22d3ee', '#a78bfa', '#f472b6'];
+
+    function fire(target, { count = 14 } = {}) {
+        if (Utils.prefersReducedMotion()) return;
+        const rect = target?.getBoundingClientRect?.();
+        const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+        const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+
+        const burst = document.createElement('div');
+        burst.className = 'confetti-burst';
+        burst.style.position = 'fixed';
+        burst.style.left = `${x}px`;
+        burst.style.top = `${y}px`;
+        burst.style.width = '0';
+        burst.style.height = '0';
+
+        for (let i = 0; i < count; i += 1) {
+            const piece = document.createElement('span');
+            piece.className = 'confetti-piece';
+            piece.style.background = palette[i % palette.length];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 24 + Math.random() * 28;
+            piece.style.setProperty('--confetti-x', `${Math.cos(angle) * distance}px`);
+            piece.style.setProperty('--confetti-y', `${Math.sin(angle) * distance + 24}px`);
+            piece.style.left = '0';
+            piece.style.top = '0';
+            burst.appendChild(piece);
+        }
+
+        document.body.appendChild(burst);
+        window.setTimeout(() => burst.remove(), 1000);
+    }
+
+    return { fire };
+})();
+
+// ==============================================
 // Theme Module (Light/Dark, persisted)
 // ==============================================
 const Theme = (function() {
@@ -1148,6 +1188,9 @@ const Favorites = (function() {
 
         const nowActive = toggle(id);
         applyButtonState(btn, nowActive);
+        if (nowActive && typeof Celebration !== 'undefined' && Celebration.fire) {
+            Celebration.fire(btn);
+        }
         if (typeof Toast !== 'undefined' && Toast.show) {
             Toast.show(nowActive ? '已加入收藏' : '已取消收藏', nowActive ? 'success' : 'info', 1600);
         }
@@ -1227,7 +1270,7 @@ const ServiceWorker = (function() {
 // Shared Data (Simulated)
 // ==============================================
 const SharedData = (function() {
-    const allProducts = [
+    const rawProducts = [
         // Scale Figures
         { 
             id: 'P001', 
@@ -1411,6 +1454,36 @@ const SharedData = (function() {
         }
     ];
 
+    const allProducts = rawProducts.map((product, index) => {
+        const rating = Number.isFinite(Number(product.rating))
+            ? Number(product.rating)
+            : Number((4.6 + (index % 4) * 0.1).toFixed(1));
+        const reviewCount = Number.isFinite(Number(product.reviewCount))
+            ? Number(product.reviewCount)
+            : 120 + index * 27;
+        const rarity = typeof product.rarity === 'string' ? product.rarity : (index % 3 === 0 ? '限定' : '常规');
+        const status = typeof product.status === 'string' ? product.status : (index % 4 === 0 ? '预售' : '现货');
+        const tags = Array.isArray(product.tags) ? [...product.tags] : [];
+
+        if (rarity === '限定' && !tags.includes('limited')) tags.push('limited');
+        if (status === '预售' && !tags.includes('preorder')) tags.push('preorder');
+        if (rating >= 4.8 && !tags.includes('hot')) tags.push('hot');
+
+        const dateAdded = product.dateAdded
+            ? product.dateAdded
+            : new Date(2024, 0, 1 + index * 18).toISOString().slice(0, 10);
+
+        return {
+            ...product,
+            rating,
+            reviewCount,
+            rarity,
+            status,
+            tags,
+            dateAdded
+        };
+    });
+
     const categoryNames = {
         scale: '比例手办',
         nendoroid: '粘土人',
@@ -1434,11 +1507,28 @@ const SharedData = (function() {
             .filter(Boolean);
     }
 
+    function getCurationProducts(key) {
+        const list = [...allProducts];
+        if (key === 'hot') {
+            return list.filter((p) => p.tags?.includes('hot')).slice(0, 6);
+        }
+        if (key === 'new') {
+            return list
+                .sort((a, b) => Date.parse(b.dateAdded || '') - Date.parse(a.dateAdded || ''))
+                .slice(0, 6);
+        }
+        if (key === 'limited') {
+            return list.filter((p) => p.tags?.includes('limited')).slice(0, 6);
+        }
+        return list.slice(0, 6);
+    }
+
     return {
         getAllProducts: () => allProducts,
         getCategoryName: (key) => categoryNames[key] || key, // Helper to get category name
         getProductById,
-        getProductsByIds
+        getProductsByIds,
+        getCurationProducts
     };
 })();
 
@@ -1572,6 +1662,8 @@ const PDP = (function() {
     const thumbnailContainer = pdpContainer.querySelector('.product-gallery-pdp__thumbnails');
     const titleElement = pdpContainer.querySelector('.product-info-pdp__title');
     const seriesElement = pdpContainer.querySelector('.product-info-pdp__series');
+    const ratingElement = pdpContainer.querySelector('.product-info-pdp__rating');
+    const statusElement = pdpContainer.querySelector('.product-info-pdp__status');
     const priceElement = pdpContainer.querySelector('.product-info-pdp .price-value');
     const originalPriceElement = pdpContainer.querySelector('.product-info-pdp .original-price');
     const specsList = pdpContainer.querySelector('.product-specs ul');
@@ -1768,7 +1860,33 @@ const PDP = (function() {
         // Update Product Info
         titleElement.textContent = product.name;
         if(seriesElement) seriesElement.textContent = product.series ? `系列: ${product.series}` : '';
-        priceElement.textContent = typeof product.price === 'number' ? `¥${product.price.toFixed(2)}` : '价格待定';
+        if (ratingElement) {
+            const rating = Number(product.rating);
+            const reviewCount = Number(product.reviewCount);
+            if (Number.isFinite(rating)) {
+                ratingElement.innerHTML = "";
+                const icon = document.createElement("i");
+                icon.className = "fas fa-star";
+                icon.setAttribute("aria-hidden", "true");
+                ratingElement.appendChild(icon);
+                const text = document.createElement("span");
+                text.textContent = rating.toFixed(1);
+                ratingElement.appendChild(text);
+                if (Number.isFinite(reviewCount) && reviewCount > 0) {
+                    const small = document.createElement("small");
+                    small.textContent = "(" + reviewCount + ")";
+                    ratingElement.appendChild(small);
+                }
+            } else {
+                ratingElement.textContent = "";
+            }
+        }
+        if (statusElement) {
+            const status = typeof product.status === "string" ? product.status : "";
+            statusElement.textContent = status;
+            statusElement.style.display = status ? "inline-flex" : "none";
+        }
+        priceElement.textContent = typeof product.price === "number" ? `￥${product.price.toFixed(2)}` : "价格待定";
         if (originalPriceElement) {
             if (product.originalPrice && product.originalPrice > product.price) {
                 originalPriceElement.textContent = `¥${product.originalPrice.toFixed(2)}`;
@@ -1960,6 +2078,9 @@ const PDP = (function() {
             const addedCount = productToAdd.quantity > 1 ? ` ×${productToAdd.quantity}` : '';
             Toast.show(`已加入购物车${addedCount}`, 'success');
         }
+        if (typeof Celebration !== 'undefined' && Celebration.fire) {
+            Celebration.fire(addToCartBtn);
+        }
     }
 
     function initAddToCart() {
@@ -2011,6 +2132,10 @@ const Cart = (function() {
     const emptyCartMessage = cartContainer?.querySelector('.empty-cart-message');
     const checkoutButton = cartSummaryContainer?.querySelector('.checkout-button');
     let clearCartButton = cartSummaryContainer?.querySelector('.cart-clear-button') || null;
+    const recommendationContainer = cartContainer?.querySelector('[data-cart-recommendations]');
+    const recommendationsGrid = recommendationContainer?.querySelector('.recommendations-grid');
+    let dragBound = false;
+    let draggingItem = null;
 
     function normalizeCartItems(items) {
         if (!Array.isArray(items)) return [];
@@ -2088,7 +2213,8 @@ const Cart = (function() {
         const subtotal = price * quantity;
 
         return `
-            <div class="cart-item" data-product-id="${safeIdAttr}">
+            <div class="cart-item" data-product-id="${safeIdAttr}" draggable="true">
+                <div class="cart-item__drag" title="拖拽排序" aria-hidden="true"><i class="fas fa-grip-vertical"></i></div>
                 <div class="cart-item__image">
                     <a href="${detailHref}">
                         <img src="${safeImage}" alt="${safeName}">
@@ -2113,6 +2239,64 @@ const Cart = (function() {
             </div>
         `;
     }
+
+    function renderRecommendationCard(product) {
+        if (!product) return '';
+        const id = String(product.id || '').trim();
+        if (!id) return '';
+        const safeId = Utils.escapeHtml(id);
+        const name = Utils.escapeHtml(product.name || '未命名手办');
+        const series = Utils.escapeHtml(product.series || '');
+        const image = product.images?.[0]?.thumb || 'assets/images/figurine-1.svg';
+        const safeImage = Utils.escapeHtml(image);
+        const price = typeof product.price === 'number' ? `￥${product.price.toFixed(2)}` : '价格待定';
+        const detailHref = `product-detail.html?id=${encodeURIComponent(id)}`;
+
+        return `
+            <article class="recommendation-card">
+                <a href="${detailHref}">
+                    <img src="${safeImage}" alt="${name}" loading="lazy" decoding="async">
+                </a>
+                <div class="recommendation-card__title">${name}</div>
+                <div class="recommendation-card__series">${series}</div>
+                <div class="recommendation-card__price">${price}</div>
+                <div class="recommendation-card__action">
+                    <button class="product-card__quick-add" type="button" data-product-id="${safeId}">加入购物车</button>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderRecommendations(cart) {
+        if (!recommendationContainer || !recommendationsGrid) return;
+        if (cart.length === 0) {
+            recommendationContainer.style.display = 'none';
+            return;
+        }
+        recommendationContainer.style.display = 'block';
+        if (typeof SharedData === 'undefined' || !SharedData.getAllProducts) return;
+
+        const allProducts = SharedData.getAllProducts();
+        const cartProducts = cart
+            .map((item) => SharedData.getProductById?.(item.id))
+            .filter(Boolean);
+        const cartCategories = new Set(cartProducts.map((p) => p.category?.key).filter(Boolean));
+        const cartIds = new Set(cart.map((item) => item.id));
+
+        let pool = allProducts.filter((p) => !cartIds.has(p.id));
+        if (cartCategories.size > 0) {
+            pool = pool.filter((p) => cartCategories.has(p.category?.key));
+        }
+        const picks = pool.slice(0, 3);
+
+        recommendationsGrid.innerHTML = picks.length
+            ? picks.map(renderRecommendationCard).join('')
+            : '<p class="text-center">暂无可用推荐，继续探索更多收藏吧。</p>';
+
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) {
+            Favorites.syncButtons(recommendationsGrid);
+        }
+    }
     
     function renderCart() {
         // ... (no changes needed here)
@@ -2136,7 +2320,9 @@ const Cart = (function() {
             });
             updateCartSummary(cart);
             addCartItemEventListeners(); // Re-attach listeners after rendering
+            bindDragAndDrop();
         }
+        renderRecommendations(cart);
         cartItemsContainer.setAttribute('aria-busy', 'false');
     }
 
@@ -2283,6 +2469,64 @@ const Cart = (function() {
         });
     }
 
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.cart-item:not(.is-dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            }
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function commitOrderFromDom() {
+        if (!cartItemsContainer) return;
+        const ids = Array.from(cartItemsContainer.querySelectorAll('.cart-item'))
+            .map((el) => el.dataset.productId)
+            .filter(Boolean);
+        if (ids.length === 0) return;
+        const cart = getCart();
+        const map = new Map(cart.map((item) => [item.id, item]));
+        const next = ids.map((id) => map.get(id)).filter(Boolean);
+        saveCart(next);
+        renderCart();
+    }
+
+    function bindDragAndDrop() {
+        if (!cartItemsContainer || dragBound) return;
+        dragBound = true;
+
+        cartItemsContainer.addEventListener('dragstart', (event) => {
+            const item = event.target?.closest?.('.cart-item');
+            if (!item) return;
+            draggingItem = item;
+            item.classList.add('is-dragging');
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        cartItemsContainer.addEventListener('dragover', (event) => {
+            if (!draggingItem) return;
+            event.preventDefault();
+            const afterElement = getDragAfterElement(cartItemsContainer, event.clientY);
+            if (!afterElement) {
+                cartItemsContainer.appendChild(draggingItem);
+            } else if (afterElement !== draggingItem) {
+                cartItemsContainer.insertBefore(draggingItem, afterElement);
+            }
+        });
+
+        cartItemsContainer.addEventListener('dragend', () => {
+            if (!draggingItem) return;
+            draggingItem.classList.remove('is-dragging');
+            draggingItem = null;
+            commitOrderFromDom();
+        });
+    }
+
     // --- Initialization --- 
     function init() {
         refresh();
@@ -2306,14 +2550,73 @@ const Cart = (function() {
         if (cartContainer) renderCart();
     }
 
+    function addItem(product, quantity = 1) {
+        if (!product || !product.id) return { added: 0 };
+        const safeQty = Math.min(99, Math.max(1, Number(quantity) || 1));
+        const cart = getCart();
+        const existing = cart.find((item) => item.id === product.id);
+        if (existing) {
+            existing.quantity = Math.min(99, existing.quantity + safeQty);
+        } else {
+            cart.push({
+                id: product.id,
+                name: product.name || '[手办名称]',
+                series: product.series || '',
+                price: Number(product.price) || 0,
+                quantity: safeQty,
+                image: product.images?.[0]?.thumb || 'assets/images/figurine-1.svg'
+            });
+        }
+        saveCart(cart);
+        if (cartContainer) renderCart();
+        return { added: safeQty };
+    }
+
     // Expose functions needed by other modules
     return { 
         init: init, 
         getCart: getCart,
         refresh: refresh,
         setCart: setCart,
+        addItem: addItem,
         updateHeaderCartCount: updateHeaderCartCount // Expose wrapper that normalizes input
     };
+})();
+
+// ==============================================
+// Quick Add Module (Product Cards)
+// ==============================================
+const QuickAdd = (function() {
+    function handleClick(event) {
+        const btn = event.target?.closest?.('.product-card__quick-add');
+        if (!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const id = btn.dataset.productId;
+        if (!id || typeof SharedData === 'undefined' || !SharedData.getProductById) return;
+        const product = SharedData.getProductById(id);
+        if (!product) {
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show('商品信息加载失败', 'info', 1600);
+            }
+            return;
+        }
+
+        const result = typeof Cart !== 'undefined' && Cart.addItem ? Cart.addItem(product, 1) : { added: 1 };
+        if (typeof Celebration !== 'undefined' && Celebration.fire) {
+            Celebration.fire(btn);
+        }
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show(`已加入购物车 +${result.added || 1}`, 'success', 1600);
+        }
+    }
+
+    function init() {
+        document.addEventListener('click', handleClick);
+    }
+
+    return { init };
 })();
 
 // ==============================================
@@ -2846,7 +3149,24 @@ const ProductListing = (function(){
         const safeAlt = Utils.escapeHtml(`${rawName} - ${rawSeries}`);
         const encodedId = id !== '#' ? encodeURIComponent(id) : '';
         const detailHref = id !== '#' ? `product-detail.html?id=${encodedId}` : '#';
-        const priceHTML = typeof safeProduct.price === 'number' ? `<p class="product-card__price">￥${price}</p>` : '';
+        const ratingValue = Number(safeProduct.rating);
+        const reviewCount = Number(safeProduct.reviewCount);
+        const status = typeof safeProduct.status === 'string' ? safeProduct.status.trim() : '';
+        const statusLabel = Utils.escapeHtml(status);
+
+        const originalPrice = Number(safeProduct.originalPrice);
+        let priceHTML = '';
+        if (typeof safeProduct.price === 'number') {
+            const originalHTML = Number.isFinite(originalPrice) && originalPrice > safeProduct.price
+                ? `<span class="product-card__price-original">￥${originalPrice.toFixed(2)}</span>`
+                : '';
+            priceHTML = `<p class="product-card__price">￥${price}${originalHTML}</p>`;
+        }
+
+        const ratingHTML = Number.isFinite(ratingValue)
+            ? `<span class="product-card__rating"><i class="fas fa-star" aria-hidden="true"></i>${ratingValue.toFixed(1)}${Number.isFinite(reviewCount) && reviewCount > 0 ? `<small>(${reviewCount})</small>` : ''}</span>`
+            : '';
+        const statusHTML = status ? `<span class="product-card__status">${statusLabel}</span>` : '';
 
         const badges = [];
         const dateAdded = safeProduct.dateAdded ? Date.parse(safeProduct.dateAdded) : NaN;
@@ -2855,7 +3175,6 @@ const ProductListing = (function(){
             badges.push('<span class="product-card__badge product-card__badge--new">NEW</span>');
         }
 
-        const originalPrice = Number(safeProduct.originalPrice);
         if (Number.isFinite(originalPrice) && typeof safeProduct.price === 'number' && originalPrice > safeProduct.price) {
             const save = Math.max(1, Math.round(originalPrice - safeProduct.price));
             badges.push(`<span class="product-card__badge product-card__badge--sale">省￥${save}</span>`);
@@ -2867,9 +3186,12 @@ const ProductListing = (function(){
                     <i class="fa-regular fa-heart" aria-hidden="true"></i>
                </button>`
             : '';
+        const quickAddHTML = id !== '#'
+            ? `<button class="product-card__quick-add" type="button" data-product-id="${safeIdAttr}" aria-label="加入购物车">快速加入</button>`
+            : '';
 
         return `
-          <div class="product-card fade-in-up">
+          <div class="product-card fade-in-up" data-product-id="${safeIdAttr}">
               <div class="product-card__image">
                   ${badgesHTML}
                   <a href="${detailHref}">
@@ -2878,12 +3200,19 @@ const ProductListing = (function(){
                   ${favBtnHTML}
               </div>
               <div class="product-card__content">
+                  <div class="product-card__meta">
+                      ${ratingHTML}
+                      ${statusHTML}
+                  </div>
                   <h4 class="product-card__title">
                       <a href="${detailHref}">${name}</a>
                   </h4>
                   <p class="product-card__series">${series}</p>
-                  ${priceHTML} 
-                  <a href="${detailHref}" class="product-card__button">查看详情</a>
+                  ${priceHTML}
+                  <div class="product-card__actions">
+                      <a href="${detailHref}" class="product-card__button">查看详情</a>
+                      ${quickAddHTML}
+                  </div>
               </div>
           </div>
         `;
@@ -2896,19 +3225,23 @@ const ProductListing = (function(){
     const pageTitleElement = listingContainer.querySelector('.page-title');
     const productGrid = listingContainer.querySelector('.gallery-grid.product-listing');
     const sortSelect = listingContainer.querySelector('#sort-select');
+    const filterButtons = listingContainer.querySelectorAll('.filter-chip');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
     const sortStorageKey = 'plpSort';
+    const filterStorageKey = 'plpFilter';
 
     // State Variables (Keep existing)
     let currentPage = 1;
     let itemsPerPage = 6;
     let currentSort = 'default';
+    let currentFilter = 'all';
     let currentProducts = []; // This will hold the filtered/searched results
     let pageMode = 'all';
     let currentQuery = '';
     let currentCategory = '';
     let allProductsCache = [];
+    let baseTitle = '';
 
     function getFavoriteIdsSafe() {
         if (typeof Favorites === 'undefined' || !Favorites.getIds) return [];
@@ -2925,6 +3258,11 @@ const ProductListing = (function(){
         document.title = `${title} - 塑梦潮玩`;
     }
 
+    function updateTitleCount(total) {
+        const countText = Number.isFinite(total) ? `（${total}）` : '';
+        setTitle(`${baseTitle}${countText}`);
+    }
+
     // --- Sorting Logic --- (Keep existing)
     function sortProducts(products, sortType) {
         // ... (no changes needed here)
@@ -2937,6 +3275,36 @@ const ProductListing = (function(){
             default: break;
         }
         return sortedProducts;
+    }
+
+    function applyFilter(products) {
+        if (currentFilter === 'all') return products;
+        return (products || []).filter((product) => {
+            const tags = product?.tags || [];
+            if (currentFilter === 'hot') return tags.includes('hot');
+            if (currentFilter === 'limited') return tags.includes('limited') || product?.rarity === '限定';
+            if (currentFilter === 'preorder') return tags.includes('preorder') || product?.status === '预售';
+            return true;
+        });
+    }
+
+    function syncFilterButtons() {
+        if (!filterButtons || filterButtons.length === 0) return;
+        filterButtons.forEach((btn) => {
+            const key = btn.dataset.filter || 'all';
+            const active = key === currentFilter;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+    }
+
+    function setFilter(nextFilter) {
+        const key = nextFilter || 'all';
+        currentFilter = key;
+        try { localStorage.setItem(filterStorageKey, key); } catch { /* ignore */ }
+        syncFilterButtons();
+        currentPage = 1;
+        renderPage();
     }
 
     // --- Pagination Logic --- (Keep existing)
@@ -3031,13 +3399,15 @@ const ProductListing = (function(){
     // --- Render Page --- (Keep existing)
     function renderPage() {
          // ... (no changes needed here)
-         const sortedProducts = sortProducts(currentProducts, currentSort);
+         const filteredProducts = applyFilter(currentProducts);
+         const sortedProducts = sortProducts(filteredProducts, currentSort);
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const productsForPage = sortedProducts.slice(startIndex, endIndex);
         renderProducts(productsForPage);
         renderPagination(sortedProducts.length);
         updateBreadcrumbs();
+        updateTitleCount(sortedProducts.length);
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) {
              ScrollAnimations.init();
         }
@@ -3052,7 +3422,7 @@ const ProductListing = (function(){
         if (productsToRender.length === 0) {
             // Show empty message
             const emptyMessageElement = document.createElement('div');
-            emptyMessageElement.classList.add('product-listing__empty-message', 'text-center'); // Add classes for styling
+            emptyMessageElement.classList.add('empty-state', 'text-center');
             let message = '暂无商品展示。';
             if (pageMode === 'search') {
                 message = `抱歉，没有找到与 "${currentQuery}" 相关的商品。`;
@@ -3062,16 +3432,24 @@ const ProductListing = (function(){
             } else if (pageMode === 'favorites') {
                 message = '你还没有收藏任何商品。';
             }
+            const img = document.createElement('img');
+            img.src = 'assets/images/empty-collector.svg';
+            img.alt = '';
+            img.setAttribute('aria-hidden', 'true');
+            img.loading = 'lazy';
+            img.decoding = 'async';
 
-            const p = document.createElement('p');
-            p.textContent = message;
+            const title = document.createElement('p');
+            title.className = 'empty-state__title';
+            title.textContent = message;
 
             const link = document.createElement('a');
             link.href = 'products.html';
             link.className = 'cta-button-secondary';
             link.textContent = '浏览所有商品';
 
-            emptyMessageElement.appendChild(p);
+            emptyMessageElement.appendChild(img);
+            emptyMessageElement.appendChild(title);
             emptyMessageElement.appendChild(link);
             productGrid.appendChild(emptyMessageElement);
         } else {
@@ -3095,6 +3473,14 @@ const ProductListing = (function(){
                  renderPage();
              });
          }
+        if (filterButtons && filterButtons.length > 0) {
+            filterButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.filter || 'all';
+                    setFilter(key);
+                });
+            });
+        }
     }
 
     // --- Initialization --- (Modified to use SharedData)
@@ -3118,14 +3504,13 @@ const ProductListing = (function(){
         if (pageName === 'favorites.html') {
             pageMode = 'favorites';
             currentProducts = getFavoriteProducts(allProductsCache);
-            title = `我的收藏${currentProducts.length > 0 ? `（${currentProducts.length}）` : ''}`;
+            title = '我的收藏';
 
             // 收藏变化时：实时刷新视图
             window.addEventListener('favorites:changed', () => {
                 if (pageMode !== 'favorites') return;
                 currentProducts = getFavoriteProducts(allProductsCache);
                 currentPage = 1;
-                setTitle(`我的收藏${currentProducts.length > 0 ? `（${currentProducts.length}）` : ''}`);
                 renderPage();
             });
         } else if (searchQuery) {
@@ -3136,20 +3521,20 @@ const ProductListing = (function(){
                 p.name.toLowerCase().includes(lowerCaseQuery) ||
                 p.series.toLowerCase().includes(lowerCaseQuery)
             );
-            title = `搜索结果: "${currentQuery}"（${currentProducts.length}）`;
+            title = `搜索结果: "${currentQuery}"`;
         } else if (categoryKey && categoryNames(categoryKey) !== categoryKey) { // Check if key is valid
             pageMode = 'category';
             currentCategory = categoryKey;
             currentProducts = allProducts.filter(p => p.category?.key === currentCategory);
-            title = `${categoryNames(currentCategory)}（${currentProducts.length}）`;
+            title = `${categoryNames(currentCategory)}`;
         } else if (pageName === 'products.html') {
-             pageMode = 'all'; currentProducts = [...allProducts]; title = `${categoryNames('all')}（${currentProducts.length}）`;
+             pageMode = 'all'; currentProducts = [...allProducts]; title = `${categoryNames('all')}`;
         } else {
              currentProducts = [...allProducts]; // Fallback
-             title = `${categoryNames('all')}（${currentProducts.length}）`;
+             title = `${categoryNames('all')}`;
         }
 
-        setTitle(title);
+        baseTitle = title;
         currentPage = 1;
         if (sortSelect) {
             try {
@@ -3160,6 +3545,13 @@ const ProductListing = (function(){
             } catch { /* ignore */ }
         }
         currentSort = sortSelect ? sortSelect.value : 'default';
+        if (filterButtons && filterButtons.length > 0) {
+            try {
+                const storedFilter = localStorage.getItem(filterStorageKey);
+                if (storedFilter) currentFilter = storedFilter;
+            } catch { /* ignore */ }
+            syncFilterButtons();
+        }
         renderPage();
         addEventListeners();
     }
@@ -3173,6 +3565,11 @@ const ProductListing = (function(){
 const Homepage = (function() {
     const featuredGrid = document.querySelector('#product-gallery .gallery-grid');
     const numberOfFeatured = 3;
+    const curationSection = document.querySelector('.curation');
+    const curationGrid = curationSection?.querySelector('[data-curation-grid]');
+    const curationTabs = curationSection?.querySelectorAll('[data-curation-tab]');
+    const curationIndicator = curationSection?.querySelector('.curation-tabs__indicator');
+    const tabStorageKey = 'homeCurationTab';
 
     function populateFeaturedProducts() {
         if (!featuredGrid) return;
@@ -3206,9 +3603,65 @@ const Homepage = (function() {
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
     }
 
+    function moveIndicator(target) {
+        if (!curationIndicator || !target) return;
+        const parentRect = target.parentElement?.getBoundingClientRect();
+        const rect = target.getBoundingClientRect();
+        if (!parentRect) return;
+        const x = rect.left - parentRect.left;
+        curationIndicator.style.width = `${rect.width}px`;
+        curationIndicator.style.transform = `translateX(${x}px)`;
+    }
+
+    function renderCuration(tabKey) {
+        if (!curationGrid || typeof SharedData === 'undefined' || !SharedData.getCurationProducts) return;
+        const list = SharedData.getCurationProducts(tabKey);
+        if (!list || list.length === 0) {
+            curationGrid.innerHTML = '<p class="product-listing__empty-message text-center">暂无策展内容。</p>';
+            return;
+        }
+        if (typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') return;
+        curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
+    }
+
+    function activateTab(button) {
+        if (!button) return;
+        const key = button.dataset.curationTab || 'hot';
+        curationTabs?.forEach((btn) => {
+            const active = btn === button;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        moveIndicator(button);
+        try { localStorage.setItem(tabStorageKey, key); } catch { /* ignore */ }
+        renderCuration(key);
+    }
+
+    function initCuration() {
+        if (!curationSection || !curationTabs || curationTabs.length === 0) return;
+        curationTabs.forEach((btn) => {
+            btn.addEventListener('click', () => activateTab(btn));
+        });
+        let initialKey = 'hot';
+        try {
+            const stored = localStorage.getItem(tabStorageKey);
+            if (stored) initialKey = stored;
+        } catch { /* ignore */ }
+        const initialBtn = Array.from(curationTabs).find((btn) => btn.dataset.curationTab === initialKey) || curationTabs[0];
+        activateTab(initialBtn);
+        window.addEventListener('resize', Utils.throttle(() => {
+            const active = curationSection.querySelector('.curation-tab.is-active');
+            moveIndicator(active);
+        }, 200));
+    }
+
     function init() {
         // ... (Keep existing check for homepage)
          if (Utils.getPageName() === 'index.html' && featuredGrid) populateFeaturedProducts();
+         if (Utils.getPageName() === 'index.html') initCuration();
     }
 
     return { init: init };
@@ -3311,6 +3764,7 @@ const App = {
         LazyLoad.init(); 
         Favorites.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
+        QuickAdd.init();
         Homepage.init(); 
         RecentlyViewed.init();
         PDP.init(); 
