@@ -210,7 +210,7 @@ pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251220.1000'
 
 ## 迭代记录
 
-夸克级 1000 次迭代记录：见 `QUARK_ITERATIONS.md`。
+夸克级 2000 次迭代记录：见 `QUARK_ITERATIONS.md`。
 
 ## 贡献
 
