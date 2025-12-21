@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="塑梦潮玩 - 您的购物车，管理选购的手办商品">
+    <meta name="description" content="塑梦潮玩 - 会员中心（本地功能示例）。管理积分、常用地址与降价提醒。">
     <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#1F6FEB">
     <meta name="color-scheme" content="light dark">
-    <meta property="og:title" content="购物车 - 塑梦潮玩">
-    <meta property="og:description" content="管理选购的手办商品，支持数量调整与本地保存。">
+    <meta property="og:title" content="会员中心 - 塑梦潮玩">
+    <meta property="og:description" content="积分/地址簿/降价提醒均保存在本机浏览器中（示例站点）。">
     <meta property="og:type" content="website">
     <meta property="og:image" content="assets/images/hero-placeholder.svg">
     <meta property="og:locale" content="zh_CN">
     <meta name="twitter:card" content="summary_large_image">
-    <title>购物车 - 塑梦潮玩</title>
+    <title>会员中心 - 塑梦潮玩</title>
     <script>
         document.documentElement.classList.add('js');
         (function () {
@@ -98,89 +98,114 @@
             </div>
         </div>
 
-        <div class="header__search-bar">
+        <div class="header__search-bar" aria-hidden="true">
             <div class="container">
                 <form action="products.html" method="get" class="header__search-form">
                     <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索" autocomplete="off" enterkeyhint="search">
                     <button type="button" class="header__search-clear" aria-label="清除搜索"><i class="fas fa-times" aria-hidden="true"></i></button>
-                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    <button type="submit" class="header__search-submit" aria-label="提交搜索">搜索</button>
                 </form>
             </div>
         </div>
     </header>
 
-    <main id="main" class="cart-main">
+    <main id="main" class="account-main">
         <div class="container">
-            <h1>购物车</h1>
-            <!-- Breadcrumb -->
-             <nav aria-label="breadcrumb">
-                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="index.html">首页</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">购物车</li>
-                 </ol>
-             </nav>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html" class="breadcrumb__link">首页</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">会员中心</li>
+                </ol>
+            </nav>
 
-            <div class="cart-layout">
-                <div class="cart-items">
-                    <!-- Cart items will be dynamically inserted here by scripts/main.js -->
-                </div>
+            <header class="page-header">
+                <h1 class="page-title">会员中心</h1>
+                <p class="text-muted">积分、常用地址、降价提醒均保存在本机浏览器中（示例站点）。</p>
+            </header>
 
-                <div class="cart-recommendations" data-cart-recommendations>
-                    <div class="section-heading">
-                        <h3>为你推荐</h3>
-                        <p>补齐系列与场景的最后一块拼图。</p>
+            <section class="account-grid">
+                <article class="account-card account-card--wide fade-in-up" data-account-rewards>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><i class="fas fa-gem" aria-hidden="true"></i> 积分与权益</h2>
+                        <a class="cta-button-secondary" href="checkout.html">去结算使用</a>
                     </div>
-                    <div class="recommendations-grid" aria-live="polite"></div>
-                </div>
-
-                <div class="empty-cart-message" style="display:none;">
-                    <div class="empty-state">
-                        <img src="assets/images/empty-collector.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
-                        <p class="empty-state__title">购物车还是空的</p>
-                        <p class="empty-state__desc">先去逛逛，把心动的手办加入购物车吧。</p>
-                        <a class="cta-button" href="products.html">去逛逛</a>
-                    </div>
-                </div>
-
-                <div class="cart-summary">
-                    <h4>订单摘要</h4>
-
-                    <div class="summary-block">
-                        <label class="summary-label" for="shipping-region">配送地区</label>
-                        <select id="shipping-region" class="shipping-region-select" data-shipping-region aria-label="配送地区"></select>
-                    </div>
-
-                    <div class="promo-block" data-promo>
-                        <label class="summary-label" for="promo-code">优惠码</label>
-                        <div class="promo-input">
-                            <input id="promo-code" type="text" class="promo-code-input" data-promo-input placeholder="例如：SHOUWBAN10 / FREESHIP" autocomplete="off">
-                            <button type="button" class="cta-button-secondary promo-apply-button" data-promo-apply>应用</button>
-                            <button type="button" class="cta-button-secondary promo-clear-button" data-promo-clear style="display:none;">清除</button>
+                    <div class="account-rewards">
+                        <div class="account-rewards__panel">
+                            <div class="account-rewards__label text-muted">可用积分</div>
+                            <div class="account-rewards__value" data-rewards-points>0</div>
+                            <div class="account-rewards__hint text-muted">1 积分 = ¥0.01，可在结算页抵扣。</div>
                         </div>
-                        <p class="promo-feedback text-muted" data-promo-feedback aria-live="polite">未使用优惠码</p>
+                        <div class="account-rewards__actions">
+                            <button type="button" class="cta-button-secondary" data-rewards-reset>清空积分（本地）</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="account-card account-card--tall fade-in-up" data-account-addresses>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> 常用地址簿</h2>
+                        <button type="button" class="cta-button-secondary" data-address-open-form>新增地址</button>
                     </div>
 
-                    <div class="summary-row">
-                        <span>商品小计:</span>
-                        <span class="summary-subtotal">¥0.00</span>
-                    </div>
-                    <div class="summary-row" data-summary-discount-row style="display:none;">
-                        <span>优惠:</span>
-                        <span class="summary-discount">- ¥0.00</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>运费:</span>
-                        <span class="summary-shipping">¥0.00</span>
-                    </div>
-                    <div class="summary-row total-row">
-                        <span>总计:</span>
-                        <span class="total-price">¥0.00</span>
-                    </div>
-                    <a href="checkout.html" class="checkout-button">前往结算</a>
-                    <a href="products.html" class="continue-shopping-link">继续购物</a>
-                </div>
-            </div>
+                    <div class="account-addresses">
+                        <div class="account-empty text-muted" data-address-empty style="display:none;">
+                            还没有保存任何常用地址。你可以在这里一键管理，结算时快速填充。
+                        </div>
+                        <div class="account-addresses__list" data-address-list></div>
 
+                        <details class="account-form" data-address-form>
+                            <summary class="account-form__summary">添加 / 编辑地址</summary>
+                            <form class="account-form__body" data-address-form-body>
+                                <div class="form-group">
+                                    <label for="addr-label">标签（可选）</label>
+                                    <input id="addr-label" type="text" name="label" placeholder="例如：公司 / 家里" maxlength="30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="addr-name">收货人</label>
+                                    <input id="addr-name" type="text" name="name" autocomplete="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="addr-phone">手机号码</label>
+                                    <input id="addr-phone" type="tel" name="phone" inputmode="numeric" autocomplete="tel" maxlength="11" pattern="^1[3-9]\\d{9}$" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="addr-address">详细地址</label>
+                                    <textarea id="addr-address" name="address" rows="3" autocomplete="street-address" required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="addr-region">配送地区</label>
+                                    <select id="addr-region" name="region" data-shipping-region required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="inline-check">
+                                        <input type="checkbox" name="isDefault" value="1">
+                                        设为默认地址
+                                    </label>
+                                </div>
+                                <div class="account-form__actions">
+                                    <button type="button" class="cta-button-secondary" data-address-cancel>取消</button>
+                                    <button type="submit" class="cta-button">保存地址</button>
+                                </div>
+                                <input type="hidden" name="id" value="">
+                            </form>
+                        </details>
+                    </div>
+                </article>
+
+                <article class="account-card fade-in-up" data-account-alerts>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><i class="fas fa-bell" aria-hidden="true"></i> 降价提醒中心</h2>
+                        <a class="cta-button-secondary" href="products.html">去逛逛</a>
+                    </div>
+
+                    <div class="account-alerts">
+                        <div class="account-empty text-muted" data-alert-empty style="display:none;">
+                            还没有任何降价提醒。去商品列表点击“降价提醒”即可添加。
+                        </div>
+                        <div class="account-alerts__list" data-alert-list></div>
+                    </div>
+                </article>
+            </section>
         </div>
     </main>
 
@@ -195,10 +220,10 @@
                 <ul>
                     <li><a href="products.html">所有手办</a></li>
                     <li><a href="favorites.html">我的收藏</a></li>
-                    <li><a href="index.html#about">品牌理念</a></li>
-                    <li><a href="static-page.html?page=faq">常见问题</a></li>
-                    <li><a href="static-page.html?page=privacy">隐私政策</a></li> <!-- Link to static page -->
-                    <li><a href="static-page.html?page=tos">服务条款</a></li>   <!-- Link to static page -->
+                    <li><a href="account.html">会员中心</a></li>
+                    <li><a href="orders.html">订单中心</a></li>
+                    <li><a href="static-page.html?page=privacy">隐私政策</a></li>
+                    <li><a href="static-page.html?page=tos">服务条款</a></li>
                 </ul>
             </div>
             <div class="footer__social">
@@ -222,5 +247,4 @@
     <script src="scripts/main.js?v=20251221.3"></script>
 </body>
 </html>
-
 

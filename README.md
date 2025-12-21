@@ -14,6 +14,7 @@
 ## 目录
 
 - [预览](#预览)
+- [动态演示](#动态演示)
 - [架构概览（含图）](#架构概览含图)
 - [快速开始](#快速开始)
 - [核心能力](#核心能力)
@@ -31,6 +32,22 @@
 - GitHub Pages：`https://tur1412.github.io/Shouwban/`
 - 本地预览：见下方「本地预览（推荐）」
 
+## 动态演示
+
+> 以下为“功能+审美”演示动图（示意），用于 README 快速理解交互节奏；真实效果以页面运行为准。
+
+<p align="center">
+  <img src="assets/demos/cinematic-menu.gif" width="880" alt="影院级菜单过渡（Motion 渐进增强）">
+</p>
+
+<p align="center">
+  <img src="assets/demos/rewards-center.gif" width="880" alt="会员中心：积分/抵扣/权益（本地模拟）">
+</p>
+
+<p align="center">
+  <img src="assets/demos/price-alerts.gif" width="880" alt="降价提醒：玻璃拟态弹窗 + 按钮状态同步">
+</p>
+
 ## 架构概览（含图）
 
 > 本项目为静态站点：所有交互（收藏/购物车/对比/优惠码/订单）均在浏览器侧完成，数据持久化在 `localStorage`。
@@ -41,10 +58,12 @@
 flowchart LR
   Host[静态托管<br/>GitHub Pages / Nginx / Netlify] --> HTML[多页面 HTML]
   HTML --> CSS[styles/main.css + styles/extensions.css]
-  HTML --> JS[scripts/main.js]
+  HTML --> Motion[scripts/motion.js]
+  Motion --> Core[scripts/core.js]
+  Core --> JS[scripts/main.js]
 
   subgraph Browser[浏览器运行时]
-    JS --> Modules[模块：Header/Theme/Favorites/Cart/Compare/Orders/Promotion...]
+    JS --> Modules[模块：Header/Theme/Favorites/Cart/Compare/Orders/Promotion/Rewards/AddressBook/PriceAlerts...]
     Modules <--> LS[(localStorage)]
     JS --> SW[sw.js Service Worker]
     SW <--> Cache[(Cache Storage)]
@@ -89,11 +108,16 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 ## 核心能力
 
 - 2025 Quark UI 体系：Bento Grid + 玻璃拟态 + 极光背景 + 影院级分层（兼顾 WCAG AA 可读性）
+- 影院级微交互（新增）：引入 Motion（Framer 系 motion library）作为渐进增强动效层，自动尊重 `prefers-reduced-motion`
 - 多页面电商流程：列表/分类/详情/购物车/结算/收藏/静态内容
 - 商品对比（新增）：最多对比 3 件商品，支持从列表/详情加入、对比页移除与加购（`compare.html`）
 - 订单中心（新增）：模拟下单 → 生成订单 → 订单成功页 → 订单中心查看、复制订单号、再次购买（`orders.html` / `order-success.html`）
 - 优惠码（新增）：支持 `SHOUWBAN10` / `NEW50` / `FREESHIP`（本地逻辑示例，购物车与结算同步）
 - 运费估算（新增）：基于配送地区与阈值规则，实时计算运费（本地逻辑示例）
+- 会员中心（新增）：积分/权益、常用地址簿、降价提醒中心（`account.html`）
+- 积分体系（新增）：下单返积分、结算可用积分抵扣（本地规则示例）
+- 常用地址簿（新增）：结算页一键选择常用地址/保存地址（减少填写摩擦）
+- 降价提醒（新增）：列表/详情一键设置目标价，达到时本地提示（示例逻辑）
 - 搜索联想：顶部搜索即输即提示，支持键盘选择直达详情
 - 最近浏览：首页自动复盘最近查看的商品（`recentlyViewed`）
 - 本地数据闭环：购物车/收藏/对比/订单/结算草稿即时写入 `localStorage`，刷新不丢，多标签页自动同步
@@ -117,6 +141,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 | 订单中心（本地） | `orders.html` | `/orders.html` |
 | 商品对比（本地） | `compare.html` | `/compare.html` |
 | 收藏夹 | `favorites.html` | `/favorites.html` |
+| 会员中心（本地） | `account.html` | `/account.html` |
 | 静态内容 | `static-page.html` | `/static-page.html?page=faq\|privacy\|tos` |
 | 离线页 | `offline.html` | PWA fallback |
 | 404 | `404.html` | 静态托管兜底页 |
@@ -125,7 +150,10 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 
 - `styles/main.css`：主样式
 - `styles/extensions.css`：扩展样式（主题/收藏/对比/订单/优惠码等，覆盖式加载，便于独立维护）
+- `scripts/motion.js`：动效库（Motion，Framer 系；渐进增强）
+- `scripts/core.js`：纯函数与通用工具（可 100% 覆盖率单测）
 - `scripts/main.js`：核心逻辑（数据 + 渲染 + 交互）
+- `account.html`：会员中心（积分/地址簿/降价提醒）
 - `scripts/validate.mjs`：零依赖校验脚本
 - `scripts/bump-version.mjs`：统一 bump 版本号脚本（缓存穿透）
 - `sw.js`：Service Worker（PWA 缓存策略）
@@ -176,20 +204,20 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 
 静态站点常见“改了没生效”，通常是浏览器缓存或 Service Worker 缓存导致。为此本项目强制：
 
-- 所有 HTML 引用都带版本号：`styles/main.css?v=...`、`styles/extensions.css?v=...`、`scripts/main.js?v=...`
+- 所有 HTML 引用都带版本号：`styles/main.css?v=...`、`styles/extensions.css?v=...`、`scripts/motion.js?v=...`、`scripts/core.js?v=...`、`scripts/main.js?v=...`
 - `sw.js` 内也包含同一版本号（`CACHE_NAME` + `PRECACHE_URLS`）
 - 修改核心逻辑 / 样式 / PWA 缓存策略后，请同步 bump 版本号
 
 ### 一键 bump 版本号（推荐）
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251221.1'
+pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251221.3'
 ```
 
 或：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251221.1'
+pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251221.3'
 ```
 
 运行后建议执行：`npm run verify` 确认一致性。

@@ -31,8 +31,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251221.2">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251221.2">
+    <link rel="stylesheet" href="styles/main.css?v=20251221.3">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251221.3">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -130,6 +130,11 @@
                             <h3>1. 配送地址</h3>
                             <!-- Address Form Fields Placeholder -->
                             <div class="form-group">
+                                <label for="address-book">常用地址（可选）</label>
+                                <select id="address-book" data-address-book-select></select>
+                                <small class="text-muted">选择后将自动填充收货信息。可在 <a href="account.html">会员中心</a> 管理。</small>
+                            </div>
+                            <div class="form-group">
                                 <label for="name">收货人姓名</label>
                                 <input type="text" id="name" name="name" autocomplete="name" required>
                             </div>
@@ -144,6 +149,12 @@
                             <div class="form-group">
                                 <label for="region">配送地区</label>
                                 <select id="region" name="region" data-shipping-region required></select>
+                            </div>
+                            <div class="form-group">
+                                <label class="inline-check">
+                                    <input type="checkbox" name="saveAddress" value="1" data-address-book-save>
+                                    保存到地址簿并设为默认（本地）
+                                </label>
                             </div>
                              <!-- Add more fields like province, city, zip code as needed -->
                         </section>
@@ -188,6 +199,17 @@
                         <p class="promo-feedback text-muted" data-promo-feedback aria-live="polite">未使用优惠码</p>
                     </div>
 
+                    <div class="rewards-block rewards-block--summary" data-rewards>
+                        <div class="rewards-row">
+                            <label class="inline-check">
+                                <input type="checkbox" data-rewards-toggle>
+                                使用积分抵扣
+                            </label>
+                            <span class="text-muted" data-rewards-available>可用 0 积分</span>
+                        </div>
+                        <p class="text-muted rewards-hint">1 积分 = ¥0.01（示例）。</p>
+                    </div>
+
                     <div class="summary-row">
                         <span>商品小计:</span>
                         <span class="summary-subtotal">¥0.00</span>
@@ -195,6 +217,10 @@
                     <div class="summary-row" data-summary-discount-row style="display:none;">
                         <span>优惠:</span>
                         <span class="summary-discount">- ¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-rewards-row style="display:none;">
+                        <span>积分抵扣:</span>
+                        <span class="summary-rewards-discount">- ¥0.00</span>
                     </div>
                     <div class="summary-row">
                         <span>运费:</span>
@@ -247,7 +273,8 @@
         </div>
     </footer>
 
-    <script src="scripts/core.js?v=20251221.2"></script>
-    <script src="scripts/main.js?v=20251221.2"></script>
+    <script src="scripts/motion.js?v=20251221.3"></script>
+    <script src="scripts/core.js?v=20251221.3"></script>
+    <script src="scripts/main.js?v=20251221.3"></script>
 </body>
 </html>

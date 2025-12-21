@@ -32,7 +32,7 @@ function bumpHtmlVersion(html, nextVersion) {
   let out = html;
   let changed = false;
 
-  const targets = ['styles/main.css', 'styles/extensions.css', 'scripts/core.js', 'scripts/main.js'];
+  const targets = ['styles/main.css', 'styles/extensions.css', 'scripts/motion.js', 'scripts/core.js', 'scripts/main.js'];
   for (const asset of targets) {
     const re = new RegExp(`${asset.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\?v=[^"']+`, 'g');
     const r = replaceAll(out, re, `${asset}?v=${nextVersion}`);
@@ -70,6 +70,10 @@ function bumpSwVersion(sw, nextVersion) {
   const r6 = replaceAll(out, /scripts\/core\.js\?v=[^'"]+/g, `scripts/core.js?v=${nextVersion}`);
   out = r6.next;
   changed ||= r6.changed;
+
+  const r7 = replaceAll(out, /scripts\/motion\.js\?v=[^'"]+/g, `scripts/motion.js?v=${nextVersion}`);
+  out = r7.next;
+  changed ||= r7.changed;
 
   return { next: out, changed };
 }

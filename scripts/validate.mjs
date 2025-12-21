@@ -108,6 +108,9 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
     if (!/styles\/extensions\.css\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 Extensions CSS 版本号: ${rel}`);
     }
+    if (!/scripts\/motion\.js\?v=/.test(c)) {
+      errors.push(`[HTML] 缺少 Motion 动效库版本号: ${rel}`);
+    }
     if (!/scripts\/core\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 Core JS 版本号: ${rel}`);
     }
@@ -132,6 +135,7 @@ function assertRequiredRepoFilesExist() {
     'offline.html',
     'styles/main.css',
     'styles/extensions.css',
+    'scripts/motion.js',
     'scripts/core.js',
   ];
   const errors = [];
@@ -166,6 +170,7 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
   const versions = {
     mainCss: new Set(),
     extensionsCss: new Set(),
+    motionJs: new Set(),
     coreJs: new Set(),
     mainJs: new Set(),
   };
@@ -176,16 +181,19 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
 
     const mainCssV = extractAssetVersion(c, 'styles/main.css');
     const extCssV = extractAssetVersion(c, 'styles/extensions.css');
+    const motionJsV = extractAssetVersion(c, 'scripts/motion.js');
     const coreJsV = extractAssetVersion(c, 'scripts/core.js');
     const mainJsV = extractAssetVersion(c, 'scripts/main.js');
 
     if (!mainCssV) errors.push(`[HTML] 无法解析 main.css 版本号: ${rel}`);
     if (!extCssV) errors.push(`[HTML] 无法解析 extensions.css 版本号: ${rel}`);
+    if (!motionJsV) errors.push(`[HTML] 无法解析 motion.js 版本号: ${rel}`);
     if (!coreJsV) errors.push(`[HTML] 无法解析 core.js 版本号: ${rel}`);
     if (!mainJsV) errors.push(`[HTML] 无法解析 main.js 版本号: ${rel}`);
 
     if (mainCssV) versions.mainCss.add(mainCssV);
     if (extCssV) versions.extensionsCss.add(extCssV);
+    if (motionJsV) versions.motionJs.add(motionJsV);
     if (coreJsV) versions.coreJs.add(coreJsV);
     if (mainJsV) versions.mainJs.add(mainJsV);
   }
@@ -198,6 +206,9 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
       `[VERSION] extensions.css 版本号不一致: ${Array.from(versions.extensionsCss).join(', ')}`,
     );
   }
+  if (versions.motionJs.size > 1) {
+    errors.push(`[VERSION] motion.js 版本号不一致: ${Array.from(versions.motionJs).join(', ')}`);
+  }
   if (versions.coreJs.size > 1) {
     errors.push(`[VERSION] core.js 版本号不一致: ${Array.from(versions.coreJs).join(', ')}`);
   }
@@ -208,11 +219,15 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
   const mainCssV = versions.mainCss.size === 1 ? Array.from(versions.mainCss)[0] : null;
   const extCssV =
     versions.extensionsCss.size === 1 ? Array.from(versions.extensionsCss)[0] : null;
+  const motionJsV = versions.motionJs.size === 1 ? Array.from(versions.motionJs)[0] : null;
   const coreJsV = versions.coreJs.size === 1 ? Array.from(versions.coreJs)[0] : null;
   const mainJsV = versions.mainJs.size === 1 ? Array.from(versions.mainJs)[0] : null;
 
   if (mainCssV && extCssV && mainCssV !== extCssV) {
     errors.push(`[VERSION] main.css 与 extensions.css 版本号不一致: ${mainCssV} vs ${extCssV}`);
+  }
+  if (mainCssV && motionJsV && mainCssV !== motionJsV) {
+    errors.push(`[VERSION] main.css 与 motion.js 版本号不一致: ${mainCssV} vs ${motionJsV}`);
   }
   if (mainCssV && coreJsV && mainCssV !== coreJsV) {
     errors.push(`[VERSION] main.css 与 core.js 版本号不一致: ${mainCssV} vs ${coreJsV}`);
@@ -246,6 +261,7 @@ function assertServiceWorkerVersionMatches(version) {
   const expected = [
     `styles/main.css?v=${version}`,
     `styles/extensions.css?v=${version}`,
+    `scripts/motion.js?v=${version}`,
     `scripts/core.js?v=${version}`,
     `scripts/main.js?v=${version}`,
   ];

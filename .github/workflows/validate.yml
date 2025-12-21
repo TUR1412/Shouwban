@@ -18,6 +18,7 @@ jobs:
 
       - name: Syntax Check
         run: |
+          node --check scripts/motion.js
           node --check scripts/core.js
           node --check scripts/main.js
           node --check sw.js
