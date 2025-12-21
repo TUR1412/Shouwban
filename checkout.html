@@ -31,8 +31,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251220.5000">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251220.5000">
+    <link rel="stylesheet" href="styles/main.css?v=20251221.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251221.1">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Favicon -->
@@ -141,6 +141,10 @@
                                 <label for="address">详细地址</label>
                                 <textarea id="address" name="address" rows="3" autocomplete="street-address" required></textarea>
                             </div>
+                            <div class="form-group">
+                                <label for="region">配送地区</label>
+                                <select id="region" name="region" data-shipping-region required></select>
+                            </div>
                              <!-- Add more fields like province, city, zip code as needed -->
                         </section>
 
@@ -173,9 +177,24 @@
                         <!-- Summary items will be loaded here by JS -->
                     </div>
                     <hr>
+
+                    <div class="promo-block promo-block--summary" data-promo>
+                        <label class="summary-label" for="promo-code-checkout">优惠码</label>
+                        <div class="promo-input">
+                            <input id="promo-code-checkout" type="text" class="promo-code-input" data-promo-input placeholder="优惠码：SHOUWBAN10 / FREESHIP" autocomplete="off">
+                            <button type="button" class="cta-button-secondary promo-apply-button" data-promo-apply>应用</button>
+                            <button type="button" class="cta-button-secondary promo-clear-button" data-promo-clear style="display:none;">清除</button>
+                        </div>
+                        <p class="promo-feedback text-muted" data-promo-feedback aria-live="polite">未使用优惠码</p>
+                    </div>
+
                     <div class="summary-row">
                         <span>商品小计:</span>
                         <span class="summary-subtotal">¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-discount-row style="display:none;">
+                        <span>优惠:</span>
+                        <span class="summary-discount">- ¥0.00</span>
                     </div>
                     <div class="summary-row">
                         <span>运费:</span>
@@ -228,10 +247,7 @@
         </div>
     </footer>
 
-    <script src="scripts/main.js?v=20251220.5000"></script>
+    <script src="scripts/main.js?v=20251221.1"></script>
 </body>
 </html>
-
-
-
 

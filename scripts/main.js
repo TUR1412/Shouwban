@@ -65,6 +65,37 @@ const Utils = {
         }
     },
 
+    // localStorage helpers (never throw)
+    readStorageJSON: (key, fallback) => {
+        try {
+            return Utils.safeJsonParse(localStorage.getItem(String(key || '')), fallback);
+        } catch {
+            return fallback;
+        }
+    },
+    writeStorageJSON: (key, value) => {
+        try {
+            localStorage.setItem(String(key || ''), JSON.stringify(value));
+            return true;
+        } catch {
+            return false;
+        }
+    },
+    removeStorage: (key) => {
+        try {
+            localStorage.removeItem(String(key || ''));
+            return true;
+        } catch {
+            return false;
+        }
+    },
+    normalizeStringArray: (value) => {
+        if (!Array.isArray(value)) return [];
+        return value
+            .map((x) => String(x ?? '').trim())
+            .filter((x) => x.length > 0);
+    },
+
     prefersReducedMotion: () => {
         try {
             return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -73,6 +104,62 @@ const Utils = {
         }
     }
 };
+
+// ==============================================
+// Pricing / Shipping Helpers
+// ==============================================
+const Pricing = (function() {
+    const regions = [
+        { value: 'cn-east', label: '华东', baseShipping: 12, freeOver: 399 },
+        { value: 'cn-north', label: '华北', baseShipping: 12, freeOver: 399 },
+        { value: 'cn-south', label: '华南', baseShipping: 14, freeOver: 399 },
+        { value: 'cn-central', label: '华中', baseShipping: 13, freeOver: 399 },
+        { value: 'cn-west', label: '西部/偏远', baseShipping: 18, freeOver: 499 },
+        { value: 'cn-northeast', label: '东北', baseShipping: 15, freeOver: 399 },
+        { value: 'hmt', label: '港澳台/海外（示例）', baseShipping: 28, freeOver: 699 },
+    ];
+
+    function roundMoney(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100) / 100;
+    }
+
+    function formatCny(value) {
+        return `¥${roundMoney(value).toFixed(2)}`;
+    }
+
+    function getRegion(value) {
+        const key = String(value || '').trim();
+        return regions.find((r) => r.value === key) || regions[0];
+    }
+
+    function calculateShipping({ subtotal = 0, discount = 0, region = 'cn-east', promotion = null } = {}) {
+        const s = roundMoney(subtotal);
+        const d = roundMoney(discount);
+        const merch = Math.max(0, s - d);
+        const r = getRegion(region);
+
+        // Promotion: free shipping
+        if (promotion && promotion.type === 'freeship') return 0;
+
+        // Empty cart should not charge shipping
+        if (merch <= 0) return 0;
+
+        // Threshold-based free shipping
+        if (merch >= r.freeOver) return 0;
+
+        return roundMoney(r.baseShipping);
+    }
+
+    return {
+        regions,
+        roundMoney,
+        formatCny,
+        getRegion,
+        calculateShipping,
+    };
+})();
 
 // ==============================================
 // Header Module
@@ -1090,32 +1177,15 @@ const Theme = (function() {
 const Favorites = (function() {
     const storageKey = 'favorites'; // string[] of product IDs
 
-    function safeParseArray(raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) return [];
-            return parsed.filter((x) => typeof x === 'string' && x.trim().length > 0);
-        } catch {
-            return [];
-        }
-    }
-
     function getIds() {
-        try {
-            return safeParseArray(localStorage.getItem(storageKey));
-        } catch {
-            return [];
-        }
+        const parsed = Utils.readStorageJSON(storageKey, []);
+        return Utils.normalizeStringArray(parsed);
     }
 
     function setIds(ids) {
-        try {
-            const clean = Array.from(new Set((ids || []).filter((x) => typeof x === 'string' && x.trim().length > 0)));
-            localStorage.setItem(storageKey, JSON.stringify(clean));
-            return clean;
-        } catch {
-            return [];
-        }
+        const clean = Array.from(new Set(Utils.normalizeStringArray(ids)));
+        Utils.writeStorageJSON(storageKey, clean);
+        return clean;
     }
 
     function isFavorite(id) {
@@ -1206,6 +1276,539 @@ const Favorites = (function() {
 })();
 
 // ==============================================
+// Compare Module (localStorage)
+// ==============================================
+const Compare = (function() {
+    const storageKey = 'compare'; // string[] of product IDs
+    const maxItems = 3;
+
+    function ensureHeaderEntry() {
+        const actions = document.querySelector('.header__actions');
+        if (!actions) return;
+        if (actions.querySelector('.header__compare-link')) return;
+
+        const link = document.createElement('a');
+        link.href = 'compare.html';
+        link.className = 'header__action-link header__compare-link';
+        link.setAttribute('aria-label', '对比');
+        link.innerHTML =
+            '<i class="fas fa-scale-balanced" aria-hidden="true"></i><span class="header__compare-count" aria-label="对比数量" style="display:none;">0</span>';
+
+        const themeToggle = actions.querySelector('.header__theme-toggle');
+        if (themeToggle) actions.insertBefore(link, themeToggle);
+        else actions.appendChild(link);
+    }
+
+    function getIds() {
+        return Utils.normalizeStringArray(Utils.readStorageJSON(storageKey, []));
+    }
+
+    function updateHeaderCount(idsOrCount) {
+        const el = document.querySelector('.header__compare-count');
+        if (!el) return;
+        const count = Array.isArray(idsOrCount) ? idsOrCount.length : Number(idsOrCount) || 0;
+        el.textContent = String(count);
+        el.style.display = count > 0 ? 'inline-block' : 'none';
+        el.setAttribute('aria-live', 'polite');
+        el.setAttribute('aria-label', `对比数量：${count}`);
+    }
+
+    function dispatchChanged() {
+        try { window.dispatchEvent(new CustomEvent('compare:changed')); } catch { /* ignore */ }
+    }
+
+    function setIds(ids, options = {}) {
+        const clean = Array.from(new Set(Utils.normalizeStringArray(ids))).slice(0, maxItems);
+        Utils.writeStorageJSON(storageKey, clean);
+        updateHeaderCount(clean);
+        if (!options.silent) dispatchChanged();
+        return clean;
+    }
+
+    function clearAll() {
+        setIds([]);
+    }
+
+    function isCompared(id) {
+        const key = String(id || '').trim();
+        if (!key) return false;
+        return getIds().includes(key);
+    }
+
+    function applyButtonState(btn, active) {
+        if (!btn) return;
+        const isActive = Boolean(active);
+        btn.classList.toggle('is-compared', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        btn.setAttribute('aria-label', isActive ? '取消对比' : '加入对比');
+    }
+
+    function syncButtons(root = document) {
+        if (!root || !root.querySelectorAll) return;
+        const ids = getIds();
+        root.querySelectorAll('.product-card__compare[data-product-id], .compare-btn[data-product-id]').forEach((btn) => {
+            const productId = btn.dataset.productId;
+            applyButtonState(btn, ids.includes(productId));
+        });
+    }
+
+    function toggle(id) {
+        const key = String(id || '').trim();
+        if (!key) return { active: false, blocked: false };
+
+        const current = getIds();
+        const exists = current.includes(key);
+        if (exists) {
+            const next = current.filter((x) => x !== key);
+            setIds(next);
+            return { active: false, blocked: false };
+        }
+
+        if (current.length >= maxItems) {
+            return { active: false, blocked: true };
+        }
+
+        const next = [key, ...current].slice(0, maxItems);
+        setIds(next);
+        return { active: true, blocked: false };
+    }
+
+    function handleClick(event) {
+        const btn = event.target?.closest?.('.product-card__compare, .compare-btn');
+        if (!btn) return;
+        const id = btn.dataset.productId;
+        if (!id) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const result = toggle(id);
+        if (result.blocked) {
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show(`最多只能对比 ${maxItems} 件商品`, 'info', 1800);
+            }
+            return;
+        }
+
+        applyButtonState(btn, result.active);
+        if (typeof Toast !== 'undefined' && Toast.show) {
+            Toast.show(result.active ? '已加入对比' : '已移出对比', result.active ? 'success' : 'info', 1500);
+        }
+    }
+
+    function init() {
+        ensureHeaderEntry();
+        updateHeaderCount(getIds());
+        document.addEventListener('click', handleClick);
+        syncButtons(document);
+    }
+
+    return { init, getIds, setIds, clear: clearAll, isCompared, toggle, syncButtons, updateHeaderCount };
+})();
+
+// ==============================================
+// Promotion / Coupon Module (localStorage)
+// ==============================================
+const Promotion = (function() {
+    const storageKey = 'promotion';
+
+    const knownPromos = [
+        { code: 'SHOUWBAN10', type: 'percent', value: 10, label: '全场 9 折' },
+        { code: 'NEW50', type: 'fixed', value: 50, minSubtotal: 299, label: '新人立减 ¥50（满¥299）' },
+        { code: 'FREESHIP', type: 'freeship', value: 0, label: '免运费' },
+    ];
+
+    function normalizeCode(raw) {
+        return String(raw || '').trim().toUpperCase();
+    }
+
+    function getCartSubtotalFromStorage() {
+        const raw = Utils.readStorageJSON('cart', []);
+        if (!Array.isArray(raw)) return 0;
+        return raw.reduce((sum, item) => {
+            const price = Number(item?.price);
+            const qty = Number(item?.quantity);
+            if (!Number.isFinite(price) || price < 0) return sum;
+            if (!Number.isFinite(qty) || qty <= 0) return sum;
+            return sum + price * qty;
+        }, 0);
+    }
+
+    function get() {
+        const data = Utils.readStorageJSON(storageKey, null);
+        if (!data || typeof data !== 'object') return null;
+        const code = normalizeCode(data.code);
+        const type = String(data.type || '').trim();
+        const value = Number(data.value);
+        const label = String(data.label || '').trim();
+        if (!code || !type || !Number.isFinite(value)) return null;
+        return { code, type, value, label };
+    }
+
+    function dispatchChanged() {
+        try { window.dispatchEvent(new CustomEvent('promo:changed')); } catch { /* ignore */ }
+    }
+
+    function set(promo) {
+        if (!promo) {
+            Utils.removeStorage(storageKey);
+            dispatchChanged();
+            return null;
+        }
+
+        const payload = {
+            code: normalizeCode(promo.code),
+            type: promo.type,
+            value: promo.value,
+            label: promo.label || '',
+            appliedAt: new Date().toISOString(),
+        };
+        Utils.writeStorageJSON(storageKey, payload);
+        dispatchChanged();
+        return get();
+    }
+
+    function clear() {
+        set(null);
+    }
+
+    function calculateDiscount(subtotal, promo = get()) {
+        const s = Pricing.roundMoney(subtotal);
+        if (!promo) return 0;
+
+        let discount = 0;
+        if (promo.type === 'percent') {
+            const pct = Number(promo.value);
+            if (Number.isFinite(pct) && pct > 0) {
+                discount = (s * pct) / 100;
+            }
+        } else if (promo.type === 'fixed') {
+            const fixed = Number(promo.value);
+            if (Number.isFinite(fixed) && fixed > 0) {
+                discount = fixed;
+            }
+        } else {
+            discount = 0;
+        }
+
+        discount = Math.max(0, Math.min(s, Pricing.roundMoney(discount)));
+        return discount;
+    }
+
+    function validateAndResolve(code) {
+        const normalized = normalizeCode(code);
+        if (!normalized) return { ok: false, message: '请输入优惠码。' };
+
+        const promo = knownPromos.find((p) => p.code === normalized);
+        if (!promo) return { ok: false, message: '优惠码无效或已过期。' };
+
+        const subtotal = getCartSubtotalFromStorage();
+        const minSubtotal = Number(promo.minSubtotal);
+        if (Number.isFinite(minSubtotal) && minSubtotal > 0 && subtotal < minSubtotal) {
+            return { ok: false, message: `该优惠码需满 ${Pricing.formatCny(minSubtotal)} 才可使用。` };
+        }
+
+        return { ok: true, promo };
+    }
+
+    function apply(code) {
+        const r = validateAndResolve(code);
+        if (!r.ok) return r;
+        set(r.promo);
+        return { ok: true, message: `已应用：${r.promo.label || r.promo.code}` };
+    }
+
+    function bindPromoBlocks() {
+        const blocks = document.querySelectorAll('[data-promo]');
+        if (!blocks || blocks.length === 0) return;
+
+        const refresh = () => {
+            const promo = get();
+            blocks.forEach((block) => {
+                const input = block.querySelector('[data-promo-input]');
+                const feedback = block.querySelector('[data-promo-feedback]');
+                const clearBtn = block.querySelector('[data-promo-clear]');
+                if (input) input.value = promo?.code || '';
+                if (feedback) feedback.textContent = promo ? `当前：${promo.label || promo.code}` : '未使用优惠码';
+                if (clearBtn) clearBtn.style.display = promo ? 'inline-flex' : 'none';
+            });
+        };
+
+        const applyFromBlock = (block) => {
+            const input = block.querySelector('[data-promo-input]');
+            const feedback = block.querySelector('[data-promo-feedback]');
+            const code = input ? input.value : '';
+            const r = apply(code);
+            if (feedback) feedback.textContent = r.ok ? r.message : r.message;
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show(r.message, r.ok ? 'success' : 'info', 2000);
+            }
+        };
+
+        blocks.forEach((block) => {
+            const applyBtn = block.querySelector('[data-promo-apply]');
+            const clearBtn = block.querySelector('[data-promo-clear]');
+            const input = block.querySelector('[data-promo-input]');
+
+            applyBtn?.addEventListener?.('click', () => applyFromBlock(block));
+            clearBtn?.addEventListener?.('click', () => {
+                clear();
+                if (typeof Toast !== 'undefined' && Toast.show) {
+                    Toast.show('已清除优惠码', 'info', 1600);
+                }
+            });
+            input?.addEventListener?.('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyFromBlock(block);
+                }
+            });
+        });
+
+        refresh();
+        try {
+            window.addEventListener('promo:changed', refresh);
+        } catch {
+            // ignore
+        }
+    }
+
+    function init() {
+        bindPromoBlocks();
+        try {
+            window.addEventListener('promo:changed', () => {
+                Cart?.refresh?.();
+                Checkout?.refresh?.();
+            });
+        } catch {
+            // ignore
+        }
+    }
+
+    return { init, get, set, clear, apply, calculateDiscount };
+})();
+
+// ==============================================
+// Shipping Region (localStorage)
+// ==============================================
+const ShippingRegion = (function() {
+    const storageKey = 'shippingRegion';
+
+    function get() {
+        const raw = Utils.readStorageJSON(storageKey, null);
+        const key = typeof raw === 'string' ? raw : String(raw || '').trim();
+        return Pricing.getRegion(key).value;
+    }
+
+    function set(value, options = {}) {
+        const next = Pricing.getRegion(value).value;
+        Utils.writeStorageJSON(storageKey, next);
+        if (!options.silent) {
+            try { window.dispatchEvent(new CustomEvent('shipping:changed')); } catch { /* ignore */ }
+        }
+        return next;
+    }
+
+    function fillSelect(selectEl) {
+        if (!selectEl) return;
+        if (selectEl.dataset.shippingRegionReady === '1') return;
+        selectEl.innerHTML = Pricing.regions
+            .map((r) => `<option value="${Utils.escapeHtml(r.value)}">${Utils.escapeHtml(r.label)}</option>`)
+            .join('');
+        selectEl.dataset.shippingRegionReady = '1';
+    }
+
+    function syncAllSelects() {
+        const selects = document.querySelectorAll('select[data-shipping-region]');
+        if (!selects || selects.length === 0) return;
+        const current = get();
+        selects.forEach((sel) => {
+            fillSelect(sel);
+            sel.value = current;
+        });
+    }
+
+    function init() {
+        syncAllSelects();
+
+        document.addEventListener('change', (event) => {
+            const sel = event.target?.closest?.('select[data-shipping-region]');
+            if (!sel) return;
+            set(sel.value);
+        });
+
+        try {
+            window.addEventListener('shipping:changed', () => {
+                syncAllSelects();
+                Cart?.refresh?.();
+                Checkout?.refresh?.();
+            });
+        } catch {
+            // ignore
+        }
+    }
+
+    return { init, get, set, syncAllSelects };
+})();
+
+// ==============================================
+// Orders (localStorage)
+// ==============================================
+const Orders = (function() {
+    const storageKey = 'orders'; // array of order objects
+    const maxOrders = 20;
+
+    function ensureHeaderEntry() {
+        const actions = document.querySelector('.header__actions');
+        if (!actions) return;
+        if (actions.querySelector('.header__orders-link')) return;
+
+        const link = document.createElement('a');
+        link.href = 'orders.html';
+        link.className = 'header__action-link header__orders-link';
+        link.setAttribute('aria-label', '订单');
+        link.innerHTML =
+            '<i class="fas fa-receipt" aria-hidden="true"></i><span class="header__orders-count" aria-label="订单数量" style="display:none;">0</span>';
+
+        const compareLink = actions.querySelector('.header__compare-link');
+        const themeToggle = actions.querySelector('.header__theme-toggle');
+        if (compareLink) actions.insertBefore(link, compareLink);
+        else if (themeToggle) actions.insertBefore(link, themeToggle);
+        else actions.appendChild(link);
+    }
+
+    function updateHeaderCount(ordersOrCount) {
+        const el = document.querySelector('.header__orders-count');
+        if (!el) return;
+        const count = Array.isArray(ordersOrCount) ? ordersOrCount.length : Number(ordersOrCount) || 0;
+        el.textContent = String(count);
+        el.style.display = count > 0 ? 'inline-block' : 'none';
+        el.setAttribute('aria-live', 'polite');
+        el.setAttribute('aria-label', `订单数量：${count}`);
+    }
+
+    function dispatchChanged() {
+        try { window.dispatchEvent(new CustomEvent('orders:changed')); } catch { /* ignore */ }
+    }
+
+    function getAll() {
+        const raw = Utils.readStorageJSON(storageKey, []);
+        if (!Array.isArray(raw)) return [];
+        return raw.filter((x) => x && typeof x === 'object');
+    }
+
+    function saveAll(list) {
+        const safe = Array.isArray(list) ? list.slice(0, maxOrders) : [];
+        Utils.writeStorageJSON(storageKey, safe);
+        updateHeaderCount(safe);
+        dispatchChanged();
+        return safe;
+    }
+
+    function generateId() {
+        try {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+        } catch {
+            // ignore
+        }
+        return `ORD-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
+    }
+
+    function normalizeAddress(address) {
+        const addr = address && typeof address === 'object' ? address : {};
+        const name = String(addr.name || '').trim().slice(0, 40);
+        const phone = String(addr.phone || '').trim().slice(0, 30);
+        const detail = String(addr.address || '').trim().slice(0, 160);
+        return { name, phone, address: detail };
+    }
+
+    function normalizeItems(items) {
+        const list = Array.isArray(items) ? items : [];
+        return list
+            .map((item) => {
+                if (!item || typeof item !== 'object') return null;
+                const id = String(item.id || '').trim();
+                if (!id) return null;
+                const name = String(item.name || '').trim() || '[手办名称]';
+                const series = String(item.series || '').trim();
+                const image = String(item.image || 'assets/images/figurine-1.svg').trim();
+                const price = Number(item.price);
+                const quantity = Number.parseInt(item.quantity, 10);
+                const safePrice = Number.isFinite(price) && price >= 0 ? price : 0;
+                const safeQty = Number.isFinite(quantity) && quantity > 0 ? Math.min(99, quantity) : 1;
+                return { id, name, series, image, price: safePrice, quantity: safeQty };
+            })
+            .filter(Boolean);
+    }
+
+    function calcSubtotal(items) {
+        const list = normalizeItems(items);
+        return Pricing.roundMoney(list.reduce((sum, i) => sum + i.price * i.quantity, 0));
+    }
+
+    function create({ items, shippingAddress, paymentMethod, region } = {}) {
+        const safeItems = normalizeItems(items);
+        const subtotal = calcSubtotal(safeItems);
+        const promo = Promotion.get();
+        const discount = Promotion.calculateDiscount(subtotal, promo);
+        const shipRegion = Pricing.getRegion(region || ShippingRegion.get()).value;
+        const shipping = Pricing.calculateShipping({ subtotal, discount, region: shipRegion, promotion: promo });
+        const total = Pricing.roundMoney(Math.max(0, subtotal - discount) + shipping);
+
+        const order = {
+            id: generateId(),
+            createdAt: new Date().toISOString(),
+            status: 'processing',
+            paymentMethod: String(paymentMethod || '').trim(),
+            region: shipRegion,
+            promotion: promo ? { code: promo.code, type: promo.type, value: promo.value, label: promo.label } : null,
+            pricing: { subtotal, discount, shipping, total, currency: 'CNY' },
+            shippingAddress: normalizeAddress(shippingAddress),
+            items: safeItems,
+        };
+
+        const next = [order, ...getAll()].slice(0, maxOrders);
+        saveAll(next);
+        Utils.writeStorageJSON('lastOrderId', order.id);
+        return order;
+    }
+
+    function getById(id) {
+        const key = String(id || '').trim();
+        if (!key) return null;
+        return getAll().find((o) => String(o?.id || '').trim() === key) || null;
+    }
+
+    function remove(id) {
+        const key = String(id || '').trim();
+        if (!key) return false;
+        const next = getAll().filter((o) => String(o?.id || '').trim() !== key);
+        saveAll(next);
+        return true;
+    }
+
+    function clearAll() {
+        Utils.removeStorage(storageKey);
+        updateHeaderCount(0);
+        dispatchChanged();
+    }
+
+    function init() {
+        ensureHeaderEntry();
+        updateHeaderCount(getAll());
+        try {
+            window.addEventListener('orders:changed', () => updateHeaderCount(getAll()));
+        } catch {
+            // ignore
+        }
+    }
+
+    return { init, getAll, getById, create, remove, clear: clearAll, updateHeaderCount };
+})();
+
+// ==============================================
 // Service Worker Module (PWA offline support)
 // ==============================================
 const ServiceWorker = (function() {
@@ -1261,6 +1864,101 @@ const ServiceWorker = (function() {
         } catch (e) {
             console.warn('ServiceWorker 注册失败（可忽略）:', e);
         }
+    }
+
+    return { init };
+})();
+
+// ==============================================
+// PWA Install Prompt Helper (beforeinstallprompt)
+// ==============================================
+const PWAInstall = (function() {
+    const dismissedKey = 'pwaInstallDismissedAt';
+    const cooldownDays = 14;
+
+    let deferredPrompt = null;
+    let installBtn = null;
+
+    function isDismissedRecently() {
+        const raw = Utils.readStorageJSON(dismissedKey, null);
+        const t = Date.parse(String(raw || ''));
+        if (!Number.isFinite(t)) return false;
+        return (Date.now() - t) < (1000 * 60 * 60 * 24 * cooldownDays);
+    }
+
+    function markDismissed() {
+        Utils.writeStorageJSON(dismissedKey, new Date().toISOString());
+    }
+
+    function ensureButton() {
+        const actions = document.querySelector('.header__actions');
+        if (!actions) return null;
+
+        installBtn = actions.querySelector('.header__install-link');
+        if (installBtn) return installBtn;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'header__action-link header__install-link';
+        btn.setAttribute('aria-label', '安装应用');
+        btn.title = '安装为桌面应用（PWA）';
+        btn.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+
+        const themeToggle = actions.querySelector('.header__theme-toggle');
+        if (themeToggle) actions.insertBefore(btn, themeToggle);
+        else actions.appendChild(btn);
+
+        installBtn = btn;
+        return installBtn;
+    }
+
+    function setVisible(visible) {
+        const btn = ensureButton();
+        if (!btn) return;
+        btn.style.display = visible ? 'inline-flex' : 'none';
+    }
+
+    async function handleInstallClick() {
+        if (!deferredPrompt) return;
+        try {
+            deferredPrompt.prompt();
+            const choice = await deferredPrompt.userChoice;
+            const outcome = choice?.outcome || 'dismissed';
+            if (outcome !== 'accepted') {
+                markDismissed();
+                if (typeof Toast !== 'undefined' && Toast.show) {
+                    Toast.show('已稍后再说，可随时从菜单重新安装', 'info', 2200);
+                }
+            } else if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show('安装已触发：可从桌面/应用列表打开', 'success', 2400);
+            }
+        } catch {
+            // ignore
+        } finally {
+            deferredPrompt = null;
+            setVisible(false);
+        }
+    }
+
+    function init() {
+        const btn = ensureButton();
+        btn?.addEventListener?.('click', handleInstallClick);
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            // Chrome/Edge only; requires secure context
+            try { event.preventDefault(); } catch { /* ignore */ }
+            deferredPrompt = event;
+            if (!isDismissedRecently()) setVisible(true);
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            setVisible(false);
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show('应用已安装', 'success', 1800);
+            }
+        });
     }
 
     return { init };
@@ -1545,25 +2243,13 @@ const RecentlyViewed = (function() {
     const clearBtn = container?.querySelector('.recently-viewed__clear');
 
     function getIds() {
-        try {
-            const parsed = Utils.safeJsonParse(localStorage.getItem(storageKey), []);
-            if (!Array.isArray(parsed)) return [];
-            return parsed.filter((id) => typeof id === 'string' && id.trim().length > 0);
-        } catch {
-            return [];
-        }
+        return Utils.normalizeStringArray(Utils.readStorageJSON(storageKey, []));
     }
 
     function saveIds(ids) {
-        try {
-            const clean = Array.from(
-                new Set((ids || []).map((id) => String(id || '').trim()).filter((id) => id)),
-            );
-            localStorage.setItem(storageKey, JSON.stringify(clean));
-            return clean;
-        } catch {
-            return [];
-        }
+        const clean = Array.from(new Set(Utils.normalizeStringArray(ids))).slice(0, maxItems);
+        Utils.writeStorageJSON(storageKey, clean);
+        return clean;
     }
 
     function record(id) {
@@ -1620,6 +2306,7 @@ const RecentlyViewed = (function() {
         if (clearBtn) clearBtn.disabled = false;
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) LazyLoad.init();
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(grid);
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) Compare.syncButtons(grid);
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init();
     }
 
@@ -1677,6 +2364,7 @@ const PDP = (function() {
 
     let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
     let shareBtn = actionsContainer?.querySelector('.share-btn--pdp') || null;
+    let compareBtn = actionsContainer?.querySelector('.compare-btn--pdp') || null;
 
     let currentProductData = null;
 
@@ -1696,6 +2384,24 @@ const PDP = (function() {
         if (productId) favoriteBtn.dataset.productId = productId;
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(actionsContainer);
         return favoriteBtn;
+    }
+
+    function ensureCompareButton(productId) {
+        if (!actionsContainer) return null;
+        if (!compareBtn) {
+            compareBtn = document.createElement('button');
+            compareBtn.type = 'button';
+            compareBtn.className = 'compare-btn compare-btn--pdp';
+            compareBtn.setAttribute('aria-label', '加入对比');
+            compareBtn.setAttribute('aria-pressed', 'false');
+            compareBtn.innerHTML =
+                '<i class="fas fa-scale-balanced" aria-hidden="true"></i><span class="compare-btn__text">对比</span>';
+            actionsContainer.appendChild(compareBtn);
+        }
+
+        if (productId) compareBtn.dataset.productId = productId;
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) Compare.syncButtons(actionsContainer);
+        return compareBtn;
     }
 
     function ensureShareButton() {
@@ -1832,6 +2538,7 @@ const PDP = (function() {
 
         currentProductData = product;
         ensureFavoriteButton(product.id);
+        ensureCompareButton(product.id);
         ensureShareButton();
         if (typeof RecentlyViewed !== 'undefined' && RecentlyViewed.record) {
             RecentlyViewed.record(product.id);
@@ -2166,8 +2873,7 @@ const Cart = (function() {
 
     // --- Cart State Management --- 
     function getCart() {
-        const parsed = Utils.safeJsonParse(localStorage.getItem('cart'), []);
-        return normalizeCartItems(parsed);
+        return normalizeCartItems(Utils.readStorageJSON('cart', []));
     }
 
     // Internal function to update header count
@@ -2190,7 +2896,7 @@ const Cart = (function() {
 
     function saveCart(cart) {
         const normalized = normalizeCartItems(cart);
-        try { localStorage.setItem('cart', JSON.stringify(normalized)); } catch { /* ignore */ }
+        Utils.writeStorageJSON('cart', normalized);
         _updateHeaderCartCount(normalized); // Use internal function
         dispatchChanged();
     }
@@ -2296,6 +3002,9 @@ const Cart = (function() {
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) {
             Favorites.syncButtons(recommendationsGrid);
         }
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) {
+            Compare.syncButtons(recommendationsGrid);
+        }
     }
     
     function renderCart() {
@@ -2327,20 +3036,34 @@ const Cart = (function() {
     }
 
     function updateCartSummary(cart) {
-         // ... (no changes needed here)
         const subtotalElement = cartSummaryContainer?.querySelector('.summary-subtotal');
         const shippingElement = cartSummaryContainer?.querySelector('.summary-shipping');
         const totalElement = cartSummaryContainer?.querySelector('.total-price');
-        
+        const discountElement = cartSummaryContainer?.querySelector('.summary-discount');
+        const discountRow = cartSummaryContainer?.querySelector('[data-summary-discount-row]');
+         
         if (!subtotalElement || !shippingElement || !totalElement) return;
 
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const shippingCost = 0; // Placeholder for shipping calculation
-        const total = subtotal + shippingCost;
+        const promo = typeof Promotion !== 'undefined' && Promotion.get ? Promotion.get() : null;
+        const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
+            ? Promotion.calculateDiscount(subtotal, promo)
+            : 0;
+        const region = typeof ShippingRegion !== 'undefined' && ShippingRegion.get ? ShippingRegion.get() : 'cn-east';
+        const shippingCost = typeof Pricing !== 'undefined' && Pricing.calculateShipping
+            ? Pricing.calculateShipping({ subtotal, discount, region, promotion: promo })
+            : 0;
+        const total = Math.max(0, Pricing.roundMoney(subtotal - discount) + Pricing.roundMoney(shippingCost));
 
-        subtotalElement.textContent = `¥${subtotal.toFixed(2)}`;
-        shippingElement.textContent = `¥${shippingCost.toFixed(2)}`;
-        totalElement.textContent = `¥${total.toFixed(2)}`;
+        subtotalElement.textContent = Pricing.formatCny(subtotal);
+        shippingElement.textContent = Pricing.formatCny(shippingCost);
+        totalElement.textContent = Pricing.formatCny(total);
+
+        if (discountElement && discountRow) {
+            const show = discount > 0;
+            discountRow.style.display = show ? 'flex' : 'none';
+            discountElement.textContent = `- ${Pricing.formatCny(discount)}`;
+        }
 
         if (checkoutButton) {
             checkoutButton.classList.toggle('disabled', cart.length === 0);
@@ -2639,6 +3362,7 @@ const Checkout = (function() {
     const nameInput = checkoutForm?.querySelector('#name');
     const phoneInput = checkoutForm?.querySelector('#phone');
     const addressInput = checkoutForm?.querySelector('#address');
+    const regionSelect = checkoutForm?.querySelector('#region');
 
     // --- Helper Functions --- (Keep formatPrice, clearError, showError)
      function formatPrice(price) {
@@ -2680,25 +3404,17 @@ const Checkout = (function() {
     }
 
     function readDraft() {
-        try {
-            const parsed = Utils.safeJsonParse(localStorage.getItem(draftKey), null);
-            if (!parsed || typeof parsed !== 'object') return null;
-            return parsed;
-        } catch {
-            return null;
-        }
+        const parsed = Utils.readStorageJSON(draftKey, null);
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
     }
 
     function writeDraft(data) {
-        try {
-            localStorage.setItem(draftKey, JSON.stringify(data));
-        } catch {
-            // ignore
-        }
+        Utils.writeStorageJSON(draftKey, data);
     }
 
     function clearDraft() {
-        try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+        Utils.removeStorage(draftKey);
     }
 
     function collectDraft() {
@@ -2706,6 +3422,7 @@ const Checkout = (function() {
             name: nameInput?.value?.trim() || '',
             phone: phoneInput?.value?.trim() || '',
             address: addressInput?.value?.trim() || '',
+            region: regionSelect?.value || '',
             payment: checkoutForm?.querySelector('input[name="payment"]:checked')?.value || '',
         };
     }
@@ -2717,6 +3434,12 @@ const Checkout = (function() {
         if (nameInput && draft.name) nameInput.value = draft.name;
         if (phoneInput && draft.phone) phoneInput.value = draft.phone;
         if (addressInput && draft.address) addressInput.value = draft.address;
+
+        if (regionSelect && draft.region) {
+            ShippingRegion?.syncAllSelects?.();
+            regionSelect.value = String(draft.region || '');
+            ShippingRegion?.set?.(regionSelect.value, { silent: true });
+        }
 
         if (draft.payment && paymentOptions && paymentOptions.length > 0) {
             paymentOptions.forEach((option) => {
@@ -2843,10 +3566,24 @@ const Checkout = (function() {
             orderSummaryItemsContainer.appendChild(itemElement);
         });
 
-        const shippingCost = 0; 
-        const total = subtotal + shippingCost;
+        const promo = typeof Promotion !== 'undefined' && Promotion.get ? Promotion.get() : null;
+        const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
+            ? Promotion.calculateDiscount(subtotal, promo)
+            : 0;
+        const region = typeof ShippingRegion !== 'undefined' && ShippingRegion.get ? ShippingRegion.get() : 'cn-east';
+        const shippingCost = typeof Pricing !== 'undefined' && Pricing.calculateShipping
+            ? Pricing.calculateShipping({ subtotal, discount, region, promotion: promo })
+            : 0;
+        const total = Math.max(0, Pricing.roundMoney(subtotal - discount) + Pricing.roundMoney(shippingCost));
 
         summarySubtotalEl.textContent = formatPrice(subtotal);
+        const discountEl = checkoutContainer.querySelector('.order-summary .summary-discount');
+        const discountRow = checkoutContainer.querySelector('.order-summary [data-summary-discount-row]');
+        if (discountEl && discountRow) {
+            const show = discount > 0;
+            discountRow.style.display = show ? 'flex' : 'none';
+            discountEl.textContent = `- ${formatPrice(discount)}`;
+        }
         summaryShippingEl.textContent = formatPrice(shippingCost);
         summaryTotalEl.textContent = formatPrice(total);
 
@@ -2862,26 +3599,23 @@ const Checkout = (function() {
     }
 
     function handlePlaceOrder(event) {
-        // ... (no changes needed here, but uses Cart.updateHeaderCartCount now)
-         event.preventDefault(); 
-
+        event.preventDefault(); 
+ 
         if (validateForm()) {
             const formData = new FormData(checkoutForm);
             const shippingAddress = {
-                name: formData.get('name'),
-                phone: formData.get('phone'),
-                address: formData.get('address')
+                name: String(formData.get('name') || ''),
+                phone: String(formData.get('phone') || ''),
+                address: String(formData.get('address') || ''),
             };
-            const paymentMethod = formData.get('payment');
+            const paymentMethod = String(formData.get('payment') || '');
+            const region = String(formData.get('region') || ShippingRegion?.get?.() || '');
             const currentCart = (typeof Cart !== 'undefined' && Cart.getCart) ? Cart.getCart() : [];
-            const orderData = {
-                shippingAddress: shippingAddress,
-                paymentMethod: paymentMethod,
-                cartItems: currentCart,
-            };
 
-             // 订单提交成功（模拟）：跳回首页并展示提示
-
+            const order = (typeof Orders !== 'undefined' && Orders.create)
+                ? Orders.create({ items: currentCart, shippingAddress, paymentMethod, region })
+                : null;
+ 
             // 清空购物车（优先走统一入口，确保归一化与事件派发）
             if (typeof Cart !== 'undefined' && typeof Cart.setCart === 'function') {
                 Cart.setCart([]);
@@ -2896,7 +3630,11 @@ const Checkout = (function() {
                 }
             }
             clearDraft();
-             window.location.href = 'index.html?order=success';
+
+            const orderId = String(order?.id || '').trim();
+            window.location.href = orderId
+                ? `order-success.html?oid=${encodeURIComponent(orderId)}`
+                : 'index.html?order=success';
         } else {
             const firstInvalidInput = checkoutForm.querySelector('.input-error');
             const firstError = checkoutForm.querySelector('.input-error, .error-message');
@@ -3189,6 +3927,9 @@ const ProductListing = (function(){
         const quickAddHTML = id !== '#'
             ? `<button class="product-card__quick-add" type="button" data-product-id="${safeIdAttr}" aria-label="加入购物车">快速加入</button>`
             : '';
+        const compareHTML = id !== '#'
+            ? `<button class="product-card__compare" type="button" data-product-id="${safeIdAttr}" aria-label="加入对比" aria-pressed="false">对比</button>`
+            : '';
 
         return `
           <div class="product-card fade-in-up" data-product-id="${safeIdAttr}">
@@ -3209,11 +3950,12 @@ const ProductListing = (function(){
                   </h4>
                   <p class="product-card__series">${series}</p>
                   ${priceHTML}
-                  <div class="product-card__actions">
-                      <a href="${detailHref}" class="product-card__button">查看详情</a>
-                      ${quickAddHTML}
-                  </div>
-              </div>
+                   <div class="product-card__actions">
+                       <a href="${detailHref}" class="product-card__button">查看详情</a>
+                       ${quickAddHTML}
+                       ${compareHTML}
+                   </div>
+               </div>
           </div>
         `;
     }
@@ -3592,6 +4334,7 @@ const ProductListing = (function(){
         productGrid.setAttribute('aria-busy', 'false');
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(productGrid); }
     }
 
     // --- Event Listeners Setup --- (Keep existing)
@@ -3754,6 +4497,7 @@ const Homepage = (function() {
         // Re-initialize lazy/animations (Keep existing)
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(featuredGrid); }
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(featuredGrid); }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
     }
 
@@ -3778,6 +4522,7 @@ const Homepage = (function() {
         curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
+        if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
     }
 
@@ -3852,6 +4597,572 @@ const OfflinePage = (function() {
 })();
 
 // ==============================================
+// Compare Page Module (compare.html)
+// ==============================================
+const ComparePage = (function() {
+    const container = document.querySelector('.compare-main');
+    if (!container) return { init: () => {} };
+
+    const tableHost = container.querySelector('[data-compare-table]');
+    const emptyHost = container.querySelector('[data-compare-empty]');
+    const clearBtn = container.querySelector('[data-compare-clear]');
+
+    function setEmpty(isEmpty) {
+        if (emptyHost) emptyHost.style.display = isEmpty ? 'block' : 'none';
+        if (tableHost) tableHost.style.display = isEmpty ? 'none' : 'block';
+    }
+
+    function createCellText(text) {
+        const span = document.createElement('span');
+        span.textContent = String(text ?? '');
+        return span;
+    }
+
+    function renderTable(products) {
+        if (!tableHost) return;
+        tableHost.innerHTML = '';
+
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'compare-table-wrap';
+
+        const table = document.createElement('table');
+        table.className = 'compare-table';
+        table.setAttribute('role', 'table');
+
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+
+        const headFirst = document.createElement('th');
+        headFirst.scope = 'col';
+        headFirst.textContent = '对比项';
+        headRow.appendChild(headFirst);
+
+        products.forEach((p) => {
+            const th = document.createElement('th');
+            th.scope = 'col';
+            th.className = 'compare-table__product';
+
+            const title = document.createElement('div');
+            title.className = 'compare-table__title';
+            title.textContent = String(p?.name || '');
+
+            const meta = document.createElement('div');
+            meta.className = 'compare-table__meta';
+            meta.textContent = String(p?.series || '');
+
+            const actions = document.createElement('div');
+            actions.className = 'compare-table__head-actions';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'cta-button-secondary compare-remove';
+            removeBtn.dataset.productId = String(p?.id || '');
+            removeBtn.textContent = '移除';
+
+            const detailLink = document.createElement('a');
+            detailLink.className = 'cta-button-secondary compare-detail';
+            detailLink.href = p?.id ? `product-detail.html?id=${encodeURIComponent(String(p.id))}` : 'products.html';
+            detailLink.textContent = '详情';
+
+            actions.appendChild(detailLink);
+            actions.appendChild(removeBtn);
+
+            th.appendChild(title);
+            th.appendChild(meta);
+            th.appendChild(actions);
+
+            headRow.appendChild(th);
+        });
+
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        const addRow = (label, renderCell) => {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th');
+            th.scope = 'row';
+            th.textContent = label;
+            tr.appendChild(th);
+            products.forEach((p) => {
+                const td = document.createElement('td');
+                td.appendChild(renderCell(p));
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        };
+
+        addRow('预览', (p) => {
+            const img = document.createElement('img');
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.alt = `${String(p?.name || '')} 预览图`;
+            img.src = String(p?.images?.[0]?.thumb || 'assets/images/figurine-1.svg');
+            img.className = 'compare-table__img';
+            return img;
+        });
+
+        addRow('价格', (p) => createCellText(typeof p?.price === 'number' ? Pricing.formatCny(p.price) : '—'));
+        addRow('分类', (p) => createCellText(String(p?.category?.name || '—')));
+        addRow('评分', (p) => {
+            const rating = Number(p?.rating);
+            const reviews = Number(p?.reviewCount);
+            if (!Number.isFinite(rating)) return createCellText('—');
+            return createCellText(`${rating.toFixed(1)}${Number.isFinite(reviews) && reviews > 0 ? `（${reviews}）` : ''}`);
+        });
+        addRow('状态', (p) => createCellText(String(p?.status || '—')));
+
+        // Union of spec labels
+        const labelSet = new Set();
+        products.forEach((p) => {
+            const specs = Array.isArray(p?.specs) ? p.specs : [];
+            specs.forEach((s) => {
+                const label = String(s?.label || '').trim();
+                if (label) labelSet.add(label);
+            });
+        });
+
+        Array.from(labelSet).slice(0, 12).forEach((specLabel) => {
+            addRow(specLabel, (p) => {
+                const specs = Array.isArray(p?.specs) ? p.specs : [];
+                const hit = specs.find((s) => String(s?.label || '').trim() === specLabel);
+                return createCellText(hit ? String(hit.value || '—') : '—');
+            });
+        });
+
+        addRow('操作', (p) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'compare-table__actions';
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'cta-button compare-add-to-cart';
+            addBtn.dataset.productId = String(p?.id || '');
+            addBtn.textContent = '加入购物车';
+
+            wrap.appendChild(addBtn);
+            return wrap;
+        });
+
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+        tableHost.appendChild(tableWrap);
+    }
+
+    function render() {
+        const ids = Compare?.getIds?.() || [];
+        if (!ids.length) {
+            setEmpty(true);
+            if (tableHost) tableHost.innerHTML = '';
+            return;
+        }
+
+        const products = (typeof SharedData !== 'undefined' && SharedData.getProductsByIds)
+            ? SharedData.getProductsByIds(ids)
+            : [];
+
+        if (!products.length) {
+            setEmpty(true);
+            if (tableHost) tableHost.innerHTML = '';
+            return;
+        }
+
+        setEmpty(false);
+        renderTable(products);
+    }
+
+    function bind() {
+        clearBtn?.addEventListener?.('click', () => {
+            const ids = Compare?.getIds?.() || [];
+            if (!ids.length) return;
+            const ok = window.confirm('确定清空对比列表吗？');
+            if (!ok) return;
+            Compare?.clear?.();
+        });
+
+        container.addEventListener('click', (event) => {
+            const removeBtn = event.target?.closest?.('.compare-remove[data-product-id]');
+            if (removeBtn) {
+                const id = removeBtn.dataset.productId;
+                Compare?.toggle?.(id);
+                return;
+            }
+
+            const addBtn = event.target?.closest?.('.compare-add-to-cart[data-product-id]');
+            if (addBtn) {
+                const id = addBtn.dataset.productId;
+                const product = SharedData?.getProductById?.(id);
+                if (!product) {
+                    Toast?.show?.('商品信息加载失败', 'info', 1600);
+                    return;
+                }
+
+                const existing = Cart?.getCart?.() || [];
+                const map = new Map(existing.map((i) => [i.id, i]));
+                const hit = map.get(product.id);
+                if (hit) hit.quantity = Math.min(99, (Number(hit.quantity) || 0) + 1);
+                else map.set(product.id, {
+                    id: product.id,
+                    name: product.name || '[手办名称]',
+                    series: product.series || '',
+                    price: Number(product.price) || 0,
+                    quantity: 1,
+                    image: product.images?.[0]?.thumb || 'assets/images/figurine-1.svg',
+                });
+
+                Cart?.setCart?.(Array.from(map.values()));
+                Celebration?.fire?.(addBtn);
+                Toast?.show?.('已加入购物车', 'success', 1600);
+            }
+        });
+
+        try {
+            window.addEventListener('compare:changed', render);
+        } catch {
+            // ignore
+        }
+    }
+
+    function init() {
+        render();
+        bind();
+    }
+
+    return { init };
+})();
+
+// ==============================================
+// Orders Page Module (orders.html)
+// ==============================================
+const OrdersPage = (function() {
+    const container = document.querySelector('.orders-main');
+    if (!container) return { init: () => {} };
+
+    const listHost = container.querySelector('[data-orders-list]');
+    const emptyHost = container.querySelector('[data-orders-empty]');
+    const clearBtn = container.querySelector('[data-orders-clear]');
+
+    function setEmpty(isEmpty) {
+        if (emptyHost) emptyHost.style.display = isEmpty ? 'block' : 'none';
+        if (listHost) listHost.style.display = isEmpty ? 'none' : 'grid';
+    }
+
+    function formatDate(iso) {
+        const t = Date.parse(String(iso || ''));
+        if (!Number.isFinite(t)) return '—';
+        try {
+            return new Date(t).toLocaleString('zh-CN', { hour12: false });
+        } catch {
+            return new Date(t).toISOString();
+        }
+    }
+
+    function render() {
+        if (!listHost) return;
+        const orders = Orders?.getAll?.() || [];
+        listHost.innerHTML = '';
+
+        if (!orders.length) {
+            setEmpty(true);
+            return;
+        }
+
+        setEmpty(false);
+        orders.forEach((order) => {
+            const id = String(order?.id || '').trim();
+            const pricing = order?.pricing || {};
+            const total = Number(pricing.total);
+            const itemCount = Array.isArray(order?.items) ? order.items.reduce((sum, i) => sum + (Number(i?.quantity) || 0), 0) : 0;
+            const regionLabel = Pricing.getRegion(order?.region).label;
+
+            const details = document.createElement('details');
+            details.className = 'order-card';
+
+            const summary = document.createElement('summary');
+            summary.className = 'order-card__summary';
+
+            const left = document.createElement('div');
+            left.className = 'order-card__summary-left';
+
+            const title = document.createElement('div');
+            title.className = 'order-card__id';
+            title.textContent = id ? `订单号：${id}` : '订单';
+
+            const meta = document.createElement('div');
+            meta.className = 'order-card__meta';
+            meta.textContent = `${formatDate(order?.createdAt)} · ${itemCount} 件 · ${regionLabel}`;
+
+            left.appendChild(title);
+            left.appendChild(meta);
+
+            const right = document.createElement('div');
+            right.className = 'order-card__summary-right';
+            right.textContent = Number.isFinite(total) ? Pricing.formatCny(total) : '—';
+
+            summary.appendChild(left);
+            summary.appendChild(right);
+            details.appendChild(summary);
+
+            const body = document.createElement('div');
+            body.className = 'order-card__body';
+
+            const actions = document.createElement('div');
+            actions.className = 'order-card__actions';
+
+            const rebuyBtn = document.createElement('button');
+            rebuyBtn.type = 'button';
+            rebuyBtn.className = 'cta-button order-rebuy';
+            rebuyBtn.dataset.orderId = id;
+            rebuyBtn.textContent = '再次购买';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'cta-button-secondary order-copy';
+            copyBtn.dataset.orderId = id;
+            copyBtn.textContent = '复制订单号';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'cta-button-secondary order-remove';
+            removeBtn.dataset.orderId = id;
+            removeBtn.textContent = '删除记录';
+
+            actions.appendChild(rebuyBtn);
+            actions.appendChild(copyBtn);
+            actions.appendChild(removeBtn);
+            body.appendChild(actions);
+
+            const itemsWrap = document.createElement('div');
+            itemsWrap.className = 'order-card__items';
+
+            const items = Array.isArray(order?.items) ? order.items : [];
+            items.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'order-item';
+
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.alt = '';
+                img.src = String(item?.image || 'assets/images/figurine-1.svg');
+
+                const name = document.createElement('div');
+                name.className = 'order-item__name';
+                name.textContent = `${String(item?.name || '[手办名称]')} x ${Number(item?.quantity) || 1}`;
+
+                const price = document.createElement('div');
+                price.className = 'order-item__price';
+                price.textContent = Pricing.formatCny((Number(item?.price) || 0) * (Number(item?.quantity) || 1));
+
+                row.appendChild(img);
+                row.appendChild(name);
+                row.appendChild(price);
+                itemsWrap.appendChild(row);
+            });
+
+            body.appendChild(itemsWrap);
+            details.appendChild(body);
+            listHost.appendChild(details);
+        });
+    }
+
+    async function copyText(value) {
+        const text = String(value || '');
+        if (!text) return false;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', 'true');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            textarea.remove();
+            return Boolean(ok);
+        } catch {
+            return false;
+        }
+    }
+
+    function rebuy(orderId) {
+        const order = Orders?.getById?.(orderId);
+        if (!order) return;
+        const items = Array.isArray(order.items) ? order.items : [];
+        const existing = Cart?.getCart?.() || [];
+        const map = new Map(existing.map((i) => [i.id, i]));
+        items.forEach((item) => {
+            const id = String(item?.id || '').trim();
+            if (!id) return;
+            const qty = Number(item?.quantity) || 1;
+            const hit = map.get(id);
+            if (hit) {
+                hit.quantity = Math.min(99, (Number(hit.quantity) || 0) + qty);
+                return;
+            }
+            map.set(id, {
+                id,
+                name: String(item?.name || '[手办名称]'),
+                series: String(item?.series || ''),
+                price: Number(item?.price) || 0,
+                quantity: Math.min(99, Math.max(1, qty)),
+                image: String(item?.image || 'assets/images/figurine-1.svg'),
+            });
+        });
+        Cart?.setCart?.(Array.from(map.values()));
+        Toast?.show?.('已将该订单商品加入购物车', 'success', 2000);
+    }
+
+    function bind() {
+        clearBtn?.addEventListener?.('click', () => {
+            const orders = Orders?.getAll?.() || [];
+            if (!orders.length) return;
+            const ok = window.confirm('确定清空全部订单记录吗？（仅影响本机本地存储）');
+            if (!ok) return;
+            Orders?.clear?.();
+        });
+
+        container.addEventListener('click', async (event) => {
+            const rebuyBtn = event.target?.closest?.('.order-rebuy[data-order-id]');
+            if (rebuyBtn) {
+                rebuy(rebuyBtn.dataset.orderId);
+                return;
+            }
+
+            const copyBtn = event.target?.closest?.('.order-copy[data-order-id]');
+            if (copyBtn) {
+                const ok = await copyText(copyBtn.dataset.orderId);
+                Toast?.show?.(ok ? '订单号已复制' : '复制失败', ok ? 'success' : 'info', 1800);
+                return;
+            }
+
+            const removeBtn = event.target?.closest?.('.order-remove[data-order-id]');
+            if (removeBtn) {
+                const id = removeBtn.dataset.orderId;
+                const ok = window.confirm('确定删除该订单记录吗？');
+                if (!ok) return;
+                Orders?.remove?.(id);
+                return;
+            }
+        });
+
+        try {
+            window.addEventListener('orders:changed', render);
+        } catch {
+            // ignore
+        }
+    }
+
+    function init() {
+        render();
+        bind();
+    }
+
+    return { init };
+})();
+
+// ==============================================
+// Order Success Page Module (order-success.html)
+// ==============================================
+const OrderSuccessPage = (function() {
+    const container = document.querySelector('.order-success-main');
+    if (!container) return { init: () => {} };
+
+    const summaryHost = container.querySelector('[data-order-success]');
+
+    function getOrderIdFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            const id = url.searchParams.get('oid');
+            return String(id || '').trim();
+        } catch {
+            return '';
+        }
+    }
+
+    function renderEmpty() {
+        if (!summaryHost) return;
+        summaryHost.innerHTML =
+            '<div class="empty-state"><img src="assets/images/empty-collector.svg" alt=\"\" aria-hidden=\"true\" loading=\"lazy\" decoding=\"async\"><p class=\"empty-state__title\">未找到订单信息</p><p class=\"empty-state__desc\">订单记录仅保存在本机浏览器中。</p><a class=\"cta-button\" href=\"orders.html\">查看订单中心</a><a class=\"cta-button-secondary\" href=\"products.html\">继续逛逛</a></div>';
+    }
+
+    function render() {
+        if (!summaryHost) return;
+        const urlId = getOrderIdFromUrl();
+        const fallbackId = String(Utils.readStorageJSON('lastOrderId', '') || '').trim();
+        const id = urlId || fallbackId;
+        const order = Orders?.getById?.(id);
+        if (!order) {
+            renderEmpty();
+            return;
+        }
+
+        const pricing = order.pricing || {};
+        const promo = order.promotion;
+        const regionLabel = Pricing.getRegion(order.region).label;
+
+        const rows = [];
+        rows.push(`<div class="order-success__headline">订单提交成功（模拟）</div>`);
+        rows.push(`<div class="order-success__meta">订单号：<code>${Utils.escapeHtml(order.id)}</code> · ${Utils.escapeHtml(String(order.createdAt || '').slice(0, 19).replace('T', ' '))}</div>`);
+        rows.push(`<div class="order-success__panel">`);
+        rows.push(`<h3>收货信息</h3>`);
+        rows.push(`<p>${Utils.escapeHtml(order.shippingAddress?.name || '')} · ${Utils.escapeHtml(order.shippingAddress?.phone || '')}</p>`);
+        rows.push(`<p>${Utils.escapeHtml(order.shippingAddress?.address || '')}</p>`);
+        rows.push(`<p class="text-muted">配送地区：${Utils.escapeHtml(regionLabel)}</p>`);
+        rows.push(`</div>`);
+
+        rows.push(`<div class="order-success__panel">`);
+        rows.push(`<h3>商品清单</h3>`);
+        rows.push(`<div class="order-success__items">`);
+        (Array.isArray(order.items) ? order.items : []).forEach((item) => {
+            const name = Utils.escapeHtml(item?.name || '[手办名称]');
+            const qty = Number(item?.quantity) || 1;
+            const img = Utils.escapeHtml(item?.image || 'assets/images/figurine-1.svg');
+            const lineTotal = Pricing.formatCny((Number(item?.price) || 0) * qty);
+            rows.push(
+                `<div class="order-success__item"><img src="${img}" alt="" aria-hidden="true" loading="lazy" decoding="async"><div class="order-success__item-main"><div class="order-success__item-name">${name} x ${qty}</div><div class="order-success__item-sub text-muted">${Utils.escapeHtml(item?.series || '')}</div></div><div class="order-success__item-price">${Utils.escapeHtml(lineTotal)}</div></div>`,
+            );
+        });
+        rows.push(`</div>`);
+        rows.push(`</div>`);
+
+        rows.push(`<div class="order-success__panel">`);
+        rows.push(`<h3>费用</h3>`);
+        rows.push(`<div class="summary-row"><span>商品小计</span><span>${Pricing.formatCny(pricing.subtotal)}</span></div>`);
+        if (promo) {
+            rows.push(`<div class="summary-row"><span>优惠（${Utils.escapeHtml(promo.label || promo.code)}）</span><span>- ${Pricing.formatCny(pricing.discount)}</span></div>`);
+        } else {
+            rows.push(`<div class="summary-row"><span>优惠</span><span>- ${Pricing.formatCny(0)}</span></div>`);
+        }
+        rows.push(`<div class="summary-row"><span>运费</span><span>${Pricing.formatCny(pricing.shipping)}</span></div>`);
+        rows.push(`<div class="summary-row total-row"><span>应付总额</span><span>${Pricing.formatCny(pricing.total)}</span></div>`);
+        rows.push(`</div>`);
+
+        rows.push(`<div class="order-success__actions">`);
+        rows.push(`<a class="cta-button" href="orders.html">查看订单中心</a>`);
+        rows.push(`<a class="cta-button-secondary" href="products.html">继续逛逛</a>`);
+        rows.push(`</div>`);
+
+        summaryHost.innerHTML = rows.join('');
+    }
+
+    function init() {
+        render();
+    }
+
+    return { init };
+})();
+
+// ==============================================
 // Cross Tab Sync (storage event)
 // ==============================================
 const CrossTabSync = (function() {
@@ -3885,6 +5196,34 @@ const CrossTabSync = (function() {
                 return;
             }
 
+            if (key === 'compare') {
+                if (typeof Compare !== 'undefined') {
+                    const ids = typeof Compare.getIds === 'function' ? Compare.getIds() : [];
+                    Compare.updateHeaderCount?.(ids);
+                    Compare.syncButtons?.(document);
+                }
+                try { window.dispatchEvent(new CustomEvent('compare:changed')); } catch { /* ignore */ }
+                return;
+            }
+
+            if (key === 'promotion') {
+                try { window.dispatchEvent(new CustomEvent('promo:changed')); } catch { /* ignore */ }
+                return;
+            }
+
+            if (key === 'shippingRegion') {
+                try { window.dispatchEvent(new CustomEvent('shipping:changed')); } catch { /* ignore */ }
+                return;
+            }
+
+            if (key === 'orders') {
+                if (typeof Orders !== 'undefined') {
+                    Orders.updateHeaderCount?.(Orders.getAll?.() || []);
+                }
+                try { window.dispatchEvent(new CustomEvent('orders:changed')); } catch { /* ignore */ }
+                return;
+            }
+
             if (key === 'recentlyViewed') {
                 RecentlyViewed?.refresh?.();
                 return;
@@ -3910,6 +5249,7 @@ const App = {
         // SharedData doesn't need init as it's just data
         Header.init();
         Theme.init();
+        ShippingRegion.init();
         SmoothScroll.init();
         ScrollProgress.init();
         BackToTop.init();
@@ -3917,16 +5257,23 @@ const App = {
         ImageFallback.init();
         LazyLoad.init(); 
         Favorites.init();
+        Compare.init();
+        Orders.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
+        Promotion.init();
         QuickAdd.init();
         Homepage.init(); 
         RecentlyViewed.init();
         PDP.init(); 
         Checkout.init();
+        ComparePage.init();
+        OrdersPage.init();
+        OrderSuccessPage.init();
         StaticPage.init();
         OfflinePage.init();
         ProductListing.init();
         ServiceWorker.init();
+        PWAInstall.init();
         CrossTabSync.init();
 
         // URL 参数触发的一次性提示（避免刷新重复弹出）

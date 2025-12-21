@@ -18,9 +18,21 @@
   ],
   "shortcuts": [
     {
+      "name": "商品对比",
+      "short_name": "对比",
+      "url": "../compare.html",
+      "icons": [{ "src": "favicon.svg", "sizes": "64x64", "type": "image/svg+xml" }]
+    },
+    {
       "name": "我的收藏",
       "short_name": "收藏",
       "url": "../favorites.html",
+      "icons": [{ "src": "favicon.svg", "sizes": "64x64", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "订单中心",
+      "short_name": "订单",
+      "url": "../orders.html",
       "icons": [{ "src": "favicon.svg", "sizes": "64x64", "type": "image/svg+xml" }]
     },
     {

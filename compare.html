@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="塑梦潮玩 - 离线提示页。">
-    <meta name="robots" content="noindex,nofollow">
+    <meta name="description" content="塑梦潮玩 - 商品对比（本地功能示例）。选择最多 3 件商品并对比参数与价格。">
+    <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#1F6FEB">
     <meta name="color-scheme" content="light dark">
-    <meta property="og:title" content="离线模式 - 塑梦潮玩">
-    <meta property="og:description" content="当前处于离线模式，可浏览已缓存页面。">
+    <meta property="og:title" content="商品对比 - 塑梦潮玩">
+    <meta property="og:description" content="选择最多 3 件商品并对比参数与价格（示例站点）。">
     <meta property="og:type" content="website">
     <meta property="og:image" content="assets/images/hero-placeholder.svg">
     <meta property="og:locale" content="zh_CN">
     <meta name="twitter:card" content="summary_large_image">
-    <title>离线模式 - 塑梦潮玩</title>
+    <title>商品对比 - 塑梦潮玩</title>
     <script>
         document.documentElement.classList.add('js');
         (function () {
@@ -42,7 +42,6 @@
 <body>
 
     <div class="scroll-progress" aria-hidden="true"></div>
-
     <a class="skip-link" href="#main">跳到主要内容</a>
 
     <header class="header">
@@ -110,24 +109,31 @@
         </div>
     </header>
 
-    <main id="main" class="static-page-main offline-main">
+    <main id="main" class="compare-main">
         <div class="container">
-            <h1>离线模式</h1>
-            <div class="static-content">
-                <div class="offline-illustration">
-                    <img src="assets/images/empty-collector.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
-                </div>
-                <p id="offline-status">正在检测网络状态…</p>
-                <p>当前网络不可用时，你仍可以浏览已缓存的页面与资源。</p>
-                <ul>
-                    <li>尝试返回 <a href="index.html">首页</a> 或 <a href="products.html">商品列表</a>（若已缓存）。</li>
-                    <li>恢复网络后刷新页面，以获取最新内容。</li>
-                </ul>
-                <p class="offline-actions">
-                    <button id="offline-retry" type="button" class="cta-button-secondary">重试加载</button>
-                    <a class="cta-button-secondary" href="index.html">返回首页</a>
-                </p>
+            <h1>商品对比</h1>
+            <nav aria-label="breadcrumb" class="breadcrumb-nav">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">首页</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">对比</li>
+                </ol>
+            </nav>
+
+            <div class="compare-toolbar">
+                <p class="text-muted">最多可对比 3 件商品。在列表/详情页点击“对比”即可加入。</p>
+                <button type="button" class="cta-button-secondary" data-compare-clear>清空对比</button>
             </div>
+
+            <div class="compare-empty" data-compare-empty>
+                <div class="empty-state">
+                    <img src="assets/images/empty-collector.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
+                    <p class="empty-state__title">还没有选择对比商品</p>
+                    <p class="empty-state__desc">去商品列表挑选，然后加入对比再回来查看差异。</p>
+                    <a class="cta-button" href="products.html">去挑选商品</a>
+                </div>
+            </div>
+
+            <div class="compare-table-host" data-compare-table style="display:none;"></div>
         </div>
     </main>
 
@@ -150,16 +156,16 @@
             </div>
             <div class="footer__social">
                 <h5>关注我们</h5>
-                 <div class="footer__social-links-container">
+                <div class="footer__social-links-container">
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo" aria-hidden="true"></i></a>
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili" aria-hidden="true"></i></a>
                     <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin" aria-hidden="true"></i></a>
-                 </div>
+                </div>
             </div>
         </div>
         <div class="footer__bottom">
             <div class="container">
-                 <p>&copy; 2024 塑梦潮玩. 保留所有权利. [可选：网站备案号]</p>
+                <p>&copy; 2024 塑梦潮玩. 保留所有权利. [可选：网站备案号]</p>
             </div>
         </div>
     </footer>
@@ -167,7 +173,4 @@
     <script src="scripts/main.js?v=20251221.1"></script>
 </body>
 </html>
-
-
-
 

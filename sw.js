@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20251220.5000
+   - Cache version follows asset query: 20251221.1
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20251220.5000';
+const CACHE_NAME = 'shouwban-20251221.1';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -14,14 +14,17 @@ const PRECACHE_URLS = [
   'product-detail.html',
   'cart.html',
   'checkout.html',
+  'compare.html',
+  'orders.html',
+  'order-success.html',
   'static-page.html',
   'favorites.html',
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20251220.5000',
-  'styles/extensions.css?v=20251220.5000',
-  'scripts/main.js?v=20251220.5000',
+  'styles/main.css?v=20251221.1',
+  'styles/extensions.css?v=20251221.1',
+  'scripts/main.js?v=20251221.1',
 
   'assets/favicon.svg',
   'assets/manifest.webmanifest',
