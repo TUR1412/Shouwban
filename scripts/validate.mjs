@@ -108,6 +108,9 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
     if (!/styles\/extensions\.css\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 Extensions CSS 版本号: ${rel}`);
     }
+    if (!/scripts\/core\.js\?v=/.test(c)) {
+      errors.push(`[HTML] 缺少 Core JS 版本号: ${rel}`);
+    }
     if (!/scripts\/main\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 JS 版本号: ${rel}`);
     }
@@ -129,6 +132,7 @@ function assertRequiredRepoFilesExist() {
     'offline.html',
     'styles/main.css',
     'styles/extensions.css',
+    'scripts/core.js',
   ];
   const errors = [];
   for (const rel of required) {
@@ -162,6 +166,7 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
   const versions = {
     mainCss: new Set(),
     extensionsCss: new Set(),
+    coreJs: new Set(),
     mainJs: new Set(),
   };
 
@@ -171,14 +176,17 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
 
     const mainCssV = extractAssetVersion(c, 'styles/main.css');
     const extCssV = extractAssetVersion(c, 'styles/extensions.css');
+    const coreJsV = extractAssetVersion(c, 'scripts/core.js');
     const mainJsV = extractAssetVersion(c, 'scripts/main.js');
 
     if (!mainCssV) errors.push(`[HTML] 无法解析 main.css 版本号: ${rel}`);
     if (!extCssV) errors.push(`[HTML] 无法解析 extensions.css 版本号: ${rel}`);
+    if (!coreJsV) errors.push(`[HTML] 无法解析 core.js 版本号: ${rel}`);
     if (!mainJsV) errors.push(`[HTML] 无法解析 main.js 版本号: ${rel}`);
 
     if (mainCssV) versions.mainCss.add(mainCssV);
     if (extCssV) versions.extensionsCss.add(extCssV);
+    if (coreJsV) versions.coreJs.add(coreJsV);
     if (mainJsV) versions.mainJs.add(mainJsV);
   }
 
@@ -190,6 +198,9 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
       `[VERSION] extensions.css 版本号不一致: ${Array.from(versions.extensionsCss).join(', ')}`,
     );
   }
+  if (versions.coreJs.size > 1) {
+    errors.push(`[VERSION] core.js 版本号不一致: ${Array.from(versions.coreJs).join(', ')}`);
+  }
   if (versions.mainJs.size > 1) {
     errors.push(`[VERSION] main.js 版本号不一致: ${Array.from(versions.mainJs).join(', ')}`);
   }
@@ -197,10 +208,14 @@ function assertHtmlAssetVersionsConsistent(htmlFiles) {
   const mainCssV = versions.mainCss.size === 1 ? Array.from(versions.mainCss)[0] : null;
   const extCssV =
     versions.extensionsCss.size === 1 ? Array.from(versions.extensionsCss)[0] : null;
+  const coreJsV = versions.coreJs.size === 1 ? Array.from(versions.coreJs)[0] : null;
   const mainJsV = versions.mainJs.size === 1 ? Array.from(versions.mainJs)[0] : null;
 
   if (mainCssV && extCssV && mainCssV !== extCssV) {
     errors.push(`[VERSION] main.css 与 extensions.css 版本号不一致: ${mainCssV} vs ${extCssV}`);
+  }
+  if (mainCssV && coreJsV && mainCssV !== coreJsV) {
+    errors.push(`[VERSION] main.css 与 core.js 版本号不一致: ${mainCssV} vs ${coreJsV}`);
   }
   if (mainCssV && mainJsV && mainCssV !== mainJsV) {
     errors.push(`[VERSION] main.css 与 main.js 版本号不一致: ${mainCssV} vs ${mainJsV}`);
@@ -231,6 +246,7 @@ function assertServiceWorkerVersionMatches(version) {
   const expected = [
     `styles/main.css?v=${version}`,
     `styles/extensions.css?v=${version}`,
+    `scripts/core.js?v=${version}`,
     `scripts/main.js?v=${version}`,
   ];
   for (const s of expected) {

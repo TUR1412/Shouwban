@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check scripts/main.js && node --check sw.js",
+    "check": "node --check scripts/core.js && node --check scripts/main.js && node --check sw.js",
     "validate": "node scripts/validate.mjs",
     "verify": "npm run check && npm run validate",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=scripts/core.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
     "bump:version": "node scripts/bump-version.mjs"
   }
 }
-

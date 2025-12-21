@@ -14,13 +14,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 25
 
       - name: Syntax Check
         run: |
+          node --check scripts/core.js
           node --check scripts/main.js
           node --check sw.js
           node --check scripts/bump-version.mjs
 
       - name: Validate References
         run: node scripts/validate.mjs
+
+      - name: Unit Tests (Coverage)
+        run: npm run test:coverage
