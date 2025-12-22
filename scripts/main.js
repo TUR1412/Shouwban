@@ -332,6 +332,15 @@ const Cinematic = (function() {
         return Boolean(lib && typeof lib.animate === 'function' && canAnimate());
     }
 
+    function markMotionActive() {
+        try {
+            if (!isMotionReady()) return;
+            document.documentElement.dataset.motion = 'on';
+        } catch {
+            // ignore
+        }
+    }
+
     function cancelRunningAnimations(element) {
         if (!element || typeof element.getAnimations !== 'function') return;
         try {
@@ -349,6 +358,319 @@ const Cinematic = (function() {
         } catch {
             return null;
         }
+    }
+
+    function shimmerOnce(element, options = {}) {
+        if (!element) return false;
+        if (!canAnimate()) return false;
+        if (typeof element.animate !== 'function') return false;
+
+        const host = element.closest?.('button, a') || element;
+        if (!host || typeof host.getBoundingClientRect !== 'function') return false;
+        if (host.dataset && host.dataset.cinematicShimmer === '1') return false;
+
+        const rect = host.getBoundingClientRect();
+        if (!rect.width || !rect.height) return false;
+
+        const durationMs = Math.max(260, Number(options.durationMs) || 560);
+        const inset = Math.max(10, Math.min(rect.height * 0.45, 18));
+        const barWidth = Math.max(80, Math.min(rect.width * 0.55, 240));
+
+        const layer = document.createElement('span');
+        layer.setAttribute('aria-hidden', 'true');
+        layer.style.position = 'absolute';
+        layer.style.inset = `-${Math.round(inset)}px`;
+        layer.style.pointerEvents = 'none';
+        layer.style.borderRadius = 'inherit';
+        layer.style.overflow = 'hidden';
+        layer.style.zIndex = '1';
+
+        const bar = document.createElement('span');
+        bar.style.position = 'absolute';
+        bar.style.top = '-20%';
+        bar.style.bottom = '-20%';
+        bar.style.width = `${Math.round(barWidth)}px`;
+        bar.style.left = '0';
+        bar.style.background =
+            'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.55), rgba(255,255,255,0))';
+        bar.style.filter = 'blur(0.2px)';
+        bar.style.transform = 'translateX(0) skewX(-20deg)';
+
+        layer.appendChild(bar);
+
+        try {
+            const cs = getComputedStyle(host);
+            if (cs.position === 'static') host.style.position = 'relative';
+            host.appendChild(layer);
+        } catch {
+            return false;
+        }
+
+        // Prevent pointer hit-tests from overlay, and keep DOM clean
+        host.dataset.cinematicShimmer = '1';
+        window.setTimeout(() => {
+            try { delete host.dataset.cinematicShimmer; } catch { /* ignore */ }
+        }, Math.max(0, durationMs + 80));
+
+        const startX = -barWidth - rect.width * 0.25;
+        const endX = rect.width + barWidth + rect.width * 0.25;
+
+        try {
+            const anim = bar.animate(
+                [
+                    { transform: `translateX(${startX}px) skewX(-20deg)`, opacity: 0 },
+                    { transform: `translateX(${rect.width * 0.15}px) skewX(-20deg)`, opacity: 1 },
+                    { transform: `translateX(${endX}px) skewX(-20deg)`, opacity: 0 },
+                ],
+                {
+                    duration: durationMs,
+                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                    fill: 'both',
+                },
+            );
+            anim.onfinish = () => layer.remove();
+        } catch {
+            window.setTimeout(() => layer.remove(), durationMs);
+        }
+
+        return true;
+    }
+
+    function pulse(element, options = {}) {
+        if (!element) return false;
+        if (!isMotionReady()) return false;
+
+        const scale = Number.isFinite(options.scale) ? options.scale : 1.06;
+        const duration = Number.isFinite(options.duration) ? options.duration : 0.28;
+
+        cancelRunningAnimations(element);
+        element.style.willChange = 'transform';
+        animate(
+            element,
+            { scale: [1, scale, 1] },
+            { duration, easing: [0.22, 1, 0.36, 1] },
+        )?.finished?.finally?.(() => {
+            element.style.willChange = '';
+        });
+        return true;
+    }
+
+    function toggleDisplay(element, show, options = {}) {
+        if (!element) return false;
+
+        const display = String(options.display || 'flex');
+        const y = Number.isFinite(options.y) ? options.y : 10;
+        const duration = Number.isFinite(options.duration) ? options.duration : 0.26;
+        const blur = Number.isFinite(options.blur) ? options.blur : 8;
+
+        const next = show ? '1' : '0';
+        if (element.dataset && element.dataset.cinematicVisible === next) {
+            element.style.display = show ? display : 'none';
+            return true;
+        }
+        if (element.dataset) element.dataset.cinematicVisible = next;
+
+        if (!isMotionReady()) {
+            element.style.display = show ? display : 'none';
+            return false;
+        }
+
+        cancelRunningAnimations(element);
+
+        if (show) {
+            element.style.display = display;
+            element.style.opacity = '0';
+            element.style.transform = `translateY(${y}px)`;
+            element.style.filter = `blur(${blur}px)`;
+            element.style.willChange = 'transform, opacity, filter';
+            requestAnimationFrame(() => {
+                animate(
+                    element,
+                    { opacity: [0, 1], y: [y, 0], filter: [`blur(${blur}px)`, 'blur(0px)'] },
+                    { duration, easing: [0.22, 1, 0.36, 1] },
+                )?.finished?.finally?.(() => {
+                    element.style.opacity = '';
+                    element.style.transform = '';
+                    element.style.filter = '';
+                    element.style.willChange = '';
+                });
+            });
+            return true;
+        }
+
+        element.style.willChange = 'transform, opacity, filter';
+        animate(
+            element,
+            { opacity: [1, 0], y: [0, y], filter: ['blur(0px)', `blur(${blur}px)`] },
+            { duration: Math.max(0.18, duration - 0.06), easing: [0.4, 0, 0.2, 1] },
+        )?.finished?.finally?.(() => {
+            element.style.display = 'none';
+            element.style.opacity = '';
+            element.style.transform = '';
+            element.style.filter = '';
+            element.style.willChange = '';
+        });
+        return true;
+    }
+
+    function staggerEnter(elements, options = {}) {
+        if (!isMotionReady()) return false;
+        const list = Array.from(elements || []).filter(Boolean);
+        if (!list.length) return false;
+
+        const y = Number.isFinite(options.y) ? options.y : 10;
+        const blur = Number.isFinite(options.blur) ? options.blur : 10;
+        const duration = Number.isFinite(options.duration) ? options.duration : 0.32;
+        const stagger = Number.isFinite(options.stagger) ? options.stagger : 0.035;
+        const maxStaggerItems = Number.isFinite(options.maxStaggerItems) ? options.maxStaggerItems : 12;
+
+        list.forEach((el, index) => {
+            if (!el) return;
+            if (el.dataset && el.dataset.cinematicEntered === '1') return;
+            if (el.dataset) el.dataset.cinematicEntered = '1';
+
+            const delay = Math.min(index, maxStaggerItems) * stagger;
+            cancelRunningAnimations(el);
+
+            el.style.opacity = '0.001';
+            el.style.transform = `translateY(${y}px)`;
+            el.style.filter = `blur(${blur}px)`;
+            el.style.willChange = 'transform, opacity, filter';
+
+            requestAnimationFrame(() => {
+                animate(
+                    el,
+                    { opacity: [0.001, 1], y: [y, 0], filter: [`blur(${blur}px)`, 'blur(0px)'] },
+                    { duration, delay, easing: [0.22, 1, 0.36, 1] },
+                )?.finished?.finally?.(() => {
+                    el.style.opacity = '';
+                    el.style.transform = '';
+                    el.style.filter = '';
+                    el.style.willChange = '';
+                });
+            });
+        });
+
+        return true;
+    }
+
+    function enhanceFadeInUp(root, options = {}) {
+        if (!root || !root.querySelectorAll) return false;
+        if (!isMotionReady()) return false;
+        if (!('IntersectionObserver' in window)) return false;
+
+        const items = Array.from(root.querySelectorAll('.fade-in-up:not(.is-visible)'));
+        if (!items.length) return false;
+
+        const y = Number.isFinite(options.y) ? options.y : 18;
+        const blur = Number.isFinite(options.blur) ? options.blur : 12;
+        const duration = Number.isFinite(options.duration) ? options.duration : 0.42;
+        const stagger = Number.isFinite(options.stagger) ? options.stagger : 0.035;
+        const maxStaggerItems = Number.isFinite(options.maxStaggerItems) ? options.maxStaggerItems : 14;
+
+        const observer = new IntersectionObserver(
+            (entries, obs) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const el = entry.target;
+                    obs.unobserve(el);
+                    if (!el || (el.dataset && el.dataset.cinematicReveal === '1')) return;
+                    if (el.dataset) el.dataset.cinematicReveal = '1';
+
+                    // Disable CSS transition for this reveal; Motion takes over
+                    el.style.transitionDelay = '0ms';
+                    el.style.transition = 'none';
+                    el.classList.add('is-visible');
+
+                    const index = Number.parseInt(String(el.dataset.cinematicIndex ?? ''), 10);
+                    const delayIndex = Number.isFinite(index) ? index : 0;
+                    const delay = Math.min(delayIndex, maxStaggerItems) * stagger;
+
+                    el.style.opacity = '0';
+                    el.style.transform = `translateY(${y}px)`;
+                    el.style.filter = `blur(${blur}px)`;
+                    el.style.willChange = 'transform, opacity, filter';
+
+                    requestAnimationFrame(() => {
+                        animate(
+                            el,
+                            { opacity: [0, 1], y: [y, 0], filter: [`blur(${blur}px)`, 'blur(0px)'] },
+                            { duration, delay, easing: [0.22, 1, 0.36, 1] },
+                        )?.finished?.finally?.(() => {
+                            el.style.opacity = '';
+                            el.style.transform = '';
+                            el.style.filter = '';
+                            el.style.willChange = '';
+                            el.style.transition = '';
+                            el.style.transitionDelay = '';
+                        });
+                    });
+                });
+            },
+            { threshold: 0.12 },
+        );
+
+        items.forEach((el, index) => {
+            if (!el) return;
+            if (el.dataset) el.dataset.cinematicIndex = String(index);
+            observer.observe(el);
+        });
+
+        return true;
+    }
+
+    function bindHoverLift() {
+        if (!isMotionReady()) return;
+
+        const selector = '.account-card, .address-card, .alert-row, .summary-item, .order-success__panel, .order-success__item';
+        const lifted = new WeakSet();
+
+        const shouldIgnore = (event) => {
+            const pt = String(event?.pointerType || '');
+            if (pt && pt !== 'mouse') return true;
+            return false;
+        };
+
+        const getCard = (event) => {
+            const target = event?.target;
+            return target?.closest?.(selector) || null;
+        };
+
+        document.addEventListener(
+            'pointerover',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                const el = getCard(event);
+                if (!el) return;
+                const related = event.relatedTarget;
+                if (related && el.contains(related)) return;
+                if (lifted.has(el)) return;
+                lifted.add(el);
+                cancelRunningAnimations(el);
+                el.style.willChange = 'transform';
+                animate(el, { y: [0, -3], scale: [1, 1.01] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointerout',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                const el = getCard(event);
+                if (!el) return;
+                const related = event.relatedTarget;
+                if (related && el.contains(related)) return;
+                if (!lifted.has(el)) return;
+                lifted.delete(el);
+                cancelRunningAnimations(el);
+                el.style.willChange = 'transform';
+                animate(el, { y: [-3, 0], scale: [1.01, 1] }, { duration: 0.22, easing: [0.22, 1, 0.36, 1] })?.finished?.finally?.(() => {
+                    el.style.willChange = '';
+                });
+            },
+            { passive: true },
+        );
     }
 
     function toggleBlock(element, options = {}) {
@@ -472,11 +794,13 @@ const Cinematic = (function() {
     }
 
     function init() {
+        markMotionActive();
         pageEnter();
         bindTapFeedback();
+        bindHoverLift();
     }
 
-    return { init, toggleBlock };
+    return { init, toggleBlock, toggleDisplay, pulse, shimmerOnce, staggerEnter, enhanceFadeInUp };
 })();
 
 // ==============================================
@@ -1621,6 +1945,10 @@ const Favorites = (function() {
         if (nowActive && typeof Celebration !== 'undefined' && Celebration.fire) {
             Celebration.fire(btn);
         }
+        if (typeof Cinematic !== 'undefined') {
+            Cinematic.pulse?.(btn, { scale: nowActive ? 1.12 : 1.06, duration: 0.24 });
+            if (nowActive) Cinematic.shimmerOnce?.(btn, { durationMs: 520 });
+        }
         if (typeof Toast !== 'undefined' && Toast.show) {
             Toast.show(nowActive ? '已加入收藏' : '已取消收藏', nowActive ? 'success' : 'info', 1600);
         }
@@ -1756,6 +2084,13 @@ const Compare = (function() {
         }
 
         applyButtonState(btn, result.active);
+        if (result.active && typeof Celebration !== 'undefined' && Celebration.fire) {
+            Celebration.fire(btn);
+        }
+        if (typeof Cinematic !== 'undefined') {
+            Cinematic.pulse?.(btn, { scale: result.active ? 1.1 : 1.04, duration: 0.22 });
+            if (result.active) Cinematic.shimmerOnce?.(btn, { durationMs: 520 });
+        }
         if (typeof Toast !== 'undefined' && Toast.show) {
             Toast.show(result.active ? '已加入对比' : '已移出对比', result.active ? 'success' : 'info', 1500);
         }
@@ -1899,12 +2234,20 @@ const Promotion = (function() {
             });
         };
 
-        const applyFromBlock = (block) => {
+        const applyFromBlock = (block, triggerEl) => {
             const input = block.querySelector('[data-promo-input]');
             const feedback = block.querySelector('[data-promo-feedback]');
             const code = input ? input.value : '';
             const r = apply(code);
             if (feedback) feedback.textContent = r.ok ? r.message : r.message;
+            if (typeof Cinematic !== 'undefined') {
+                if (r.ok) {
+                    Cinematic.shimmerOnce?.(triggerEl || block, { durationMs: 620 });
+                    Cinematic.pulse?.(feedback || triggerEl || block, { scale: 1.04, duration: 0.22 });
+                } else {
+                    Cinematic.pulse?.(input || triggerEl || block, { scale: 1.02, duration: 0.18 });
+                }
+            }
             if (typeof Toast !== 'undefined' && Toast.show) {
                 Toast.show(r.message, r.ok ? 'success' : 'info', 2000);
             }
@@ -1915,9 +2258,13 @@ const Promotion = (function() {
             const clearBtn = block.querySelector('[data-promo-clear]');
             const input = block.querySelector('[data-promo-input]');
 
-            applyBtn?.addEventListener?.('click', () => applyFromBlock(block));
+            applyBtn?.addEventListener?.('click', () => applyFromBlock(block, applyBtn));
             clearBtn?.addEventListener?.('click', () => {
                 clear();
+                if (typeof Cinematic !== 'undefined') {
+                    Cinematic.shimmerOnce?.(clearBtn || block, { durationMs: 520 });
+                    Cinematic.pulse?.(clearBtn || block, { scale: 1.05, duration: 0.22 });
+                }
                 if (typeof Toast !== 'undefined' && Toast.show) {
                     Toast.show('已清除优惠码', 'info', 1600);
                 }
@@ -1925,7 +2272,7 @@ const Promotion = (function() {
             input?.addEventListener?.('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    applyFromBlock(block);
+                    applyFromBlock(block, input);
                 }
             });
         });
@@ -3735,6 +4082,10 @@ const PDP = (function() {
         if (typeof Celebration !== 'undefined' && Celebration.fire) {
             Celebration.fire(addToCartBtn);
         }
+        if (typeof Cinematic !== 'undefined') {
+            Cinematic.shimmerOnce?.(addToCartBtn, { durationMs: 620 });
+            Cinematic.pulse?.(addToCartBtn, { scale: 1.06, duration: 0.26 });
+        }
     }
 
     function initAddToCart() {
@@ -4344,6 +4695,20 @@ const QuickAdd = (function() {
         if (typeof Celebration !== 'undefined' && Celebration.fire) {
             Celebration.fire(btn);
         }
+        if (typeof Cinematic !== 'undefined') {
+            Cinematic.shimmerOnce?.(btn);
+            Cinematic.pulse?.(btn, { scale: 1.08, duration: 0.28 });
+        }
+        try {
+            const original = btn.dataset.originalLabel || btn.textContent || '快速加入';
+            if (!btn.dataset.originalLabel) btn.dataset.originalLabel = original;
+            btn.textContent = '已加入';
+            window.setTimeout(() => {
+                try { btn.textContent = btn.dataset.originalLabel || original; } catch { /* ignore */ }
+            }, 720);
+        } catch {
+            // ignore
+        }
         if (typeof Toast !== 'undefined' && Toast.show) {
             Toast.show(`已加入购物车 +${result.added || 1}`, 'success', 1600);
         }
@@ -4386,10 +4751,12 @@ const Checkout = (function() {
     const addressInput = checkoutForm?.querySelector('#address');
     const regionSelect = checkoutForm?.querySelector('#region');
 
+    let lastTotal = NaN;
+
     // --- Helper Functions --- (Keep formatPrice, clearError, showError)
-     function formatPrice(price) {
-         return `¥${price.toFixed(2)}`;
-     }
+      function formatPrice(price) {
+          return `¥${price.toFixed(2)}`;
+      }
     function clearError(inputElement) {
         // ... (no changes needed here)
          const formGroup = inputElement.closest('.form-group');
@@ -4547,11 +4914,12 @@ const Checkout = (function() {
     }
 
     // --- Order Summary Logic --- (Modified to use Cart.getCart)
-    function renderOrderSummary() {
+    function renderOrderSummary(options = {}) {
         if (!orderSummaryItemsContainer || !summarySubtotalEl || !summaryShippingEl || !summaryTotalEl) {
              console.error("Checkout Error: Order summary elements not found.");
              return;
-        }
+         }
+        const animateItems = Boolean(options.animateItems);
 
         // Use Cart module to get data
         const cart = (typeof Cart !== 'undefined' && Cart.getCart) ? Cart.getCart() : []; 
@@ -4562,6 +4930,7 @@ const Checkout = (function() {
             UXMotion.tweenMoney(summarySubtotalEl, 0);
             UXMotion.tweenMoney(summaryShippingEl, 0);
             UXMotion.tweenMoney(summaryTotalEl, 0);
+            lastTotal = 0;
             const discountEl = checkoutContainer.querySelector('.order-summary .summary-discount');
             const discountRow = checkoutContainer.querySelector('.order-summary [data-summary-discount-row]');
             if (discountEl && discountRow) {
@@ -4598,6 +4967,16 @@ const Checkout = (function() {
             orderSummaryItemsContainer.appendChild(itemElement);
         });
 
+        if (animateItems && typeof Cinematic !== 'undefined') {
+            Cinematic.staggerEnter?.(orderSummaryItemsContainer.querySelectorAll('.summary-item'), {
+                y: 10,
+                blur: 10,
+                duration: 0.32,
+                stagger: 0.03,
+                maxStaggerItems: 10,
+            });
+        }
+
         const promo = typeof Promotion !== 'undefined' && Promotion.get ? Promotion.get() : null;
         const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
             ? Promotion.calculateDiscount(subtotal, promo)
@@ -4613,16 +4992,45 @@ const Checkout = (function() {
         const discountRow = checkoutContainer.querySelector('.order-summary [data-summary-discount-row]');
         if (discountEl && discountRow) {
             const show = discount > 0;
-            discountRow.style.display = show ? 'flex' : 'none';
+            const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleDisplay
+                ? Cinematic.toggleDisplay(discountRow, show, { display: 'flex', y: 10, blur: 10, duration: 0.26 })
+                : false;
+            if (!animated) discountRow.style.display = show ? 'flex' : 'none';
             UXMotion.tweenMoney(discountEl, discount, { prefix: '- ' });
         }
         if (rewardsDiscountEl && rewardsDiscountRow) {
             const show = rewardsDiscount > 0;
-            rewardsDiscountRow.style.display = show ? 'flex' : 'none';
+            const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleDisplay
+                ? Cinematic.toggleDisplay(rewardsDiscountRow, show, { display: 'flex', y: 10, blur: 10, duration: 0.26 })
+                : false;
+            if (!animated) rewardsDiscountRow.style.display = show ? 'flex' : 'none';
             UXMotion.tweenMoney(rewardsDiscountEl, rewardsDiscount, { prefix: '- ' });
+            try {
+                rewardsDiscountEl.setAttribute(
+                    'aria-label',
+                    show
+                        ? `积分抵扣：${Pricing.formatCny(rewardsDiscount)}（使用 ${pointsUsed} 积分）`
+                        : '积分抵扣：0',
+                );
+            } catch {
+                // ignore
+            }
         }
         UXMotion.tweenMoney(summaryShippingEl, shippingCost);
         UXMotion.tweenMoney(summaryTotalEl, total);
+        try {
+            if (typeof Cinematic !== 'undefined') {
+                const totalRow = checkoutContainer.querySelector('.order-summary .total-row') || summaryTotalEl;
+                const prev = Number(lastTotal);
+                if (Number.isFinite(prev) && Math.abs(total - prev) > 0.009) {
+                    Cinematic.pulse?.(totalRow, { scale: 1.04, duration: 0.26 });
+                    Cinematic.shimmerOnce?.(totalRow, { durationMs: 560 });
+                }
+            }
+            lastTotal = total;
+        } catch {
+            lastTotal = total;
+        }
 
         if(placeOrderButton) placeOrderButton.disabled = false;
     }
@@ -4792,21 +5200,21 @@ const Checkout = (function() {
 
     // --- Initialization ---
     function init() {
-        if (checkoutContainer) { // Check if on checkout page
-             if (rewardsToggle) {
-                 rewardsToggle.checked = Boolean(Utils.readStorageJSON(usePointsKey, false));
-             }
-             renderOrderSummary();
-             applyDraft();
-             addEventListeners();
+         if (checkoutContainer) { // Check if on checkout page
+              if (rewardsToggle) {
+                  rewardsToggle.checked = Boolean(Utils.readStorageJSON(usePointsKey, false));
+              }
+              renderOrderSummary({ animateItems: true });
+              applyDraft();
+              addEventListeners();
 
-             // 同标签页内购物车变化（例如从其他模块写入）时刷新摘要
-             try {
-                 window.addEventListener('cart:changed', renderOrderSummary);
-             } catch {
-                 // ignore
-             }
-        }
+              // 同标签页内购物车变化（例如从其他模块写入）时刷新摘要
+              try {
+                  window.addEventListener('cart:changed', () => renderOrderSummary({ animateItems: true }));
+              } catch {
+                  // ignore
+              }
+         }
     }
 
     function refresh() {
@@ -5454,6 +5862,9 @@ const ProductListing = (function(){
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(productGrid); }
         if (typeof PriceAlerts !== 'undefined' && PriceAlerts.syncButtons) { PriceAlerts.syncButtons(productGrid); }
+        if (typeof Cinematic !== 'undefined' && Cinematic.enhanceFadeInUp) {
+            Cinematic.enhanceFadeInUp(productGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 });
+        }
     }
 
     // --- Event Listeners Setup --- (Keep existing)
@@ -6200,6 +6611,10 @@ const AccountPage = (function() {
     const alertsList = container.querySelector('[data-alert-list]');
     const alertsEmpty = container.querySelector('[data-alert-empty]');
 
+    let didEnterCards = false;
+    let didEnterAddresses = false;
+    let didEnterAlerts = false;
+
     function formatRegionLabel(region) {
         try {
             return Pricing.getRegion(region).label;
@@ -6213,6 +6628,16 @@ const AccountPage = (function() {
         const points = Rewards?.getPoints?.() || 0;
         pointsEl.setAttribute('aria-label', `可用积分：${points}`);
         UXMotion.tweenNumber(pointsEl, points, { duration: 420, formatter: (n) => String(Math.max(0, Math.round(n))) });
+        try {
+            const prev = Number(pointsEl.dataset.prevPoints);
+            if (Number.isFinite(prev) && prev !== points && typeof Cinematic !== 'undefined') {
+                Cinematic.pulse?.(pointsEl, { scale: points > prev ? 1.08 : 1.04, duration: 0.24 });
+                if (points > prev) Cinematic.shimmerOnce?.(pointsEl, { durationMs: 520 });
+            }
+            pointsEl.dataset.prevPoints = String(points);
+        } catch {
+            // ignore
+        }
     }
 
     function renderAddresses() {
@@ -6266,6 +6691,17 @@ const AccountPage = (function() {
             card.appendChild(actions);
             addressList.appendChild(card);
         });
+
+        if (!didEnterAddresses && typeof Cinematic !== 'undefined') {
+            const entered = Cinematic.staggerEnter?.(addressList.querySelectorAll('.address-card'), {
+                y: 12,
+                blur: 10,
+                duration: 0.32,
+                stagger: 0.04,
+                maxStaggerItems: 10,
+            });
+            if (entered) didEnterAddresses = true;
+        }
     }
 
     function renderAlerts() {
@@ -6311,6 +6747,17 @@ const AccountPage = (function() {
             row.appendChild(right);
             alertsList.appendChild(row);
         });
+
+        if (!didEnterAlerts && typeof Cinematic !== 'undefined') {
+            const entered = Cinematic.staggerEnter?.(alertsList.querySelectorAll('.alert-row'), {
+                y: 10,
+                blur: 10,
+                duration: 0.32,
+                stagger: 0.035,
+                maxStaggerItems: 10,
+            });
+            if (entered) didEnterAlerts = true;
+        }
     }
 
     function openAddressForm(entry) {
@@ -6438,6 +6885,16 @@ const AccountPage = (function() {
         renderAddresses();
         renderAlerts();
         bind();
+        if (!didEnterCards && typeof Cinematic !== 'undefined') {
+            const entered = Cinematic.staggerEnter?.(container.querySelectorAll('.account-card'), {
+                y: 14,
+                blur: 12,
+                duration: 0.38,
+                stagger: 0.05,
+                maxStaggerItems: 8,
+            });
+            if (entered) didEnterCards = true;
+        }
     }
 
     return { init };
@@ -6538,6 +6995,31 @@ const OrderSuccessPage = (function() {
 
     function init() {
         render();
+        try {
+            const headline = container.querySelector('.order-success__headline') || summaryHost;
+            if (headline && typeof Celebration !== 'undefined' && Celebration.fire) {
+                Celebration.fire(headline, { count: 18 });
+            }
+            if (typeof Cinematic !== 'undefined') {
+                Cinematic.staggerEnter?.(container.querySelectorAll('.order-success__panel'), {
+                    y: 14,
+                    blur: 12,
+                    duration: 0.38,
+                    stagger: 0.05,
+                    maxStaggerItems: 10,
+                });
+                Cinematic.staggerEnter?.(container.querySelectorAll('.order-success__item'), {
+                    y: 10,
+                    blur: 10,
+                    duration: 0.32,
+                    stagger: 0.02,
+                    maxStaggerItems: 14,
+                });
+                Cinematic.pulse?.(headline, { scale: 1.02, duration: 0.26 });
+            }
+        } catch {
+            // ignore
+        }
     }
 
     return { init };

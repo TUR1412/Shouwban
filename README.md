@@ -211,13 +211,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 ### 一键 bump 版本号（推荐）
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251221.3'
+pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251222.1'
 ```
 
 或：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251221.3'
+pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251222.1'
 ```
 
 运行后建议执行：`npm run verify` 确认一致性。
