@@ -4284,7 +4284,7 @@ const PDP = (function() {
                       const template = document.createElement('template');
                       template.innerHTML = String(html ?? '');
                       const frag = document.createDocumentFragment();
-                      template.content.childNodes.forEach((child) => walk(child, frag));
+                      Array.from(template.content.childNodes || []).forEach((child) => walk(child, frag));
                       host.appendChild(frag);
                   };
 
@@ -4644,7 +4644,7 @@ const Cart = (function() {
          
         if (!subtotalElement || !shippingElement || !totalElement) return;
 
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const subtotal = globalThis.ShouwbanCore.calculateCartSubtotal(cart);
         const promo = typeof Promotion !== 'undefined' && Promotion.get ? Promotion.get() : null;
         const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
             ? Promotion.calculateDiscount(subtotal, promo)

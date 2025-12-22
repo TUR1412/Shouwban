@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -NoProfile -Command '...'` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20251222.4`
+> **缓存穿透统一版本号**：`20251222.5`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -58,7 +58,13 @@
 - [x] 版本号 bump：`20251222.4`（已同步 HTML/SW/核心资源引用）
 - [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
 
-## 7. 验收命令（推荐）
+## 7. 第五轮递归进化（B5：一致性收敛 · 2025-12-22）
+- [x] Cart 小计计算复用 Core：减少浮点误差与逻辑分叉
+- [x] PDP 描述过滤器兼容性修复：避免旧浏览器 `NodeList.forEach` 兼容问题
+- [x] 版本号 bump：`20251222.5`（已同步 HTML/SW/核心资源引用）
+- [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
+
+## 8. 验收命令（推荐）
 
 ```powershell
 pwsh -NoLogo -NoProfile -Command 'npm run verify'
