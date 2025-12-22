@@ -804,6 +804,230 @@ const Cinematic = (function() {
 })();
 
 // ==============================================
+// Cross-Document View Transitions (MPA)
+// - 目标：实现“共享元素变形飞入”的页面连续性（类似 LayoutId 效果）
+// - 渐进增强：仅在支持 View Transition 且未开启 reduced-motion 时启用
+// ==============================================
+const ViewTransitions = (function() {
+    const storageKey = 'vt:lastProductId';
+    const names = {
+        image: 'vt-product-image',
+        title: 'vt-product-title',
+        price: 'vt-product-price',
+    };
+
+    function canUse() {
+        try {
+            if (Utils.prefersReducedMotion()) return false;
+            if (!globalThis.CSS || typeof globalThis.CSS.supports !== 'function') return false;
+            return Boolean(globalThis.CSS.supports('view-transition-name', 'vt-test'));
+        } catch {
+            return false;
+        }
+    }
+
+    function getUrl(href) {
+        try {
+            return new URL(href, window.location.href);
+        } catch {
+            return null;
+        }
+    }
+
+    function parseProductIdFromUrl(url) {
+        try {
+            if (!url) return '';
+            if (!/product-detail\.html$/i.test(url.pathname)) return '';
+            return String(url.searchParams.get('id') || '').trim();
+        } catch {
+            return '';
+        }
+    }
+
+    function setName(element, name) {
+        if (!element) return;
+        try {
+            element.style.viewTransitionName = name;
+        } catch {
+            // ignore
+        }
+    }
+
+    function clearName(element) {
+        if (!element) return;
+        try {
+            element.style.viewTransitionName = '';
+        } catch {
+            // ignore
+        }
+    }
+
+    function storeLastProductId(id) {
+        const key = String(id || '').trim();
+        if (!key) return;
+        try {
+            sessionStorage.setItem(storageKey, key);
+        } catch {
+            // ignore
+        }
+    }
+
+    function peekLastProductId() {
+        try {
+            return String(sessionStorage.getItem(storageKey) || '').trim();
+        } catch {
+            return '';
+        }
+    }
+
+    function clearLastProductId() {
+        try {
+            sessionStorage.removeItem(storageKey);
+        } catch {
+            // ignore
+        }
+    }
+
+    function applyNamesToProductCard(card) {
+        if (!card) return false;
+
+        const img = card.querySelector('.product-card__image img') || null;
+        const title = card.querySelector('.product-card__title a') || null;
+        const price = card.querySelector('.product-card__price') || null;
+
+        if (img) setName(img, names.image);
+        if (title) setName(title, names.title);
+        if (price) setName(price, names.price);
+
+        return Boolean(img || title || price);
+    }
+
+    function prepareProductLinkForNavigation(anchor, productId) {
+        if (!canUse()) return false;
+        if (!anchor) return false;
+
+        const card = anchor.closest?.('.product-card') || null;
+        if (!card) return false;
+
+        // 清理本卡片上可能残留的命名（例如重复点击）
+        try {
+            clearName(card.querySelector('.product-card__image img'));
+            clearName(card.querySelector('.product-card__title a'));
+            clearName(card.querySelector('.product-card__price'));
+        } catch {
+            // ignore
+        }
+
+        const ok = applyNamesToProductCard(card);
+        if (ok) {
+            storeLastProductId(productId);
+            if (typeof Cinematic !== 'undefined') {
+                Cinematic.pulse?.(card, { scale: 1.01, duration: 0.22 });
+            }
+        }
+        return ok;
+    }
+
+    function bindLinkPreparation() {
+        document.addEventListener(
+            'click',
+            (event) => {
+                if (!event || event.defaultPrevented) return;
+                if (event.button !== 0) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                const anchor = event.target?.closest?.('a[href]');
+                if (!anchor) return;
+                const target = (anchor.getAttribute('target') || '').trim();
+                if (target && target !== '_self') return;
+                if (anchor.hasAttribute('download')) return;
+
+                const url = getUrl(anchor.getAttribute('href') || anchor.href);
+                if (!url) return;
+                if (url.origin !== window.location.origin) return;
+
+                const productId = parseProductIdFromUrl(url);
+                if (!productId) return;
+
+                prepareProductLinkForNavigation(anchor, productId);
+            },
+            { capture: true },
+        );
+    }
+
+    function restoreLastProductCard(root) {
+        if (!canUse()) return false;
+        const ref = String(document.referrer || '').trim();
+        if (ref) {
+            const refUrl = getUrl(ref);
+            const fromPdp = Boolean(refUrl && refUrl.origin === window.location.origin && /product-detail\.html$/i.test(refUrl.pathname));
+            if (!fromPdp) {
+                clearLastProductId();
+                return false;
+            }
+        }
+
+        const id = peekLastProductId();
+        if (!id) return false;
+
+        const scope = root && root.querySelectorAll ? root : document;
+        const safeId = (() => {
+            try {
+                if (globalThis.CSS && typeof globalThis.CSS.escape === 'function') return globalThis.CSS.escape(id);
+            } catch {
+                // ignore
+            }
+            return String(id).replace(/\"/g, '\\"');
+        })();
+        const card = scope.querySelector(`.product-card[data-product-id="${safeId}"]`);
+        if (!card) return false;
+
+        const ok = applyNamesToProductCard(card);
+        if (ok && typeof Cinematic !== 'undefined') {
+            Cinematic.pulse?.(card, { scale: 1.015, duration: 0.26 });
+        }
+        if (ok) clearLastProductId();
+        return ok;
+    }
+
+    function applyPdpTargetNames() {
+        if (!canUse()) return false;
+        const pdp = document.querySelector('.pdp-main');
+        if (!pdp) return false;
+
+        const url = getUrl(window.location.href);
+        const productId = parseProductIdFromUrl(url);
+        if (!productId) return false;
+
+        const stored = peekLastProductId();
+        if (stored && stored !== productId) {
+            clearLastProductId();
+            return false;
+        }
+        if (!stored || stored !== productId) return false;
+
+        const img = document.getElementById('main-product-image');
+        const title = pdp.querySelector('.product-info-pdp__title');
+        const price = pdp.querySelector('.product-info-pdp__price .price-value');
+
+        if (img) setName(img, names.image);
+        if (title) setName(title, names.title);
+        if (price) setName(price, names.price);
+
+        return Boolean(img || title || price);
+    }
+
+    // 让目标页在首帧就具备匹配的 view-transition-name（提升跨页命中率）
+    applyPdpTargetNames();
+
+    function init() {
+        bindLinkPreparation();
+    }
+
+    return { init, restoreLastProductCard };
+})();
+
+// ==============================================
 // Header Module
 // ==============================================
 const Header = (function() {
@@ -1563,6 +1787,7 @@ const BackToTop = (function() {
 const ScrollAnimations = (function() {
     function init() {
         const animatedElements = document.querySelectorAll('.fade-in-up:not(.is-visible)');
+        if (!animatedElements.length) return;
 
         // 可访问性：减少动态效果时直接显示（避免眩晕/不适）
         if (Utils.prefersReducedMotion()) {
@@ -1571,6 +1796,12 @@ const ScrollAnimations = (function() {
                 element.classList.add('is-visible');
             });
             return;
+        }
+
+        // Cinematic 增强：用 Motion 取代 CSS transition（更顺滑，blur 更自然）
+        if (typeof Cinematic !== 'undefined' && Cinematic.enhanceFadeInUp) {
+            const ok = Cinematic.enhanceFadeInUp(document, { y: 18, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 14 });
+            if (ok) return;
         }
 
         if (animatedElements.length > 0 && "IntersectionObserver" in window) {
@@ -5862,6 +6093,9 @@ const ProductListing = (function(){
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(productGrid); }
         if (typeof PriceAlerts !== 'undefined' && PriceAlerts.syncButtons) { PriceAlerts.syncButtons(productGrid); }
+        if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
+            ViewTransitions.restoreLastProductCard(productGrid);
+        }
         if (typeof Cinematic !== 'undefined' && Cinematic.enhanceFadeInUp) {
             Cinematic.enhanceFadeInUp(productGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 });
         }
@@ -6025,6 +6259,9 @@ const Homepage = (function() {
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(featuredGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(featuredGrid); }
+        if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
+            ViewTransitions.restoreLastProductCard(featuredGrid);
+        }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
     }
 
@@ -6034,8 +6271,125 @@ const Homepage = (function() {
         const rect = target.getBoundingClientRect();
         if (!parentRect) return;
         const x = rect.left - parentRect.left;
-        curationIndicator.style.width = `${rect.width}px`;
+        const width = rect.width;
+
+        if (Utils.prefersReducedMotion()) {
+            curationIndicator.style.width = `${width}px`;
+            curationIndicator.style.transform = `translateX(${x}px)`;
+            return;
+        }
+
+        const motion = globalThis.Motion;
+        if (motion && typeof motion.animate === 'function') {
+            try {
+                curationIndicator.getAnimations?.().forEach((a) => a.cancel());
+            } catch {
+                // ignore
+            }
+            try {
+                motion.animate(
+                    curationIndicator,
+                    { width: `${width}px`, transform: `translateX(${x}px)` },
+                    { duration: 0.42, easing: [0.22, 1, 0.36, 1] },
+                );
+                return;
+            } catch {
+                // ignore
+            }
+        }
+
+        curationIndicator.style.width = `${width}px`;
         curationIndicator.style.transform = `translateX(${x}px)`;
+    }
+
+    function initHeroChoreography() {
+        if (Utils.getPageName() !== 'index.html') return;
+        if (Utils.prefersReducedMotion()) return;
+
+        const hero = document.querySelector('.hero');
+        if (!hero) return;
+        const visual = hero.querySelector('.hero__visual');
+        const glass = visual?.querySelector('.hero__glass') || null;
+        const orbit1 = visual?.querySelector('.hero__orbit--one') || null;
+        const orbit2 = visual?.querySelector('.hero__orbit--two') || null;
+        if (!glass && !orbit1 && !orbit2) return;
+
+        let active = true;
+        let raf = 0;
+
+        function clamp01(value) {
+            return Math.max(0, Math.min(1, value));
+        }
+
+        function setWillChange(on) {
+            const v = on ? 'transform' : '';
+            try {
+                if (glass) glass.style.willChange = v;
+                if (orbit1) orbit1.style.willChange = v;
+                if (orbit2) orbit2.style.willChange = v;
+            } catch {
+                // ignore
+            }
+        }
+
+        function update() {
+            raf = 0;
+            if (!active) return;
+
+            const rect = hero.getBoundingClientRect();
+            const heroHeight = Math.max(1, rect.height);
+            const progress = clamp01((-rect.top) / (heroHeight * 0.85));
+
+            const orbitSpin1 = progress * 110;
+            const orbitSpin2 = -progress * 150;
+            const floatY = progress * 10;
+            const glassY = progress * 14;
+            const glassScale = 1 - progress * 0.02;
+            const glassRotate = -progress * 0.6;
+
+            try {
+                if (glass) {
+                    glass.style.transform = `translate3d(0, ${glassY}px, 0) scale(${glassScale}) rotate(${glassRotate}deg)`;
+                }
+                if (orbit1) {
+                    orbit1.style.transform = `translate3d(0, ${floatY}px, 0) rotate(${orbitSpin1}deg)`;
+                }
+                if (orbit2) {
+                    orbit2.style.transform = `translate3d(0, ${floatY * 0.6}px, 0) rotate(${orbitSpin2}deg)`;
+                }
+            } catch {
+                // ignore
+            }
+        }
+
+        function requestUpdate() {
+            if (raf) return;
+            raf = requestAnimationFrame(update);
+        }
+
+        if ('IntersectionObserver' in window) {
+            try {
+                const observer = new IntersectionObserver(
+                    (entries) => {
+                        const entry = entries && entries[0];
+                        const nowActive = Boolean(entry && entry.isIntersecting);
+                        if (nowActive === active) return;
+                        active = nowActive;
+                        setWillChange(active);
+                        if (active) requestUpdate();
+                    },
+                    { threshold: 0, rootMargin: '200px 0px 200px 0px' },
+                );
+                observer.observe(hero);
+            } catch {
+                // ignore
+            }
+        }
+
+        setWillChange(true);
+        requestUpdate();
+        window.addEventListener('scroll', requestUpdate, { passive: true });
+        window.addEventListener('resize', Utils.throttle(requestUpdate, 120));
     }
 
     function renderCuration(tabKey) {
@@ -6050,6 +6404,9 @@ const Homepage = (function() {
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }
+        if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
+            ViewTransitions.restoreLastProductCard(curationGrid);
+        }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
     }
 
@@ -6088,6 +6445,7 @@ const Homepage = (function() {
         // ... (Keep existing check for homepage)
          if (Utils.getPageName() === 'index.html' && featuredGrid) populateFeaturedProducts();
          if (Utils.getPageName() === 'index.html') initCuration();
+         if (Utils.getPageName() === 'index.html') initHeroChoreography();
     }
 
     return { init: init };
@@ -7133,6 +7491,7 @@ const App = {
         Header.init();
         Rewards.init(); // 注入会员入口后再做首屏入场动效
         Cinematic.init();
+        ViewTransitions.init();
         Theme.init();
         ShippingRegion.init();
         SmoothScroll.init();

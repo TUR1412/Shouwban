@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -NoProfile -Command '...'` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20251221.1`
+> **缓存穿透统一版本号**：`20251222.2`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -31,7 +31,16 @@
 - [ ] 尝试推送远程仓库（可能受 GitHub 鉴权影响）
 - [ ] 申请确认后删除本地仓库（高危，单独确认）
 
-## 4. 验收命令（推荐）
+## 4. 第二轮递归进化（B2：共享元素过渡 + 滚动编排 · 2025-12-22）
+- [x] 跨文档 View Transitions：启用 `@view-transition { navigation: auto; }` 并加全局镜头切换动画
+- [x] 商品卡片 → 详情页：共享元素（图/标题/价格）变形飞入（点击时动态命名，避免同名冲突）
+- [x] 购物车 → 结算：摘要卡片共享元素过渡（vt-summary）
+- [x] 首页策展 Tab 指示器：Motion 驱动的 width/x 过渡（更“流体”）
+- [x] 首页 Hero：滚动驱动的轻量视差（orbit 旋转 + glass 漂浮），带 IntersectionObserver 限域
+- [x] 版本号 bump：`20251222.2`（已同步 HTML/SW/核心资源引用）
+- [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
+
+## 5. 验收命令（推荐）
 
 ```powershell
 pwsh -NoLogo -NoProfile -Command 'npm run verify'

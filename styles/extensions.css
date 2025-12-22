@@ -7,6 +7,104 @@ html {
   color-scheme: light dark;
 }
 
+/* ==============================================
+   Cross-Document View Transitions (MPA)
+   - 自动触发：同源页面跳转时生效（不需要 JS 调用）
+   - 渐进增强：不支持的浏览器将自动忽略
+   - 可访问性：prefers-reduced-motion 时关闭导航过渡
+   ============================================== */
+@supports (view-transition-name: none) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    @view-transition {
+      navigation: none;
+    }
+  }
+
+  /* 全局“镜头切换”：轻微缩放 + 轻微虚化，避免生硬硬切 */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  ::view-transition-old(root) {
+    animation-name: shouwban-vt-fade-out;
+  }
+
+  ::view-transition-new(root) {
+    animation-name: shouwban-vt-fade-in;
+  }
+
+  /* 稳定的共享元素（跨页保持连续性） */
+  .header__logo a {
+    view-transition-name: vt-logo;
+  }
+
+  /* 商品卡片 -> 详情页：共享元素样式（圆角一致 + 轻微阴影） */
+  ::view-transition-old(vt-product-image),
+  ::view-transition-new(vt-product-image) {
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+  }
+
+  ::view-transition-group(vt-product-image) {
+    animation-duration: 560ms;
+  }
+
+  ::view-transition-group(vt-product-title),
+  ::view-transition-group(vt-product-price) {
+    animation-duration: 520ms;
+  }
+
+  /* 购物车 -> 结算：摘要卡片共享元素（整卡变形过渡） */
+  .cart-summary,
+  .order-summary {
+    view-transition-name: vt-summary;
+  }
+
+  ::view-transition-old(vt-summary),
+  ::view-transition-new(vt-summary) {
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.14);
+  }
+
+  ::view-transition-group(vt-summary) {
+    animation-duration: 560ms;
+  }
+}
+
+@keyframes shouwban-vt-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(10px);
+  }
+}
+
+@keyframes shouwban-vt-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+    filter: blur(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
 /* Header: favorites count badge aligned with cart count */
 .header__fav-count {
   position: absolute;
