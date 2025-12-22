@@ -1785,9 +1785,17 @@ const BackToTop = (function() {
 // Intersection Observer Animations Module
 // ==============================================
 const ScrollAnimations = (function() {
-    function init() {
-        const animatedElements = document.querySelectorAll('.fade-in-up:not(.is-visible)');
+    function init(root, options) {
+        const scope = root && root.querySelectorAll ? root : document;
+        const animatedElements = scope.querySelectorAll('.fade-in-up:not(.is-visible)');
         if (!animatedElements.length) return;
+
+        const opts = options && typeof options === 'object' ? options : {};
+        const y = Number.isFinite(opts.y) ? opts.y : 18;
+        const blur = Number.isFinite(opts.blur) ? opts.blur : 14;
+        const duration = Number.isFinite(opts.duration) ? opts.duration : 0.44;
+        const stagger = Number.isFinite(opts.stagger) ? opts.stagger : 0.032;
+        const maxStaggerItems = Number.isFinite(opts.maxStaggerItems) ? opts.maxStaggerItems : 14;
 
         // 可访问性：减少动态效果时直接显示（避免眩晕/不适）
         if (Utils.prefersReducedMotion()) {
@@ -1800,7 +1808,7 @@ const ScrollAnimations = (function() {
 
         // Cinematic 增强：用 Motion 取代 CSS transition（更顺滑，blur 更自然）
         if (typeof Cinematic !== 'undefined' && Cinematic.enhanceFadeInUp) {
-            const ok = Cinematic.enhanceFadeInUp(document, { y: 18, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 14 });
+            const ok = Cinematic.enhanceFadeInUp(scope, { y, blur, duration, stagger, maxStaggerItems });
             if (ok) return;
         }
 
@@ -2355,14 +2363,7 @@ const Promotion = (function() {
 
     function getCartSubtotalFromStorage() {
         const raw = Utils.readStorageJSON('cart', []);
-        if (!Array.isArray(raw)) return 0;
-        return raw.reduce((sum, item) => {
-            const price = Number(item?.price);
-            const qty = Number(item?.quantity);
-            if (!Number.isFinite(price) || price < 0) return sum;
-            if (!Number.isFinite(qty) || qty <= 0) return sum;
-            return sum + price * qty;
-        }, 0);
+        return globalThis.ShouwbanCore.calculateCartSubtotal(raw);
     }
 
     function get() {
@@ -2404,26 +2405,7 @@ const Promotion = (function() {
     }
 
     function calculateDiscount(subtotal, promo = get()) {
-        const s = Pricing.roundMoney(subtotal);
-        if (!promo) return 0;
-
-        let discount = 0;
-        if (promo.type === 'percent') {
-            const pct = Number(promo.value);
-            if (Number.isFinite(pct) && pct > 0) {
-                discount = (s * pct) / 100;
-            }
-        } else if (promo.type === 'fixed') {
-            const fixed = Number(promo.value);
-            if (Number.isFinite(fixed) && fixed > 0) {
-                discount = fixed;
-            }
-        } else {
-            discount = 0;
-        }
-
-        discount = Math.max(0, Math.min(s, Pricing.roundMoney(discount)));
-        return discount;
+        return globalThis.ShouwbanCore.calculatePromotionDiscount(subtotal, promo);
     }
 
     function validateAndResolve(code) {
@@ -3843,7 +3825,7 @@ const RecentlyViewed = (function() {
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) LazyLoad.init();
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(grid);
         if (typeof Compare !== 'undefined' && Compare.syncButtons) Compare.syncButtons(grid);
-        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init();
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init(grid);
     }
 
     function init() {
@@ -6032,10 +6014,6 @@ const ProductListing = (function(){
             updateTitleCount(sortedProducts.length);
             updateListingMeta(sortedProducts.length);
         });
-
-        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) {
-             ScrollAnimations.init();
-        }
     }
 
     // --- Render Products Grid --- (Keep existing)
@@ -6096,8 +6074,8 @@ const ProductListing = (function(){
         if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
             ViewTransitions.restoreLastProductCard(productGrid);
         }
-        if (typeof Cinematic !== 'undefined' && Cinematic.enhanceFadeInUp) {
-            Cinematic.enhanceFadeInUp(productGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 });
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) {
+            ScrollAnimations.init(productGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 });
         }
     }
 
@@ -6262,7 +6240,7 @@ const Homepage = (function() {
         if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
             ViewTransitions.restoreLastProductCard(featuredGrid);
         }
-        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(featuredGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 }); }
     }
 
     function moveIndicator(target) {
@@ -6363,6 +6341,7 @@ const Homepage = (function() {
         }
 
         function requestUpdate() {
+            if (!active) return;
             if (raf) return;
             raf = requestAnimationFrame(update);
         }
@@ -6407,7 +6386,7 @@ const Homepage = (function() {
         if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
             ViewTransitions.restoreLastProductCard(curationGrid);
         }
-        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(); }
+        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(curationGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 }); }
     }
 
     function activateTab(button) {

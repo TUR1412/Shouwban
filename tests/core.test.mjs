@@ -78,4 +78,48 @@ describe('ShouwbanCore', () => {
     assert.deepEqual(normalizeStringArray([]), []);
     assert.deepEqual(normalizeStringArray([' a ', '', '   ', null, 'b', 1, '2  ']), ['a', 'b', '1', '2']);
   });
+
+  it('calculateCartSubtotal sums safely and rounds', () => {
+    const { calculateCartSubtotal } = globalThis.ShouwbanCore;
+
+    assert.equal(calculateCartSubtotal(null), 0);
+    assert.equal(calculateCartSubtotal(undefined), 0);
+    assert.equal(calculateCartSubtotal([]), 0);
+
+    assert.equal(
+      calculateCartSubtotal([
+        { price: 10, quantity: 2 },
+        { price: '12.3', quantity: '3' },
+        { price: -1, quantity: 10 }, // ignore negative
+        { price: 9, quantity: 0 }, // ignore zero qty
+        { price: 9, quantity: 'abc' }, // ignore non-finite qty
+        { price: Number.NaN, quantity: 1 }, // ignore non-finite
+        'bad',
+        null,
+      ]),
+      56.9,
+    );
+
+    assert.equal(calculateCartSubtotal([{ price: 1.005, quantity: 1 }]), 1.01);
+  });
+
+  it('calculatePromotionDiscount handles percent/fixed/clamp', () => {
+    const { calculatePromotionDiscount } = globalThis.ShouwbanCore;
+
+    assert.equal(calculatePromotionDiscount(100, null), 0);
+    assert.equal(calculatePromotionDiscount(100, 'bad'), 0);
+    assert.equal(calculatePromotionDiscount(100, { type: 'percent', value: 10 }), 10);
+    assert.equal(calculatePromotionDiscount(100, { type: 'percent', value: 0 }), 0);
+    assert.equal(calculatePromotionDiscount(100, { type: 'percent', value: 'abc' }), 0);
+
+    assert.equal(calculatePromotionDiscount(100, { type: 'fixed', value: 50 }), 50);
+    assert.equal(calculatePromotionDiscount(40, { type: 'fixed', value: 50 }), 40);
+    assert.equal(calculatePromotionDiscount(100, { type: 'fixed', value: 0 }), 0);
+    assert.equal(calculatePromotionDiscount(100, { type: 'fixed', value: 'abc' }), 0);
+
+    assert.equal(calculatePromotionDiscount(100, { type: 'unknown', value: 50 }), 0);
+    assert.equal(calculatePromotionDiscount(100, { value: 50 }), 0);
+
+    assert.equal(calculatePromotionDiscount(12.345, { type: 'percent', value: 10 }), 1.24);
+  });
 });

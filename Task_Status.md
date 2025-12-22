@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -NoProfile -Command '...'` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20251222.2`
+> **缓存穿透统一版本号**：`20251222.3`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -40,7 +40,17 @@
 - [x] 版本号 bump：`20251222.2`（已同步 HTML/SW/核心资源引用）
 - [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
 
-## 5. 验收命令（推荐）
+## 5. 第三轮递归进化（B3：性能压榨 + 单测扩容 · 2025-12-22）
+- [x] ScrollAnimations 支持作用域：避免全局扫描导致的重复渲染/重复观察
+- [x] 商品列表/首页/最近浏览：改为“按容器触发”滚动入场，减少不必要的重绘与 IO 观察目标
+- [x] 首页 Hero 视差：离屏时停止 rAF 调度（IntersectionObserver 反向限域）
+- [x] Core 纯函数扩容：新增 `calculateCartSubtotal`、`calculatePromotionDiscount`，并让 Promotion 逻辑直接复用
+- [x] 金额舍入修复：`roundMoney` 解决典型浮点误差（如 1.005 -> 1.01），保证价格计算稳定
+- [x] CSS 性能加强：对长列表启用 `content-visibility: auto`（渐进增强，屏外跳过渲染）
+- [x] 版本号 bump：`20251222.3`（已同步 HTML/SW/核心资源引用）
+- [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
+
+## 6. 验收命令（推荐）
 
 ```powershell
 pwsh -NoLogo -NoProfile -Command 'npm run verify'

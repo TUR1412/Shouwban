@@ -105,6 +105,24 @@ html {
   }
 }
 
+/* ==============================================
+   Performance: content-visibility (progressive)
+   - 对长列表/大块内容启用“跳过屏外渲染”
+   - 仅在支持的浏览器生效，不影响旧浏览器
+   ============================================== */
+@supports (content-visibility: auto) {
+  .gallery-grid,
+  .bento-grid,
+  .cart-items,
+  .order-summary__items,
+  .compare-table-wrap,
+  .orders-grid,
+  .static-content {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 820px;
+  }
+}
+
 /* Header: favorites count badge aligned with cart count */
 .header__fav-count {
   position: absolute;
