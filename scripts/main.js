@@ -1843,50 +1843,69 @@ const ScrollAnimations = (function() {
 // Lazy Loading Module
 // ==============================================
 const LazyLoad = (function() {
-    function init() {
-        const lazyImages = document.querySelectorAll('img.lazyload');
+    const fallbackSrc = 'assets/images/placeholder-lowquality.svg';
+    let observer = null;
 
-        if (lazyImages.length > 0 && "IntersectionObserver" in window) {
-            const lazyImageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const lazyImage = entry.target;
-                        if (lazyImage.dataset.src) {
-                            lazyImage.src = lazyImage.dataset.src;
-                            lazyImage.onload = () => {
-                                // Optional: Actions after image is fully loaded
-                                lazyImage.classList.add('loaded');
-                                lazyImage.classList.remove('lazyload');
-                            };
-                            // Handle cases where image might fail to load
-                            lazyImage.onerror = () => {
-                                console.error(`Failed to load image: ${lazyImage.dataset.src}`);
-                                lazyImage.classList.add('error'); // Add an error class for potential styling
-                                lazyImage.classList.remove('lazyload');
-                                lazyImage.src = 'assets/images/placeholder-lowquality.svg';
-                            };
-                        }
-                        observer.unobserve(lazyImage);
-                    }
+    function loadImage(img) {
+        if (!img || img.tagName !== 'IMG') return;
+        if (img.dataset && img.dataset.lazyLoaded === '1') return;
+        if (!img.dataset || !img.dataset.src) return;
+
+        const nextSrc = img.dataset.src;
+        try { img.dataset.lazyLoaded = '1'; } catch { /* ignore */ }
+
+        img.onload = () => {
+            img.classList.add('loaded');
+            img.classList.remove('lazyload');
+        };
+        img.onerror = () => {
+            console.error(`Failed to load image: ${nextSrc}`);
+            img.classList.add('error');
+            img.classList.remove('lazyload');
+            img.src = fallbackSrc;
+        };
+        img.src = nextSrc;
+    }
+
+    function ensureObserver() {
+        if (observer) return observer;
+        if (!("IntersectionObserver" in window)) return null;
+
+        observer = new IntersectionObserver(
+            (entries, obs) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const img = entry.target;
+                    loadImage(img);
+                    try { obs.unobserve(img); } catch { /* ignore */ }
                 });
-            }, {
+            },
+            {
                 threshold: 0.01,
-                rootMargin: "0px 0px 100px 0px" // Load 100px before viewport
-            });
+                rootMargin: '0px 0px 100px 0px', // Load 100px before viewport
+            },
+        );
+        return observer;
+    }
 
-            lazyImages.forEach(lazyImage => {
-                lazyImageObserver.observe(lazyImage);
+    function init(root) {
+        const scope = root && root.querySelectorAll ? root : document;
+        const lazyImages = scope.querySelectorAll('img.lazyload');
+        if (!lazyImages.length) return;
+
+        const obs = ensureObserver();
+        if (obs) {
+            lazyImages.forEach((img) => {
+                if (!img || !img.dataset || !img.dataset.src) return;
+                if (img.dataset.lazyObserved === '1') return;
+                img.dataset.lazyObserved = '1';
+                try { obs.observe(img); } catch { /* ignore */ }
             });
-        } else {
-            // Fallback
-            lazyImages.forEach(lazyImage => {
-                 if (lazyImage.dataset.src) {
-                    lazyImage.src = lazyImage.dataset.src;
-                    lazyImage.classList.add('loaded');
-                    lazyImage.classList.remove('lazyload');
-                }
-            });
+            return;
         }
+
+        // Fallback: immediate load
+        lazyImages.forEach((img) => loadImage(img));
     }
 
     return { init: init };
@@ -3822,7 +3841,7 @@ const RecentlyViewed = (function() {
 
         container.classList.remove('is-empty');
         if (clearBtn) clearBtn.disabled = false;
-        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) LazyLoad.init();
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) LazyLoad.init(grid);
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) Favorites.syncButtons(grid);
         if (typeof Compare !== 'undefined' && Compare.syncButtons) Compare.syncButtons(grid);
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init(grid);
@@ -4176,13 +4195,24 @@ const PDP = (function() {
         if (specsList && specsSection) {
             if (product.specs && product.specs.length > 0) {
                 specsList.innerHTML = '';
-                product.specs.forEach(spec => {
+                product.specs.forEach((spec) => {
+                    const labelText = String(spec?.label || '').trim();
+                    const valueText = String(spec?.value || '').trim();
+                    if (!labelText && !valueText) return;
+
                     const specItem = document.createElement('li');
                     specItem.classList.add('product-specs__item');
-                    specItem.innerHTML = `
-                        <span class="product-specs__label">${spec.label}:</span>
-                        <span class="product-specs__value">${spec.value}</span>
-                    `;
+
+                    const labelEl = document.createElement('span');
+                    labelEl.className = 'product-specs__label';
+                    labelEl.textContent = labelText ? `${labelText}:` : '参数:';
+
+                    const valueEl = document.createElement('span');
+                    valueEl.className = 'product-specs__value';
+                    valueEl.textContent = valueText || '-';
+
+                    specItem.appendChild(labelEl);
+                    specItem.appendChild(valueEl);
                     specsList.appendChild(specItem);
                 });
                 specsSection.style.display = 'block';
@@ -4199,19 +4229,76 @@ const PDP = (function() {
 
         // Update Description (Handle missing descriptionContainer gracefully)
          if (descriptionContainer) {
-             if (product.description) {
-                 const descHeader = descriptionContainer.querySelector('h4');
-                 descriptionContainer.querySelectorAll('p').forEach(p => p.remove());
-                 if (descHeader) {
-                    descHeader.insertAdjacentHTML('afterend', product.description);
-                 } else {
-                     descriptionContainer.innerHTML = `<h4>商品描述</h4>${product.description}`;
-                 }
-                 descriptionContainer.style.display = 'block';
-             } else {
-                 descriptionContainer.style.display = 'none';
-             }
-         } else {
+              if (product.description) {
+                  const sanitizeAndAppend = (host, html) => {
+                      if (!host) return;
+
+                      const allowedTags = new Set(['P', 'BR', 'STRONG', 'EM', 'B', 'I', 'UL', 'OL', 'LI', 'A', 'CODE']);
+                      const isSafeHref = (href) => {
+                          const raw = String(href || '').trim();
+                          if (!raw) return false;
+                          if (raw.startsWith('#') || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../')) return true;
+                          try {
+                              const u = new URL(raw, window.location.href);
+                              return u.protocol === 'https:' || u.protocol === 'http:';
+                          } catch {
+                              return false;
+                          }
+                      };
+
+                      const walk = (node, parent) => {
+                          if (!node || !parent) return;
+                          const type = node.nodeType;
+                          if (type === 3) { // TEXT_NODE
+                              parent.appendChild(document.createTextNode(node.textContent || ''));
+                              return;
+                          }
+                          if (type !== 1) return; // ELEMENT_NODE only
+
+                          const tag = String(node.tagName || '').toUpperCase();
+                          if (!allowedTags.has(tag)) {
+                              node.childNodes?.forEach?.((child) => walk(child, parent));
+                              return;
+                          }
+
+                          const el = document.createElement(tag.toLowerCase());
+                          if (tag === 'A') {
+                              const href = node.getAttribute?.('href');
+                              if (isSafeHref(href)) {
+                                  el.setAttribute('href', href);
+                                  const target = String(node.getAttribute?.('target') || '').trim();
+                                  if (target) el.setAttribute('target', target);
+                                  if (target.toLowerCase() === '_blank') el.setAttribute('rel', 'noopener noreferrer');
+                              }
+                          }
+                          // Allow styling hooks for static content without allowing arbitrary attrs
+                          if (tag !== 'A') {
+                              const className = String(node.getAttribute?.('class') || '').trim();
+                              if (className) el.setAttribute('class', className);
+                          }
+
+                          node.childNodes?.forEach?.((child) => walk(child, el));
+                          parent.appendChild(el);
+                      };
+
+                      const template = document.createElement('template');
+                      template.innerHTML = String(html ?? '');
+                      const frag = document.createDocumentFragment();
+                      template.content.childNodes.forEach((child) => walk(child, frag));
+                      host.appendChild(frag);
+                  };
+
+                  // Reset content while keeping a stable header
+                  descriptionContainer.textContent = '';
+                  const header = document.createElement('h4');
+                  header.textContent = '商品描述';
+                  descriptionContainer.appendChild(header);
+                  sanitizeAndAppend(descriptionContainer, product.description);
+                  descriptionContainer.style.display = 'block';
+              } else {
+                  descriptionContainer.style.display = 'none';
+              }
+          } else {
               console.warn("PDP Warning: Description container not found.");
          }
         return true;
@@ -6067,7 +6154,7 @@ const ProductListing = (function(){
             productGrid.innerHTML = productsToRender.map((product) => createProductCardHTML(product)).join('');
         }
         productGrid.setAttribute('aria-busy', 'false');
-        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(productGrid); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(productGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(productGrid); }
         if (typeof PriceAlerts !== 'undefined' && PriceAlerts.syncButtons) { PriceAlerts.syncButtons(productGrid); }
@@ -6234,7 +6321,7 @@ const Homepage = (function() {
         featuredGrid.innerHTML = featuredProducts.map((product) => createCardHTML(product)).join('');
 
         // Re-initialize lazy/animations (Keep existing)
-        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(featuredGrid); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(featuredGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(featuredGrid); }
         if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
@@ -6380,7 +6467,7 @@ const Homepage = (function() {
         }
         if (typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') return;
         curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
-        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(); }
+        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(curationGrid); }
         if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
         if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }
         if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {

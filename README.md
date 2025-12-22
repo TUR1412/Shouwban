@@ -37,7 +37,7 @@
 > 以下为“功能+审美”演示动图（示意），用于 README 快速理解交互节奏；真实效果以页面运行为准。
 
 <p align="center">
-  <img src="assets/demos/cinematic-menu.gif" width="880" alt="影院级菜单过渡（Motion 渐进增强）">
+  <img src="assets/demos/cinematic-menu.gif" width="880" alt="影院级菜单过渡（Motion-lite / WAAPI 渐进增强）">
 </p>
 
 <p align="center">
@@ -58,8 +58,8 @@
 flowchart LR
   Host[静态托管<br/>GitHub Pages / Nginx / Netlify] --> HTML[多页面 HTML]
   HTML --> CSS[styles/main.css + styles/extensions.css]
-  HTML --> Motion[scripts/motion.js]
-  Motion --> Core[scripts/core.js]
+  HTML --> MotionLite[scripts/motion.js<br/>Motion-lite (WAAPI)]
+  MotionLite --> Core[scripts/core.js]
   Core --> JS[scripts/main.js]
 
   subgraph Browser[浏览器运行时]
@@ -108,7 +108,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 ## 核心能力
 
 - 2025 Quark UI 体系：Bento Grid + 玻璃拟态 + 极光背景 + 影院级分层（兼顾 WCAG AA 可读性）
-- 影院级微交互（新增）：引入 Motion（Framer 系 motion library）作为渐进增强动效层，自动尊重 `prefers-reduced-motion`
+- 影院级微交互（新增）：基于浏览器原生 WAAPI 的 Motion-lite 动效层（`scripts/motion.js`），渐进增强且自动尊重 `prefers-reduced-motion`
 - 多页面电商流程：列表/分类/详情/购物车/结算/收藏/静态内容
 - 商品对比（新增）：最多对比 3 件商品，支持从列表/详情加入、对比页移除与加购（`compare.html`）
 - 订单中心（新增）：模拟下单 → 生成订单 → 订单成功页 → 订单中心查看、复制订单号、再次购买（`orders.html` / `order-success.html`）
@@ -150,7 +150,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 
 - `styles/main.css`：主样式
 - `styles/extensions.css`：扩展样式（主题/收藏/对比/订单/优惠码等，覆盖式加载，便于独立维护）
-- `scripts/motion.js`：动效库（Motion，Framer 系；渐进增强）
+- `scripts/motion.js`：Motion-lite 动效适配层（基于 WAAPI；渐进增强）
 - `scripts/core.js`：纯函数与通用工具（可 100% 覆盖率单测）
 - `scripts/main.js`：核心逻辑（数据 + 渲染 + 交互）
 - `account.html`：会员中心（积分/地址簿/降价提醒）
