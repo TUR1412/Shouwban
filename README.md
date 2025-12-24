@@ -22,10 +22,12 @@
 - [目录结构（核心）](#目录结构核心)
 - [本地预览（推荐）](#本地预览推荐)
 - [原子级自检（推荐）](#原子级自检推荐)
+- [极限构建（Vite）](#极限构建vite)
 - [缓存版本号（重要）](#缓存版本号重要)
 - [部署指南（详尽）](#部署指南详尽)
 - [二次开发（最常见）](#二次开发最常见)
 - [安全](#安全)
+- [未来进化蓝图](#未来进化蓝图)
 
 ## 预览
 
@@ -89,18 +91,18 @@ sequenceDiagram
 
 ## 快速开始
 
-> 本仓库为零依赖工程（无 `node_modules`），主要用于本地校验与版本号统一更新。
+> 本仓库保持 **运行时零依赖**。`npm run verify` / `npm run bump:version` 不要求安装依赖；若使用 Vite 的 `dev/build/preview`，请先执行 `npm install`。
 
 ### 1) 运行原子级自检
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run verify'
+pwsh -NoLogo -Command "npm run verify"
 ```
 
 ### 2) 启动本地静态预览
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
+pwsh -NoLogo -Command "python -m http.server 5173"
 ```
 
 访问：`http://localhost:5173/index.html`
@@ -158,6 +160,10 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 - `account.html`：会员中心（积分/地址簿/降价提醒）
 - `scripts/validate.mjs`：零依赖校验脚本
 - `scripts/bump-version.mjs`：统一 bump 版本号脚本（缓存穿透）
+- `vite.config.mjs`：Vite 构建配置（可选，用于生成 `dist/` 极限压缩产物）
+- `scripts/build-ultra.mjs`：一键极限构建（Vite build + 静态资源补齐 + 预压缩）
+- `scripts/compress-dist.mjs`：为 `dist/` 生成 brotli/gzip 预压缩文件
+- `scripts/postbuild-copy.mjs`：补齐运行时字符串引用的静态资源到 `dist/`
 - `sw.js`：Service Worker（PWA 缓存策略）
 - `assets/`：图片 / favicon / manifest 等静态资源
 - `assets/icons.svg`：本地 SVG Sprite 图标库（替代外部 Icon CDN）
@@ -169,7 +175,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 ### 方式 A：Python（无需额外依赖）
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
+pwsh -NoLogo -Command "python -m http.server 5173"
 ```
 
 然后访问：`http://localhost:5173/index.html`
@@ -177,7 +183,16 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 ### 方式 B：Node.js（可选）
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npx --yes http-server . -p 5173 -c-1'
+pwsh -NoLogo -Command "npx --yes http-server . -p 5173 -c-1"
+```
+
+### 方式 C：Vite（推荐用于二次开发/极限构建）
+
+> 仅在你需要使用 `npm run dev` / `npm run build` 时才需要安装 devDependencies。
+
+```powershell
+pwsh -NoLogo -Command "npm install"
+pwsh -NoLogo -Command "npm run dev"
 ```
 
 ## 原子级自检（推荐）
@@ -190,18 +205,51 @@ pwsh -NoLogo -NoProfile -Command 'npx --yes http-server . -p 5173 -c-1'
 - 是否注入主题脚本、是否包含扩展样式（保证主题/收藏/对比/订单等能力完整）
 - `robots.txt` / `sitemap.xml` / `sw.js` / `offline.html` 等关键文件是否齐全
 - `styles/main.css` 是否存在误拼接重复段（防止样式体积异常增长）
+- 构建产物目录（`dist/` 等）是否被忽略（避免构建后自检误报）
+- 运行时脚本是否使用 `type="module"`（确保可选 Vite 构建链路可用）
 
 执行：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/validate.mjs'
+pwsh -NoLogo -Command "node scripts/validate.mjs"
 ```
 
 或：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run verify'
+pwsh -NoLogo -Command "npm run verify"
 ```
+
+## 极限构建（Vite）
+
+当你希望获得更小的 **生产部署产物**（打包/压缩/预压缩一体化）时，可使用本仓库提供的可选构建链路：
+
+### 1) 安装 devDependencies（仅首次）
+
+```powershell
+pwsh -NoLogo -Command "npm install"
+```
+
+### 2) 一键极限构建（推荐）
+
+```powershell
+pwsh -NoLogo -Command "npm run build"
+```
+
+输出目录：`dist/`（已加入 `.gitignore`，不会被提交）。
+
+该命令会：
+- 运行 `vite build`（多页面打包 + terser 极限压缩）
+- 将运行时“字符串路径引用”的静态资源补齐到 `dist/`（如 `assets/icons.svg`、`assets/images/*`、`robots.txt`、`sitemap.xml`）
+- 生成 `.br` / `.gz` 预压缩文件（便于支持预压缩的静态托管直接启用）
+
+### 3) 预览构建产物
+
+```powershell
+pwsh -NoLogo -Command "npm run preview"
+```
+
+> 说明：源站直接静态部署（仓库根目录）仍是默认推荐方式（含 PWA/Service Worker）。`dist/` 更偏向“体积/传输效率优先”的构建产物，默认不保证与源站 SW 预缓存策略完全一致。
 
 ## 缓存版本号（重要）
 
@@ -214,13 +262,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 ### 一键 bump 版本号（推荐）
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251222.1'
+pwsh -NoLogo -Command "node scripts/bump-version.mjs 20251224.2"
 ```
 
 或：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251222.1'
+pwsh -NoLogo -Command "npm run bump:version -- 20251224.2"
 ```
 
 运行后建议执行：`npm run verify` 确认一致性。
@@ -283,3 +331,31 @@ server {
 ## 贡献
 
 贡献指南：见 `CONTRIBUTING.md`。
+
+## 未来进化蓝图
+
+> 以下为“可验证、可落地”的演进路线，默认保持 **运行时零第三方依赖** 与 **可直接静态部署** 的基因；如要接入真实业务，可在不破坏模板体验的前提下渐进升级。
+
+### Version 2026.1（模块化 Runtime 2.0）
+
+目标：在不引入框架的前提下，把 `scripts/main.js` 从“单文件多模块”推进到“可组合模块”，提升可维护性与可测试性。
+
+- 模块拆分：将 Favorites/Cart/Compare/Orders/Rewards 等拆分为独立文件（仍保持 IIFE/显式 init），并定义清晰的依赖顺序
+- 类型化（轻量）：为关键数据结构补齐 JSDoc 类型（订单/商品/地址/优惠），提升 IDE 体验与可读性
+- 测试扩容：为 `scripts/main.js` 的纯逻辑部分提取到 `scripts/core.js` 并补齐单测（继续保持 100% 覆盖率策略）
+
+### Version 2026.2（PWA 2.0：离线与数据层升级）
+
+目标：把“离线可用”从“页面级缓存”升级到“数据级离线”，让购物车/订单/收藏体验更接近真实商业应用。
+
+- 存储升级：对购物车/订单/降价提醒等高频数据引入 IndexedDB（保留 localStorage 作为兼容 fallback）
+- 离线策略升级：为静态资源与关键数据引入更精细的缓存分层（如 stale-while-revalidate + 数据回放）
+- 通知能力：可选接入 Web Push（降价提醒、订单状态提醒），并提供“纯前端模拟模式”保持模板可运行
+
+### Version 2026.3（Headless/真实业务接入）
+
+目标：提供“从模板到真实电商”的最小迁移路径，把本地模拟逻辑逐步替换为真实 API，同时保持 UI/交互资产可复用。
+
+- API 适配层：定义 `api/` 抽象（Products/Orders/Auth），支持切换到任意后端（Serverless/自建）
+- 安全与合规：CSP、安全响应头、鉴权流程、隐私合规与审计日志（按目标地区法规落地）
+- 端到端测试：引入 Playwright（仅开发期）覆盖核心交易链路：浏览 → 加购 → 结算 → 下单 → 订单中心

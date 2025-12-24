@@ -8,8 +8,18 @@
 - `sw.js` 的 `PRECACHE_URLS` 是否覆盖全部 HTML
 - 资源引用是否存在（含 `assets/icons.svg#...`）
 - 禁止引入外部 CDN（Google Fonts / Font Awesome / 通用 CDN 兜底规则）
+- 忽略构建产物目录（`dist/`、`build/`、`out/` 等），避免“构建后自检误报”
+- 运行时脚本必须使用 `type="module"`（确保 Vite 构建链路可用）
 
 ## 版本号脚本：`scripts/bump-version.mjs`
 - 用途：统一更新 HTML/CSS/JS 引用的 `?v=` 与 `sw.js` 的 `CACHE_NAME`
 - 格式：`YYYYMMDD.N`
 
+## 可选构建链路：Vite
+
+> 运行时依然保持零第三方依赖；Vite/terser 仅作为开发期工具，用于生成更小的 `dist/` 产物。
+
+- `vite.config.mjs`：多页面输入（14 个 HTML）+ terser 极限压缩配置
+- `scripts/build-ultra.mjs`：一键执行构建 + 产物补齐 + 预压缩（对应 `npm run build`）
+- `scripts/postbuild-copy.mjs`：补齐运行时以“字符串路径”引用的静态资源（`assets/icons.svg`、`assets/images/*` 等）
+- `scripts/compress-dist.mjs`：为 `dist/` 生成 `.br` / `.gz` 预压缩文件（便于静态托管启用预压缩分发）

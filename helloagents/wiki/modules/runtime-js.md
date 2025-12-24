@@ -11,6 +11,15 @@
 - `scripts/core.js`：可测试的纯函数集合（金额、数量、折扣等）
 - `scripts/motion.js`：Motion-lite（WAAPI）
 
+## 关键约定
+- HTML 中的运行时脚本统一使用 `type="module"`（确保可被 Vite 构建链路处理）
+- 重复逻辑统一收敛到 `Utils`（避免多处实现导致回归）
+
+## Utils（通用能力收敛）
+- `Utils.copyText()`：剪贴板复制（安全上下文优先 + legacy fallback）
+- `Utils.dispatch()` / `Utils.dispatchChanged()`：跨模块广播（统一 `scope:changed`）
+- `Utils.generateId(prefix)`：通用 ID 生成（优先 `crypto.randomUUID`）
+
 ## 图标约定
 - JS 内部生成按钮/卡片时，统一使用 `Icons.svgHtml('icon-xxx')`
 - 收藏态切换：`icon-heart` ↔ `icon-heart-filled`
@@ -18,4 +27,3 @@
 ## 命令面板
 - 快捷键：`Ctrl/Cmd + K` 或 `/`
 - 目标：减少鼠标操作成本，提供“商业软件级”的效率交互
-

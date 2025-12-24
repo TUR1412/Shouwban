@@ -3,11 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check scripts/motion.js && node --check scripts/core.js && node --check scripts/main.js && node --check sw.js",
+    "check": "node --check scripts/motion.js && node --check scripts/core.js && node --check scripts/main.js && node --check scripts/compress-dist.mjs && node --check scripts/postbuild-copy.mjs && node --check scripts/build-ultra.mjs && node --check vite.config.mjs && node --check sw.js",
     "validate": "node scripts/validate.mjs",
     "verify": "npm run check && npm run validate",
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=scripts/core.js --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
-    "bump:version": "node scripts/bump-version.mjs"
+    "bump:version": "node scripts/bump-version.mjs",
+    "dev": "vite",
+    "build": "node scripts/build-ultra.mjs",
+    "build:vite": "vite build",
+    "build:compress": "node scripts/compress-dist.mjs",
+    "preview": "vite preview --strictPort --port 5173"
+  },
+  "devDependencies": {
+    "terser": "^5.44.1",
+    "vite": "^7.3.0"
   }
 }

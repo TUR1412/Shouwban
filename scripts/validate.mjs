@@ -111,11 +111,20 @@ function assertAllHtmlHaveCacheBusting(htmlFiles) {
     if (!/scripts\/motion\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 Motion 动效库版本号: ${rel}`);
     }
+    if (!/type\s*=\s*["']module["'][^>]*scripts\/motion\.js\?v=/i.test(c)) {
+      errors.push(`[HTML] Motion 脚本需使用 type=\"module\"（确保可被 Vite 构建链路处理）: ${rel}`);
+    }
     if (!/scripts\/core\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 Core JS 版本号: ${rel}`);
     }
+    if (!/type\s*=\s*["']module["'][^>]*scripts\/core\.js\?v=/i.test(c)) {
+      errors.push(`[HTML] Core 脚本需使用 type=\"module\"（确保可被 Vite 构建链路处理）: ${rel}`);
+    }
     if (!/scripts\/main\.js\?v=/.test(c)) {
       errors.push(`[HTML] 缺少 JS 版本号: ${rel}`);
+    }
+    if (!/type\s*=\s*["']module["'][^>]*scripts\/main\.js\?v=/i.test(c)) {
+      errors.push(`[HTML] Main 脚本需使用 type=\"module\"（确保可被 Vite 构建链路处理）: ${rel}`);
     }
     const hasColorScheme = /\bname\s*=\s*["']color-scheme["'][^>]*\bcontent\s*=\s*["'][^"']*light[^"']*dark[^"']*["']/i.test(
       c,
@@ -478,7 +487,9 @@ function main() {
     process.exit(2);
   }
 
-  const allFiles = listFiles(workspaceRoot, { ignoreDirs: ['.git', 'node_modules'] });
+  const allFiles = listFiles(workspaceRoot, {
+    ignoreDirs: ['.git', 'node_modules', 'dist', 'build', 'out', '.cache', 'temp', 'tmp', 'logs'],
+  });
   const htmlFiles = allFiles.filter((p) => path.extname(p).toLowerCase() === '.html');
   const cssFiles = allFiles.filter((p) => path.extname(p).toLowerCase() === '.css');
 

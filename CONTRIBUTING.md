@@ -4,16 +4,16 @@
 
 ## 开发约定
 
-- **终端统一**：Windows 环境建议统一使用 `pwsh -NoLogo -NoProfile -Command '...'`
+- **终端统一**：Windows 环境建议统一使用 `pwsh -NoLogo -Command "..."`
 - **项目形态**：保持纯静态（HTML/CSS/JS），不引入重型框架与后端依赖
-- **避免长驻服务**：仓库脚本只提供 `validate` 等有限任务；本地预览建议手动启动静态服务器
+- **避免长驻服务（默认）**：本地预览可用 Python/http-server；如需使用 Vite（开发服务器/极限构建），再执行 `npm install`
 
 ## 本地预览
 
 推荐使用本地静态服务器，而不是双击打开 HTML：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
+pwsh -NoLogo -Command "python -m http.server 5173"
 ```
 
 访问：`http://localhost:5173/index.html`
@@ -23,7 +23,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 提交前建议先通过校验脚本：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/validate.mjs'
+pwsh -NoLogo -Command "node scripts/validate.mjs"
 ```
 
 该脚本会强制检查：HTML 引用版本号是否统一、`sw.js` 的缓存版本是否与 HTML 一致、以及关键文件/引用是否完整。
@@ -31,13 +31,13 @@ pwsh -NoLogo -NoProfile -Command 'node scripts/validate.mjs'
 如果改动涉及 JS/SW，推荐额外做语法检查：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node --check scripts/main.js; node --check sw.js'
+pwsh -NoLogo -Command "node --check scripts/main.js; node --check sw.js"
 ```
 
-也可以使用 `npm` 脚本（零依赖，无需安装依赖包）：
+也可以使用 `npm` 脚本（`verify`/`bump:version` 无需安装依赖包）：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run verify'
+pwsh -NoLogo -Command "npm run verify"
 ```
 
 ## 修改静态资源后的版本号（很重要）
@@ -51,13 +51,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 推荐使用一键脚本统一 bump：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251218.4'
+pwsh -NoLogo -Command "node scripts/bump-version.mjs 20251224.2"
 ```
 
 或：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run bump:version -- 20251218.4'
+pwsh -NoLogo -Command "npm run bump:version -- 20251224.2"
 ```
 
 ## 安全问题披露

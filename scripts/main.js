@@ -99,7 +99,72 @@ const Utils = {
         } catch {
             return false;
         }
-    }
+    },
+
+    dispatch: (type, detail) => {
+        const name = String(type || '').trim();
+        if (!name) return false;
+        try {
+            const event =
+                typeof detail === 'undefined'
+                    ? new CustomEvent(name)
+                    : new CustomEvent(name, { detail });
+            window.dispatchEvent(event);
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    dispatchChanged: (scope, detail) => {
+        const key = String(scope || '').trim();
+        if (!key) return false;
+        return Utils.dispatch(`${key}:changed`, detail);
+    },
+
+    generateId: (prefix) => {
+        try {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+        } catch {
+            // ignore
+        }
+
+        const p = String(prefix || '').trim();
+        const base = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
+        return p ? `${p}${base}` : base;
+    },
+
+    copyText: async (value) => {
+        const text = String(value || '');
+        if (!text) return false;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch {
+            // ignore and fallback
+        }
+
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', 'true');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            textarea.remove();
+            return Boolean(ok);
+        } catch {
+            return false;
+        }
+    },
 };
 
 // ==============================================
@@ -2208,14 +2273,6 @@ const Favorites = (function() {
         });
     }
 
-    function dispatchChanged() {
-        try {
-            window.dispatchEvent(new CustomEvent('favorites:changed'));
-        } catch {
-            // ignore
-        }
-    }
-
     function toggle(id) {
         if (!id) return false;
         const current = new Set(getIds());
@@ -2224,7 +2281,7 @@ const Favorites = (function() {
         else current.add(id);
         const next = setIds(Array.from(current));
         updateHeaderCount(next);
-        dispatchChanged();
+        Utils.dispatchChanged('favorites');
         return !has;
     }
 
@@ -2303,15 +2360,11 @@ const Compare = (function() {
         el.setAttribute('aria-label', `对比数量：${count}`);
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('compare:changed')); } catch { /* ignore */ }
-    }
-
     function setIds(ids, options = {}) {
         const clean = Array.from(new Set(Utils.normalizeStringArray(ids))).slice(0, maxItems);
         Utils.writeStorageJSON(storageKey, clean);
         updateHeaderCount(clean);
-        if (!options.silent) dispatchChanged();
+        if (!options.silent) Utils.dispatchChanged('compare');
         return clean;
     }
 
@@ -2435,14 +2488,10 @@ const Promotion = (function() {
         return { code, type, value, label };
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('promo:changed')); } catch { /* ignore */ }
-    }
-
     function set(promo) {
         if (!promo) {
             Utils.removeStorage(storageKey);
-            dispatchChanged();
+            Utils.dispatchChanged('promo');
             return null;
         }
 
@@ -2454,7 +2503,7 @@ const Promotion = (function() {
             appliedAt: new Date().toISOString(),
         };
         Utils.writeStorageJSON(storageKey, payload);
-        dispatchChanged();
+        Utils.dispatchChanged('promo');
         return get();
     }
 
@@ -2586,9 +2635,7 @@ const ShippingRegion = (function() {
     function set(value, options = {}) {
         const next = Pricing.getRegion(value).value;
         Utils.writeStorageJSON(storageKey, next);
-        if (!options.silent) {
-            try { window.dispatchEvent(new CustomEvent('shipping:changed')); } catch { /* ignore */ }
-        }
+        if (!options.silent) Utils.dispatchChanged('shipping');
         return next;
     }
 
@@ -2675,10 +2722,6 @@ const Orders = (function() {
         el.setAttribute('aria-label', `订单数量：${count}`);
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('orders:changed')); } catch { /* ignore */ }
-    }
-
     function getAll() {
         const raw = Utils.readStorageJSON(storageKey, []);
         if (!Array.isArray(raw)) return [];
@@ -2689,19 +2732,8 @@ const Orders = (function() {
         const safe = Array.isArray(list) ? list.slice(0, maxOrders) : [];
         Utils.writeStorageJSON(storageKey, safe);
         updateHeaderCount(safe);
-        dispatchChanged();
+        Utils.dispatchChanged('orders');
         return safe;
-    }
-
-    function generateId() {
-        try {
-            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-                return window.crypto.randomUUID();
-            }
-        } catch {
-            // ignore
-        }
-        return `ORD-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
     }
 
     function normalizeAddress(address) {
@@ -2752,7 +2784,7 @@ const Orders = (function() {
         const total = Pricing.roundMoney(Math.max(0, subtotal - discount - rewardsDiscount) + shipping);
 
         const order = {
-            id: generateId(),
+            id: Utils.generateId('ORD-'),
             createdAt: new Date().toISOString(),
             status: 'processing',
             paymentMethod: String(paymentMethod || '').trim(),
@@ -2786,7 +2818,7 @@ const Orders = (function() {
     function clearAll() {
         Utils.removeStorage(storageKey);
         updateHeaderCount(0);
-        dispatchChanged();
+        Utils.dispatchChanged('orders');
     }
 
     function init() {
@@ -2821,15 +2853,11 @@ const Rewards = (function() {
         return { points };
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('rewards:changed')); } catch { /* ignore */ }
-    }
-
     function saveState(state, options = {}) {
         const next = { points: normalizePoints(state?.points) };
         Utils.writeStorageJSON(storageKey, next);
         updateHeaderBadge(next.points);
-        if (!options.silent) dispatchChanged();
+        if (!options.silent) Utils.dispatchChanged('rewards');
         return next;
     }
 
@@ -2933,18 +2961,9 @@ const AddressBook = (function() {
     const storageKey = 'addressBook';
     const maxItems = 24;
 
-    function generateId() {
-        try {
-            if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
-        } catch {
-            // ignore
-        }
-        return `ADDR-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
-    }
-
     function normalizeEntry(raw) {
         const obj = raw && typeof raw === 'object' ? raw : {};
-        const id = String(obj.id || '').trim() || generateId();
+        const id = String(obj.id || '').trim() || Utils.generateId('ADDR-');
         const label = String(obj.label || '').trim().slice(0, 30);
         const name = String(obj.name || '').trim().slice(0, 40);
         const phone = String(obj.phone || '').trim().slice(0, 30);
@@ -2968,10 +2987,6 @@ const AddressBook = (function() {
         return normalized.slice(0, maxItems);
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('addressbook:changed')); } catch { /* ignore */ }
-    }
-
     function saveAll(list, options = {}) {
         const safe = (Array.isArray(list) ? list : []).map(normalizeEntry).slice(0, maxItems);
         // 保证最多一个默认地址
@@ -2985,7 +3000,7 @@ const AddressBook = (function() {
             return { ...x, isDefault: false };
         });
         Utils.writeStorageJSON(storageKey, fixed);
-        if (!options.silent) dispatchChanged();
+        if (!options.silent) Utils.dispatchChanged('addressbook');
         return fixed;
     }
 
@@ -3134,14 +3149,10 @@ const PriceAlerts = (function() {
         return list.map(normalizeAlert).filter(Boolean);
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('pricealerts:changed')); } catch { /* ignore */ }
-    }
-
     function saveAll(list, options = {}) {
         const safe = (Array.isArray(list) ? list : []).map(normalizeAlert).filter(Boolean);
         Utils.writeStorageJSON(storageKey, safe);
-        if (!options.silent) dispatchChanged();
+        if (!options.silent) Utils.dispatchChanged('pricealerts');
         return safe;
     }
 
@@ -3835,20 +3846,12 @@ const RecentlyViewed = (function() {
         const ids = getIds();
         const next = [key, ...ids.filter((x) => x !== key)].slice(0, maxItems);
         saveIds(next);
-        try {
-            window.dispatchEvent(new CustomEvent('recent:changed'));
-        } catch {
-            // ignore
-        }
+        Utils.dispatchChanged('recent');
     }
 
     function clearAll() {
         saveIds([]);
-        try {
-            window.dispatchEvent(new CustomEvent('recent:changed'));
-        } catch {
-            // ignore
-        }
+        Utils.dispatchChanged('recent');
     }
 
     function render() {
@@ -4012,38 +4015,6 @@ const PDP = (function() {
         return alertBtn;
     }
 
-    async function copyToClipboard(text) {
-        const value = String(text || '');
-        if (!value) return false;
-
-        // Prefer modern clipboard API (requires secure context)
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
-                return true;
-            }
-        } catch {
-            // ignore and fallback
-        }
-
-        // Fallback: temporary textarea + execCommand (legacy)
-        try {
-            const textarea = document.createElement('textarea');
-            textarea.value = value;
-            textarea.setAttribute('readonly', 'true');
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            textarea.style.top = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            const ok = document.execCommand && document.execCommand('copy');
-            textarea.remove();
-            return Boolean(ok);
-        } catch {
-            return false;
-        }
-    }
-
     function initShareButton() {
         const btn = ensureShareButton();
         if (!btn) return;
@@ -4052,7 +4023,7 @@ const PDP = (function() {
                 try { return new URL(window.location.href).toString(); } catch { return window.location.href; }
             })();
 
-            const ok = await copyToClipboard(url);
+            const ok = await Utils.copyText(url);
             if (typeof Toast !== 'undefined' && Toast.show) {
                 Toast.show(ok ? '链接已复制' : '复制失败，请手动复制地址栏链接', ok ? 'success' : 'info', 2200);
             }
@@ -4529,15 +4500,11 @@ const Cart = (function() {
         return normalized;
     }
 
-    function dispatchChanged() {
-        try { window.dispatchEvent(new CustomEvent('cart:changed')); } catch { /* ignore */ }
-    }
-
     function saveCart(cart) {
         const normalized = normalizeCartItems(cart);
         Utils.writeStorageJSON('cart', normalized);
         _updateHeaderCartCount(normalized); // Use internal function
-        dispatchChanged();
+        Utils.dispatchChanged('cart');
     }
     
     // --- Rendering Functions --- (Keep existing renderCartItem, renderCart, updateCartSummary)
@@ -6948,33 +6915,6 @@ const OrdersPage = (function() {
         });
     }
 
-    async function copyText(value) {
-        const text = String(value || '');
-        if (!text) return false;
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(text);
-                return true;
-            }
-        } catch {
-            // ignore
-        }
-        try {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.setAttribute('readonly', 'true');
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.select();
-            const ok = document.execCommand && document.execCommand('copy');
-            textarea.remove();
-            return Boolean(ok);
-        } catch {
-            return false;
-        }
-    }
-
     function rebuy(orderId) {
         const order = Orders?.getById?.(orderId);
         if (!order) return;
@@ -7021,7 +6961,7 @@ const OrdersPage = (function() {
 
             const copyBtn = event.target?.closest?.('.order-copy[data-order-id]');
             if (copyBtn) {
-                const ok = await copyText(copyBtn.dataset.orderId);
+                const ok = await Utils.copyText(copyBtn.dataset.orderId);
                 Toast?.show?.(ok ? '订单号已复制' : '复制失败', ok ? 'success' : 'info', 1800);
                 return;
             }
@@ -7507,7 +7447,7 @@ const CrossTabSync = (function() {
                     Favorites.updateHeaderCount?.(ids);
                     Favorites.syncButtons?.(document);
                 }
-                try { window.dispatchEvent(new CustomEvent('favorites:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('favorites');
                 return;
             }
 
@@ -7525,17 +7465,17 @@ const CrossTabSync = (function() {
                     Compare.updateHeaderCount?.(ids);
                     Compare.syncButtons?.(document);
                 }
-                try { window.dispatchEvent(new CustomEvent('compare:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('compare');
                 return;
             }
 
             if (key === 'promotion') {
-                try { window.dispatchEvent(new CustomEvent('promo:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('promo');
                 return;
             }
 
             if (key === 'shippingRegion') {
-                try { window.dispatchEvent(new CustomEvent('shipping:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('shipping');
                 return;
             }
 
@@ -7543,7 +7483,7 @@ const CrossTabSync = (function() {
                 if (typeof Orders !== 'undefined') {
                     Orders.updateHeaderCount?.(Orders.getAll?.() || []);
                 }
-                try { window.dispatchEvent(new CustomEvent('orders:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('orders');
                 return;
             }
 
@@ -7551,19 +7491,19 @@ const CrossTabSync = (function() {
                 if (typeof Rewards !== 'undefined') {
                     Rewards.updateHeaderBadge?.(Rewards.getPoints?.() || 0);
                 }
-                try { window.dispatchEvent(new CustomEvent('rewards:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('rewards');
                 return;
             }
 
             if (key === 'addressBook') {
-                try { window.dispatchEvent(new CustomEvent('addressbook:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('addressbook');
                 Checkout.refresh?.();
                 return;
             }
 
             if (key === 'priceAlerts') {
                 PriceAlerts?.checkAndNotify?.();
-                try { window.dispatchEvent(new CustomEvent('pricealerts:changed')); } catch { /* ignore */ }
+                Utils.dispatchChanged('pricealerts');
                 return;
             }
 
@@ -7620,35 +7560,6 @@ const CommandPalette = (function() {
         const url = String(href || '').trim();
         if (!url) return;
         window.location.href = url;
-    }
-
-    async function safeCopy(text) {
-        const value = String(text ?? '');
-        if (!value) return false;
-
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
-                return true;
-            }
-        } catch {
-            // ignore
-        }
-
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = value;
-            ta.setAttribute('readonly', '');
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            const ok = document.execCommand && document.execCommand('copy');
-            ta.remove();
-            return Boolean(ok);
-        } catch {
-            return false;
-        }
     }
 
     function getBaseCommands() {
@@ -7715,7 +7626,7 @@ const CommandPalette = (function() {
                 desc: '复制 URL 到剪贴板',
                 icon: 'icon-link',
                 run: async () => {
-                    const ok = await safeCopy(window.location.href);
+                    const ok = await Utils.copyText(window.location.href);
                     Toast?.show?.(ok ? '链接已复制' : '复制失败', ok ? 'success' : 'error', 1600);
                 },
             },

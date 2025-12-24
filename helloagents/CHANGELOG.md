@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [20251224.2] - 2025-12-24
+
+### 新增
+- Vite 极限构建链路（devDependencies）：支持多页面打包 + terser 压缩 + brotli/gzip 预压缩（输出到 `dist/`）
+- postbuild 静态文件补齐：确保 `dist/` 具备运行时所需的 `assets/icons.svg` 与 `assets/images/*`（避免字符串路径引用导致资源缺失）
+
+### 变更
+- Runtime 去重抽象：剪贴板复制/事件分发/ID 生成统一收敛到 `Utils`
+- HTML 运行时脚本统一升级为 `type="module"`（保证构建链路自洽）
+- 校验脚本忽略构建产物目录，并强制 module 脚本约束，防止回归
+
 ## [20251224.1] - 2025-12-24
 
 ### 新增
@@ -18,4 +29,3 @@
 
 ### 修复
 - `scripts/main.js` 中遗留的 Font Awesome 图标注入与切换逻辑，统一迁移到 SVG Sprite
-

@@ -20,23 +20,23 @@
 推荐的一键版本号更新方式：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'node scripts/bump-version.mjs 20251218.4'
+pwsh -NoLogo -Command "node scripts/bump-version.mjs 20251224.2"
 ```
 
 更新后建议执行：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run verify'
+pwsh -NoLogo -Command "npm run verify"
 ```
 
 ## 2) “双击打开 HTML 一切正常，但跳转/资源/搜索不工作”
 
-这通常是 `file://` 场景的浏览器安全限制导致。
+这通常是 `file://` 场景的浏览器安全限制导致（尤其在运行时脚本为 `type="module"` 时，现代浏览器会更严格）。
 
 解决方式：用本地静态服务器预览（推荐）。
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
+pwsh -NoLogo -Command "python -m http.server 5173"
 ```
 
 访问：`http://localhost:5173/index.html`
@@ -61,7 +61,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 请先在本地执行：
 
 ```powershell
-pwsh -NoLogo -NoProfile -Command 'npm run verify'
+pwsh -NoLogo -Command "npm run verify"
 ```
 
 然后根据报错定位到具体文件与缺失引用。

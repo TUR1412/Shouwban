@@ -12,4 +12,4 @@
 
 ## 注意事项
 - 更新核心资源后请 bump 版本号（建议 `npm run bump:version -- YYYYMMDD.N`）
-
+- `dist/`（Vite 极限构建产物）默认不保证与源站 `sw.js` 预缓存策略一致；如需 PWA 离线能力，优先采用“仓库根目录直接静态部署”模式
