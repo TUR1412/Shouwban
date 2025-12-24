@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [20251224.3] - 2025-12-24
+
+### 新增
+- VirtualScroll：零依赖窗口级虚拟滚动引擎 + 商品列表压测模式（`products.html?stress=100000`）
+- Diagnostics：控制台“系统健康全景图”（FPS/LongTask/事件循环延迟/内存趋势）
+- 二进制协议编解码（`scripts/core.js`）：为高频键提供 base64+二进制存储能力（SB_A1 / SB_C1）
+
+### 变更
+- `Utils.readStorageJSON()` / `Utils.writeStorageJSON()`：热路径键自动使用二进制前缀协议（向后兼容 JSON）
+- `Cart.normalizeCartItems()`：允许仅存储 `{id, quantity}`，运行时自动从 `SharedData` 补齐价格/名称/图片
+- `SharedData.getProductById()`：支持压测 ID（`__S` 后缀）映射回基础商品
+
+### 安全
+- 说明：不提供“运行态自脱壳/反逆向”类机制；敏感数据请在服务端保密并最小化前端暴露面
+
 ## [20251224.2] - 2025-12-24
 
 ### 新增

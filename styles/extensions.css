@@ -123,6 +123,26 @@ html {
   }
 }
 
+/* ==============================================
+   Virtual Scroll (Zero Dependency)
+   - 超长列表 / 性能压测模式的 DOM Surface 控制
+   ============================================== */
+.is-virtualized {
+  contain: layout paint;
+}
+
+.is-virtualized .vscroll__layer {
+  contain: layout paint;
+}
+
+.is-virtualized .vscroll__item {
+  contain: content;
+}
+
+.is-virtualized .vscroll__item > .product-card {
+  height: 100%;
+}
+
 /* Header: favorites count badge aligned with cart count */
 .header__fav-count {
   position: absolute;

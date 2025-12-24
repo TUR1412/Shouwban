@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20251224.2
+   - Cache version follows asset query: 20251224.3
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20251224.2';
+const CACHE_NAME = 'shouwban-20251224.3';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -23,11 +23,11 @@ const PRECACHE_URLS = [
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20251224.2',
-  'styles/extensions.css?v=20251224.2',
-  'scripts/motion.js?v=20251224.2',
-  'scripts/core.js?v=20251224.2',
-  'scripts/main.js?v=20251224.2',
+  'styles/main.css?v=20251224.3',
+  'styles/extensions.css?v=20251224.3',
+  'scripts/motion.js?v=20251224.3',
+  'scripts/core.js?v=20251224.3',
+  'scripts/main.js?v=20251224.3',
 
   'assets/favicon.svg',
   'assets/icons.svg',

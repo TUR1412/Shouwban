@@ -14,6 +14,10 @@ describe('ShouwbanCore', () => {
     assert.equal(typeof core.roundMoney, 'function');
     assert.equal(typeof core.formatCny, 'function');
     assert.equal(typeof core.normalizeStringArray, 'function');
+    assert.equal(typeof core.encodeStringArrayBase64, 'function');
+    assert.equal(typeof core.decodeStringArrayBase64, 'function');
+    assert.equal(typeof core.encodeCartLinesBase64, 'function');
+    assert.equal(typeof core.decodeCartLinesBase64, 'function');
   });
 
   it('clampInt clamps and falls back correctly', () => {
@@ -121,5 +125,105 @@ describe('ShouwbanCore', () => {
     assert.equal(calculatePromotionDiscount(100, { value: 50 }), 0);
 
     assert.equal(calculatePromotionDiscount(12.345, { type: 'percent', value: 10 }), 1.24);
+  });
+
+  it('binary codec: string array base64 roundtrip + normalization', () => {
+    const { encodeStringArrayBase64, decodeStringArrayBase64 } = globalThis.ShouwbanCore;
+
+    const base64 = encodeStringArrayBase64([' a ', '', null, 'b', 1]);
+    assert.equal(typeof base64, 'string');
+    assert.deepEqual(decodeStringArrayBase64(base64), ['a', 'b', '1']);
+
+    // Multi-byte varint path: array length >= 128
+    const big = Array.from({ length: 130 }, (_, i) => `p${i}`);
+    const bigB64 = encodeStringArrayBase64(big);
+    const bigDecoded = decodeStringArrayBase64(bigB64);
+    assert.equal(bigDecoded.length, 130);
+    assert.equal(bigDecoded[0], 'p0');
+    assert.equal(bigDecoded[129], 'p129');
+
+    assert.deepEqual(decodeStringArrayBase64(''), []);
+    assert.deepEqual(decodeStringArrayBase64('   '), []);
+    assert.deepEqual(decodeStringArrayBase64(undefined), []);
+  });
+
+  it('binary codec: cart lines base64 roundtrip + clamping', () => {
+    const { encodeCartLinesBase64, decodeCartLinesBase64 } = globalThis.ShouwbanCore;
+
+    const base64 = encodeCartLinesBase64([
+      { id: 'p1', quantity: 2 },
+      { quantity: 3 }, // missing id: drop
+      { id: '  ', quantity: 9 }, // drop empty id
+      { id: 'p2', quantity: '100' }, // clamp to 99
+      'bad',
+      null,
+    ]);
+
+    const decoded = decodeCartLinesBase64(base64);
+    assert.deepEqual(decoded, [
+      { id: 'p1', quantity: 2 },
+      { id: 'p2', quantity: 99 },
+    ]);
+
+    // Non-array input should encode to an empty payload.
+    const emptyB64 = encodeCartLinesBase64(null);
+    assert.deepEqual(decodeCartLinesBase64(emptyB64), []);
+    assert.deepEqual(decodeCartLinesBase64(''), []);
+  });
+
+  it('binary codec: btoa/atob fallback path works', () => {
+    const { encodeStringArrayBase64, decodeStringArrayBase64 } = globalThis.ShouwbanCore;
+
+    const originalBuffer = globalThis.Buffer;
+    const originalBtoa = globalThis.btoa;
+    const originalAtob = globalThis.atob;
+
+    try {
+      globalThis.btoa = (binary) => originalBuffer.from(binary, 'binary').toString('base64');
+      globalThis.atob = (base64) => originalBuffer.from(base64, 'base64').toString('binary');
+
+      globalThis.Buffer = undefined;
+      const base64 = encodeStringArrayBase64(['x']);
+      assert.deepEqual(decodeStringArrayBase64(base64), ['x']);
+
+      // hasNodeBuffer(): first operand true, second operand false
+      globalThis.Buffer = {};
+      const base64b = encodeStringArrayBase64(['y']);
+      assert.deepEqual(decodeStringArrayBase64(base64b), ['y']);
+    } finally {
+      globalThis.Buffer = originalBuffer;
+      globalThis.btoa = originalBtoa;
+      globalThis.atob = originalAtob;
+    }
+  });
+
+  it('binary codec: fails safely on corrupted payloads and missing base64 impl', () => {
+    const { decodeStringArrayBase64, decodeCartLinesBase64, encodeStringArrayBase64 } = globalThis.ShouwbanCore;
+
+    // Corrupted bytes: varint truncated
+    assert.deepEqual(decodeStringArrayBase64(Buffer.from([0x80]).toString('base64')), []);
+    // Corrupted bytes: varint too long (5 continuation bytes)
+    assert.deepEqual(decodeStringArrayBase64(Buffer.from([0x80, 0x80, 0x80, 0x80, 0x80]).toString('base64')), []);
+    // Corrupted bytes: string truncated (count=1, len=5 but only 1 byte)
+    assert.deepEqual(decodeStringArrayBase64(Buffer.from([0x01, 0x05, 0x41]).toString('base64')), []);
+    // Corrupted bytes: cart truncated (count=1, id missing)
+    assert.deepEqual(decodeCartLinesBase64(Buffer.from([0x01, 0x03]).toString('base64')), []);
+
+    const originalBuffer = globalThis.Buffer;
+    const originalBtoa = globalThis.btoa;
+    const originalAtob = globalThis.atob;
+
+    try {
+      globalThis.Buffer = undefined;
+      globalThis.btoa = undefined;
+      globalThis.atob = undefined;
+
+      assert.throws(() => encodeStringArrayBase64(['x']));
+      assert.deepEqual(decodeStringArrayBase64('!!'), []);
+    } finally {
+      globalThis.Buffer = originalBuffer;
+      globalThis.btoa = originalBtoa;
+      globalThis.atob = originalAtob;
+    }
   });
 });

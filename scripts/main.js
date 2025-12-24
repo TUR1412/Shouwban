@@ -67,15 +67,72 @@ const Utils = {
 
     // localStorage helpers (never throw)
     readStorageJSON: (key, fallback) => {
+        const storageKey = String(key || '');
+        if (!storageKey) return fallback;
+
         try {
-            return Utils.safeJsonParse(localStorage.getItem(String(key || '')), fallback);
+            const raw = localStorage.getItem(storageKey);
+            if (typeof raw !== 'string' || raw.length === 0) return fallback;
+
+            // Protocol-aware storage (backward compatible JSON):
+            // - SB_A1: string[] (favorites / compare / recentlyViewed)
+            // - SB_C1: cart lines ({id, quantity}[])
+            if (raw.startsWith('SB_A1:')) {
+                const payload = raw.slice('SB_A1:'.length);
+                const decoder = globalThis.ShouwbanCore?.decodeStringArrayBase64;
+                if (typeof decoder === 'function') {
+                    const decoded = decoder(payload);
+                    if (Array.isArray(decoded)) return decoded;
+                }
+            }
+
+            if (raw.startsWith('SB_C1:')) {
+                const payload = raw.slice('SB_C1:'.length);
+                const decoder = globalThis.ShouwbanCore?.decodeCartLinesBase64;
+                if (typeof decoder === 'function') {
+                    const decoded = decoder(payload);
+                    if (Array.isArray(decoded)) return decoded;
+                }
+            }
+
+            return Utils.safeJsonParse(raw, fallback);
         } catch {
             return fallback;
         }
     },
     writeStorageJSON: (key, value) => {
+        const storageKey = String(key || '');
+        if (!storageKey) return false;
+
         try {
-            localStorage.setItem(String(key || ''), JSON.stringify(value));
+            // Prefer binary codecs for hot-path keys to reduce storage churn.
+            if (storageKey === 'favorites' || storageKey === 'compare' || storageKey === 'recentlyViewed') {
+                const ids = Utils.normalizeStringArray(value);
+                const encoder = globalThis.ShouwbanCore?.encodeStringArrayBase64;
+                if (typeof encoder === 'function') {
+                    const payload = encoder(ids);
+                    if (payload) {
+                        localStorage.setItem(storageKey, `SB_A1:${payload}`);
+                        return true;
+                    }
+                }
+            }
+
+            if (storageKey === 'cart') {
+                const lines = Array.isArray(value)
+                    ? value.map((item) => ({ id: item?.id, quantity: item?.quantity }))
+                    : [];
+                const encoder = globalThis.ShouwbanCore?.encodeCartLinesBase64;
+                if (typeof encoder === 'function') {
+                    const payload = encoder(lines);
+                    if (payload) {
+                        localStorage.setItem(storageKey, `SB_C1:${payload}`);
+                        return true;
+                    }
+                }
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(value));
             return true;
         } catch {
             return false;
@@ -208,6 +265,213 @@ const Icons = {
         use.setAttribute('xlink:href', href);
     },
 };
+
+// ==============================================
+// Virtual Scroll Engine (Zero Dependency)
+// - Window-based virtualization for ultra large lists
+// - Keeps DOM surface small, scroll updates in rAF
+// - Designed for 100k+ items (fixed row height/stride)
+// ==============================================
+const VirtualScroll = (function() {
+    const MAX_SCROLL_PX = 30000000; // ~30M px: conservative cross-browser safety
+
+    function clampInt(value, min, max) {
+        const n = Number.parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(n)) return min;
+        return Math.min(max, Math.max(min, n));
+    }
+
+    function toNumber(value, fallback) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function getScrollY() {
+        return Number(window.scrollY || window.pageYOffset || 0);
+    }
+
+    function mountList({
+        container,
+        itemCount,
+        getItem,
+        renderItem,
+        itemHeight = 248,
+        gap = 16,
+        overscan = 8,
+        maxPoolSize = 180,
+        onItemRendered,
+    } = {}) {
+        const host = container && container.nodeType === 1 ? container : null;
+        if (!host) return null;
+        const count = clampInt(itemCount, 0, Number.MAX_SAFE_INTEGER);
+        if (count <= 0) {
+            host.innerHTML = '';
+            host.classList.remove('is-virtualized');
+            return null;
+        }
+
+        const getter = typeof getItem === 'function' ? getItem : () => null;
+        const renderer = typeof renderItem === 'function' ? renderItem : () => {};
+        const cbRendered = typeof onItemRendered === 'function' ? onItemRendered : null;
+
+        const rowH = Math.max(80, toNumber(itemHeight, 248));
+        const rowGap = Math.max(0, toNumber(gap, 16));
+        const stride = rowH + rowGap;
+        const extra = clampInt(overscan, 0, 40);
+        const poolCap = clampInt(maxPoolSize, 20, 500);
+
+        // Auto-destroy previous mount (if any)
+        try {
+            if (typeof host.__vscrollDestroy === 'function') host.__vscrollDestroy();
+        } catch {
+            // ignore
+        }
+
+        host.classList.add('is-virtualized');
+        host.dataset.virtual = '1';
+        host.setAttribute('aria-live', 'polite');
+        host.setAttribute('role', 'list');
+        host.style.position = 'relative';
+        host.style.display = 'block';
+
+        host.innerHTML = '';
+
+        const spacer = document.createElement('div');
+        spacer.className = 'vscroll__spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        host.appendChild(spacer);
+
+        const layer = document.createElement('div');
+        layer.className = 'vscroll__layer';
+        layer.style.position = 'absolute';
+        layer.style.left = '0';
+        layer.style.top = '0';
+        layer.style.right = '0';
+        layer.style.willChange = 'transform';
+        host.appendChild(layer);
+
+        let destroyed = false;
+        let rafId = 0;
+        let pool = [];
+
+        const totalPx = count * stride;
+        const scaledTotalPx = Math.min(MAX_SCROLL_PX, totalPx);
+        const scale = totalPx > 0 ? totalPx / scaledTotalPx : 1;
+        spacer.style.height = `${scaledTotalPx}px`;
+
+        function ensurePoolSize() {
+            const viewportH = Math.max(200, Number(window.innerHeight) || 800);
+            const visibleRows = Math.ceil(viewportH / stride) + 1;
+            const target = Math.min(poolCap, Math.max(20, visibleRows + extra * 2));
+            if (pool.length === target) return;
+
+            if (pool.length > target) {
+                const remove = pool.splice(target);
+                remove.forEach((el) => el.remove());
+                return;
+            }
+
+            while (pool.length < target) {
+                const row = document.createElement('div');
+                row.className = 'vscroll__item';
+                row.setAttribute('role', 'listitem');
+                row.style.position = 'absolute';
+                row.style.left = '0';
+                row.style.right = '0';
+                row.style.height = `${rowH}px`;
+                row.style.willChange = 'transform';
+                row.dataset.vIndex = '';
+                layer.appendChild(row);
+                pool.push(row);
+            }
+        }
+
+        function update() {
+            rafId = 0;
+            if (destroyed) return;
+            ensurePoolSize();
+
+            const rect = host.getBoundingClientRect();
+            const hostTop = rect.top + getScrollY();
+            const viewportTop = getScrollY();
+            const viewportH = Math.max(200, Number(window.innerHeight) || 800);
+
+            // Map window scroll -> list scroll space (supports scaled huge lists)
+            const localPx = Math.max(0, viewportTop - hostTop);
+            const scaledPx = Math.min(scaledTotalPx, Math.max(0, localPx));
+            const actualPx = scaledPx * scale;
+
+            const first = clampInt(Math.floor(actualPx / stride) - extra, 0, count);
+            const visible = Math.ceil(viewportH / stride) + 1 + extra * 2;
+            const last = clampInt(first + visible, 0, count);
+
+            for (let i = 0; i < pool.length; i += 1) {
+                const index = first + i;
+                const el = pool[i];
+                if (index >= last) {
+                    el.style.display = 'none';
+                    continue;
+                }
+
+                el.style.display = '';
+                const y = (index * stride) / scale;
+                el.style.transform = `translate3d(0, ${Math.round(y)}px, 0)`;
+
+                const prev = el.dataset.vIndex;
+                const next = String(index);
+                if (prev !== next) {
+                    el.dataset.vIndex = next;
+                    const item = getter(index);
+                    renderer(el, item, index);
+                    if (cbRendered) cbRendered(el, item, index);
+                }
+            }
+        }
+
+        function schedule() {
+            if (destroyed) return;
+            if (rafId) return;
+            rafId = window.requestAnimationFrame(update);
+        }
+
+        const onScroll = () => schedule();
+        const onResize = () => schedule();
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onResize);
+
+        schedule();
+
+        const destroy = () => {
+            if (destroyed) return;
+            destroyed = true;
+            try { window.removeEventListener('scroll', onScroll); } catch { /* ignore */ }
+            try { window.removeEventListener('resize', onResize); } catch { /* ignore */ }
+            try { if (rafId) window.cancelAnimationFrame(rafId); } catch { /* ignore */ }
+            rafId = 0;
+            pool = [];
+            try { host.innerHTML = ''; } catch { /* ignore */ }
+            try { host.classList.remove('is-virtualized'); } catch { /* ignore */ }
+            try { delete host.dataset.virtual; } catch { /* ignore */ }
+            try { delete host.__vscrollDestroy; } catch { /* ignore */ }
+        };
+
+        host.__vscrollDestroy = destroy;
+        return { destroy, update: schedule };
+    }
+
+    function destroy(container) {
+        const host = container && container.nodeType === 1 ? container : null;
+        if (!host) return;
+        try {
+            if (typeof host.__vscrollDestroy === 'function') host.__vscrollDestroy();
+        } catch {
+            // ignore
+        }
+    }
+
+    return { mountList, destroy };
+})();
 
 // ==============================================
 // Pricing / Shipping Helpers
@@ -3781,8 +4045,17 @@ const SharedData = (function() {
         all: '所有手办'
     };
 
+    function normalizeProductId(raw) {
+        const key = String(raw || '').trim();
+        if (!key) return '';
+        // 压测/虚拟列表会生成形如 "P001__S12345" 的 ID：运行时统一映射回基础商品
+        const stressPos = key.indexOf('__S');
+        if (stressPos > 0) return key.slice(0, stressPos);
+        return key;
+    }
+
     function getProductById(id) {
-        const key = String(id || '').trim();
+        const key = normalizeProductId(id);
         if (!key) return null;
         return productMap.get(key) || null;
     }
@@ -3790,7 +4063,7 @@ const SharedData = (function() {
     function getProductsByIds(ids) {
         const list = Array.isArray(ids) ? ids : [];
         if (list.length === 0) return [];
-        return list.map((id) => productMap.get(String(id || '').trim())).filter(Boolean);
+        return list.map((id) => getProductById(id)).filter(Boolean);
     }
 
     function getCurationProducts(key) {
@@ -4467,13 +4740,26 @@ const Cart = (function() {
             const safeQuantityRaw = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
             const safeQuantity = Math.min(99, safeQuantityRaw);
 
-            const price = Number(raw.price);
-            const safePrice = Number.isFinite(price) && price >= 0 ? price : 0;
+            const product = (typeof SharedData !== 'undefined' && SharedData.getProductById)
+                ? SharedData.getProductById(id)
+                : null;
 
-            const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : '[手办名称]';
-            const series = typeof raw.series === 'string' ? raw.series.trim() : '';
+            const derivedPrice = Number(product?.price);
+            const rawPrice = Number(raw.price);
+            const safePrice = Number.isFinite(rawPrice) && rawPrice >= 0
+                ? rawPrice
+                : (Number.isFinite(derivedPrice) && derivedPrice >= 0 ? derivedPrice : 0);
+
+            const derivedName = typeof product?.name === 'string' && product.name.trim().length > 0 ? product.name.trim() : '';
+            const derivedSeries = typeof product?.series === 'string' ? product.series.trim() : '';
+            const derivedImage = typeof product?.images?.[0]?.thumb === 'string' ? product.images[0].thumb.trim() : '';
+
+            const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : (derivedName || '[手办名称]');
+            const series = typeof raw.series === 'string' && raw.series.trim().length > 0 ? raw.series.trim() : derivedSeries;
             const image =
-                typeof raw.image === 'string' && raw.image.trim().length > 0 ? raw.image.trim() : 'assets/images/figurine-1.svg';
+                typeof raw.image === 'string' && raw.image.trim().length > 0
+                    ? raw.image.trim()
+                    : (derivedImage || 'assets/images/figurine-1.svg');
 
             out.push({ id, name, series, price: safePrice, quantity: safeQuantity, image });
         });
@@ -5817,6 +6103,120 @@ const ProductListing = (function(){
     let currentCategory = '';
     let allProductsCache = [];
     let baseTitle = '';
+    let stressCount = 0; // URL 参数：?stress=100000（仅用于性能压测/演示）
+    let forceVirtual = false; // URL 参数：?virtual=1（强制列表虚拟化）
+
+    function clampStressCount(raw) {
+        const clamp = globalThis.ShouwbanCore?.clampInt;
+        if (typeof clamp === 'function') {
+            return clamp(raw, { min: 0, max: 100000, fallback: 0 });
+        }
+        const n = Number.parseInt(String(raw ?? ''), 10);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.min(100000, n));
+    }
+
+    function destroyVirtualList() {
+        try {
+            if (typeof VirtualScroll !== 'undefined' && typeof VirtualScroll.destroy === 'function') {
+                VirtualScroll.destroy(productGrid);
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    function hydrateVirtualImages(root) {
+        const host = root && root.nodeType === 1 ? root : null;
+        if (!host) return;
+        host.querySelectorAll('img[data-src]').forEach((img) => {
+            const src = img.getAttribute('data-src');
+            if (!src) return;
+            img.src = src;
+            img.removeAttribute('data-src');
+            img.classList.remove('lazyload');
+        });
+    }
+
+    function measureListCardHeight(sampleProduct) {
+        if (!productGrid) return 280;
+        let marker = null;
+        try {
+            marker = document.createElement('div');
+            marker.style.position = 'absolute';
+            marker.style.visibility = 'hidden';
+            marker.style.pointerEvents = 'none';
+            marker.style.left = '0';
+            marker.style.right = '0';
+            marker.style.top = '0';
+            marker.innerHTML = createProductCardHTML(sampleProduct);
+            productGrid.appendChild(marker);
+
+            const card = marker.querySelector('.product-card') || marker.firstElementChild;
+            const rect = card ? card.getBoundingClientRect() : marker.getBoundingClientRect();
+            const h = Math.round(rect.height);
+            marker.remove();
+            return Math.max(180, Math.min(560, Number.isFinite(h) ? h : 280));
+        } catch {
+            try { marker?.remove?.(); } catch { /* ignore */ }
+            return 280;
+        }
+    }
+
+    function getStressProduct(index) {
+        const list = Array.isArray(allProductsCache) ? allProductsCache : [];
+        if (list.length === 0) return null;
+        const i = Math.max(0, Number(index) || 0);
+        const base = list[i % list.length];
+        if (!base) return null;
+        const baseId = String(base.id || '').trim() || 'P000';
+        // __S 后缀由 SharedData.getProductById() 统一映射回基础商品
+        return { ...base, id: `${baseId}__S${i}` };
+    }
+
+    function mountVirtualList({ itemCount, getItem } = {}) {
+        if (!productGrid) return;
+        if (typeof VirtualScroll === 'undefined' || typeof VirtualScroll.mountList !== 'function') return;
+
+        const clamp = globalThis.ShouwbanCore?.clampInt;
+        const count = typeof clamp === 'function'
+            ? clamp(itemCount, { min: 0, max: 100000, fallback: 0 })
+            : Math.max(0, Math.min(100000, Number(itemCount) || 0));
+
+        const getter = typeof getItem === 'function' ? getItem : () => null;
+        if (count <= 0) {
+            destroyVirtualList();
+            productGrid.innerHTML = '';
+            return;
+        }
+
+        destroyVirtualList();
+        productGrid.setAttribute('aria-busy', 'true');
+        productGrid.innerHTML = '';
+
+        const sample = getter(0);
+        const rowH = measureListCardHeight(sample);
+
+        VirtualScroll.mountList({
+            container: productGrid,
+            itemCount: count,
+            getItem: getter,
+            itemHeight: rowH,
+            gap: 18,
+            overscan: 10,
+            maxPoolSize: 220,
+            renderItem: (row, product) => {
+                if (!row) return;
+                row.innerHTML = product ? createProductCardHTML(product) : '';
+                hydrateVirtualImages(row);
+                Favorites?.syncButtons?.(row);
+                Compare?.syncButtons?.(row);
+                PriceAlerts?.syncButtons?.(row);
+            },
+        });
+
+        productGrid.setAttribute('aria-busy', 'false');
+    }
 
     function getFavoriteIdsSafe() {
         if (typeof Favorites === 'undefined' || !Favorites.getIds) return [];
@@ -6090,6 +6490,17 @@ const ProductListing = (function(){
 
     // --- Render Page --- (Keep existing)
     function renderPage() {
+         if (stressCount > 0 && currentView === 'list') {
+             UXMotion.withViewTransition(() => {
+                 mountVirtualList({ itemCount: stressCount, getItem: getStressProduct });
+                 if (paginationContainer) paginationContainer.innerHTML = '';
+                 updateBreadcrumbs();
+                 updateTitleCount(stressCount);
+                 updateListingMeta(stressCount);
+             });
+             return;
+         }
+
          const filteredProducts = applyFilter(currentProducts);
          const sortedProducts = sortProducts(filteredProducts, currentSort);
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -6110,9 +6521,17 @@ const ProductListing = (function(){
     function renderProducts(productsToRender) {
          // ... (no changes needed here)
           if (!productGrid) return;
+        destroyVirtualList();
+
+        const list = Array.isArray(productsToRender) ? productsToRender : [];
+        if (forceVirtual && currentView === 'list' && list.length > 60) {
+            mountVirtualList({ itemCount: list.length, getItem: (i) => list[i] });
+            return;
+        }
+
         productGrid.setAttribute('aria-busy', 'true');
         productGrid.innerHTML = '';
-        if (productsToRender.length === 0) {
+        if (list.length === 0) {
             // Show empty message
             const emptyMessageElement = document.createElement('div');
             emptyMessageElement.classList.add('empty-state', 'text-center');
@@ -6154,7 +6573,7 @@ const ProductListing = (function(){
             emptyMessageElement.appendChild(link);
             productGrid.appendChild(emptyMessageElement);
         } else {
-            productGrid.innerHTML = productsToRender.map((product) => createProductCardHTML(product)).join('');
+            productGrid.innerHTML = list.map((product) => createProductCardHTML(product)).join('');
         }
         productGrid.setAttribute('aria-busy', 'false');
         if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(productGrid); }
@@ -6214,10 +6633,13 @@ const ProductListing = (function(){
         const urlParams = new URLSearchParams(window.location.search);
         const categoryKey = urlParams.get('cat');
         const searchQuery = urlParams.get('query');
+        const stressParam = urlParams.get('stress') || urlParams.get('stressCount');
+        const virtualParam = urlParams.get('virtual');
         let title = categoryNames('all');
         currentProducts = [...allProducts];
         pageMode = 'all';
         currentCategory = 'all';
+        forceVirtual = virtualParam === '1';
 
         if (pageName === 'favorites.html') {
             pageMode = 'favorites';
@@ -6253,6 +6675,11 @@ const ProductListing = (function(){
              title = `${categoryNames('all')}`;
         }
 
+        // 性能压测模式：仅在“所有商品”页启用（避免影响收藏/搜索/分类的真实体验）
+        const nextStress = pageMode === 'all' ? clampStressCount(stressParam) : 0;
+        stressCount = nextStress;
+        if (stressCount > 0) forceVirtual = true;
+
         baseTitle = title;
         currentPage = 1;
         if (sortSelect) {
@@ -6272,6 +6699,48 @@ const ProductListing = (function(){
             applyViewMode(currentView, { silent: true });
         } else if (productGrid) {
             productGrid.dataset.view = currentView;
+        }
+
+        // stress 模式强制列表视图，并禁用会导致 O(n log n) 重排的控件（避免误把“排序耗时”当成“虚拟滚动掉帧”）
+        if (stressCount > 0) {
+            currentView = 'list';
+            applyViewMode('list', { silent: true });
+
+            try { if (paginationContainer) paginationContainer.style.display = 'none'; } catch { /* ignore */ }
+            try { if (sortSelect) sortSelect.disabled = true; } catch { /* ignore */ }
+            try { if (resetListingBtn) resetListingBtn.disabled = true; } catch { /* ignore */ }
+            try {
+                filterButtons?.forEach?.((btn) => {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-disabled', 'true');
+                });
+            } catch { /* ignore */ }
+            try {
+                viewToggleButtons?.forEach?.((btn) => {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-disabled', 'true');
+                });
+            } catch { /* ignore */ }
+
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show(`性能压测模式已启用：${stressCount} 条（虚拟滚动）`, 'info', 2200);
+            }
+        } else {
+            try { if (paginationContainer) paginationContainer.style.display = ''; } catch { /* ignore */ }
+            try { if (sortSelect) sortSelect.disabled = false; } catch { /* ignore */ }
+            try { if (resetListingBtn) resetListingBtn.disabled = false; } catch { /* ignore */ }
+            try {
+                filterButtons?.forEach?.((btn) => {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-disabled');
+                });
+            } catch { /* ignore */ }
+            try {
+                viewToggleButtons?.forEach?.((btn) => {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-disabled');
+                });
+            } catch { /* ignore */ }
         }
         if (filterButtons && filterButtons.length > 0) {
             try {
@@ -7524,6 +7993,284 @@ const CrossTabSync = (function() {
 })();
 
 // ==============================================
+// Diagnostics / System Health Panorama (Console)
+// - 输出 FPS / LongTask / 内存趋势 / DOM 节点数 等关键信号
+// - 默认不启用（零开销），可通过：
+//   1) URL 参数：?health=1
+//   2) Command Palette：Ctrl/Cmd+K → 系统健康全景图
+// ==============================================
+const Diagnostics = (function() {
+    const state = {
+        running: false,
+        rafId: 0,
+        frameCount: 0,
+        lastFrameTs: 0,
+        lastFpsTs: 0,
+        fps: 0,
+        frameDeltaAvg: 0,
+        frameDeltaMax: 0,
+        longTaskCount: 0,
+        longTaskTotal: 0,
+        longTaskMax: 0,
+        lagAvg: 0,
+        lagMax: 0,
+        lagTimer: 0,
+        lastLagTs: 0,
+        memSamples: [],
+        watchTimer: 0,
+        observers: [],
+    };
+
+    function now() {
+        try {
+            return performance && typeof performance.now === 'function' ? performance.now() : Date.now();
+        } catch {
+            return Date.now();
+        }
+    }
+
+    function safeRound(n) {
+        const x = Number(n);
+        return Number.isFinite(x) ? Math.round(x) : 0;
+    }
+
+    function getMemory() {
+        // performance.memory: Chromium-only (non-standard)
+        try {
+            const m = performance && performance.memory ? performance.memory : null;
+            if (!m) return null;
+            const used = Number(m.usedJSHeapSize);
+            const total = Number(m.totalJSHeapSize);
+            const limit = Number(m.jsHeapSizeLimit);
+            if (!Number.isFinite(used)) return null;
+            return {
+                usedMB: Math.round(used / 1024 / 1024),
+                totalMB: Number.isFinite(total) ? Math.round(total / 1024 / 1024) : 0,
+                limitMB: Number.isFinite(limit) ? Math.round(limit / 1024 / 1024) : 0,
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    function sampleMemory() {
+        const m = getMemory();
+        if (!m) return;
+        const ts = Date.now();
+        state.memSamples.push({ ts, usedMB: m.usedMB });
+        // Keep last ~5 minutes (1 sample / 5s)
+        const cutoff = ts - 5 * 60 * 1000;
+        while (state.memSamples.length > 0 && state.memSamples[0].ts < cutoff) {
+            state.memSamples.shift();
+        }
+    }
+
+    function frameLoop(ts) {
+        state.rafId = 0;
+        if (!state.running) return;
+
+        const t = Number(ts) || now();
+        if (state.lastFrameTs > 0) {
+            const delta = t - state.lastFrameTs;
+            state.frameDeltaAvg = state.frameDeltaAvg ? state.frameDeltaAvg * 0.9 + delta * 0.1 : delta;
+            state.frameDeltaMax = Math.max(state.frameDeltaMax, delta);
+        }
+        state.lastFrameTs = t;
+        state.frameCount += 1;
+
+        if (!state.lastFpsTs) state.lastFpsTs = t;
+        const elapsed = t - state.lastFpsTs;
+        if (elapsed >= 1000) {
+            state.fps = Math.round((state.frameCount * 1000) / elapsed);
+            state.frameCount = 0;
+            state.lastFpsTs = t;
+            state.frameDeltaMax = 0;
+        }
+
+        state.rafId = requestAnimationFrame(frameLoop);
+    }
+
+    function startFrameLoop() {
+        if (state.rafId) return;
+        state.lastFrameTs = 0;
+        state.lastFpsTs = 0;
+        state.frameCount = 0;
+        state.rafId = requestAnimationFrame(frameLoop);
+    }
+
+    function startEventLoopLag() {
+        if (state.lagTimer) return;
+        state.lastLagTs = Date.now();
+        state.lagTimer = window.setInterval(() => {
+            const nowTs = Date.now();
+            const expected = state.lastLagTs + 500;
+            const lag = Math.max(0, nowTs - expected);
+            state.lastLagTs = nowTs;
+            state.lagAvg = state.lagAvg ? state.lagAvg * 0.9 + lag * 0.1 : lag;
+            state.lagMax = Math.max(state.lagMax, lag);
+            sampleMemory();
+        }, 500);
+    }
+
+    function startLongTaskObserver() {
+        try {
+            if (typeof PerformanceObserver === 'undefined') return;
+            const supported = PerformanceObserver.supportedEntryTypes || [];
+            if (!supported.includes('longtask')) return;
+
+            const obs = new PerformanceObserver((list) => {
+                const entries = list.getEntries ? list.getEntries() : [];
+                entries.forEach((e) => {
+                    const dur = Number(e.duration) || 0;
+                    state.longTaskCount += 1;
+                    state.longTaskTotal += dur;
+                    state.longTaskMax = Math.max(state.longTaskMax, dur);
+                });
+            });
+            obs.observe({ type: 'longtask', buffered: true });
+            state.observers.push(obs);
+        } catch {
+            // ignore
+        }
+    }
+
+    function stopObservers() {
+        const list = Array.isArray(state.observers) ? state.observers : [];
+        list.forEach((obs) => {
+            try { obs.disconnect(); } catch { /* ignore */ }
+        });
+        state.observers = [];
+    }
+
+    function start() {
+        if (state.running) return;
+        state.running = true;
+        startFrameLoop();
+        startEventLoopLag();
+        startLongTaskObserver();
+    }
+
+    function stop() {
+        state.running = false;
+        if (state.rafId) {
+            try { cancelAnimationFrame(state.rafId); } catch { /* ignore */ }
+            state.rafId = 0;
+        }
+        if (state.lagTimer) {
+            try { clearInterval(state.lagTimer); } catch { /* ignore */ }
+            state.lagTimer = 0;
+        }
+        state.lagMax = 0;
+        stopObservers();
+        unwatch();
+    }
+
+    function snapshot() {
+        const mem = getMemory();
+        const usedMB = mem?.usedMB ?? null;
+        const domNodes = (() => {
+            try {
+                return document.getElementsByTagName('*').length;
+            } catch {
+                return 0;
+            }
+        })();
+
+        const url = (() => {
+            try { return window.location.href; } catch { return ''; }
+        })();
+
+        return {
+            url,
+            time: new Date().toISOString(),
+            fps: state.fps,
+            frameMsAvg: safeRound(state.frameDeltaAvg),
+            longTaskCount: state.longTaskCount,
+            longTaskMaxMs: safeRound(state.longTaskMax),
+            eventLoopLagAvgMs: safeRound(state.lagAvg),
+            eventLoopLagMaxMs: safeRound(state.lagMax),
+            domNodes,
+            heapUsedMB: usedMB,
+        };
+    }
+
+    function print(options = {}) {
+        const opts = options && typeof options === 'object' ? options : {};
+        const s = snapshot();
+        const title = `系统健康全景图 · FPS ${s.fps} · LongTask ${s.longTaskCount}`;
+
+        try {
+            if (opts.clear) console.clear();
+        } catch {
+            // ignore
+        }
+
+        console.groupCollapsed(title);
+        console.table(s);
+
+        if (Array.isArray(state.memSamples) && state.memSamples.length >= 2) {
+            const first = state.memSamples[0];
+            const last = state.memSamples[state.memSamples.length - 1];
+            const delta = Number(last.usedMB) - Number(first.usedMB);
+            const durationSec = Math.max(1, Math.round((last.ts - first.ts) / 1000));
+            console.log(`内存趋势（${durationSec}s）：${first.usedMB}MB → ${last.usedMB}MB（Δ ${delta}MB）`);
+        } else if (s.heapUsedMB == null) {
+            console.log('内存：当前浏览器不支持 performance.memory（无法采样 JS Heap）。');
+        }
+
+        console.log('提示：在商品列表页添加 ?stress=100000&health=1 可验证“虚拟滚动 + 监控”。');
+        console.groupEnd();
+    }
+
+    function watch(options = {}) {
+        const opts = options && typeof options === 'object' ? options : {};
+        const intervalMs = Math.max(1000, Number(opts.intervalMs) || 5000);
+        const clear = Boolean(opts.clear);
+
+        start();
+        if (state.watchTimer) {
+            try { clearInterval(state.watchTimer); } catch { /* ignore */ }
+            state.watchTimer = 0;
+        }
+
+        state.watchTimer = window.setInterval(() => print({ clear }), intervalMs);
+        print({ clear });
+    }
+
+    function unwatch() {
+        if (!state.watchTimer) return;
+        try { clearInterval(state.watchTimer); } catch { /* ignore */ }
+        state.watchTimer = 0;
+    }
+
+    function shouldAutoStart() {
+        try {
+            const url = new URL(window.location.href);
+            const v = url.searchParams.get('health');
+            return v === '1' || v === 'true';
+        } catch {
+            return false;
+        }
+    }
+
+    function init() {
+        // Expose as an opt-in dev tool
+        try {
+            if (!globalThis.ShouwbanDiagnostics) globalThis.ShouwbanDiagnostics = api;
+        } catch {
+            // ignore
+        }
+
+        if (shouldAutoStart()) {
+            watch({ intervalMs: 5000, clear: false });
+        }
+    }
+
+    const api = { init, start, stop, snapshot, print, watch, unwatch };
+    return api;
+})();
+
+// ==============================================
 // Command Palette (Ctrl/Cmd + K)
 // - 现代产品常见的“命令面板”交互：快速跳转/搜索/切换主题
 // - 纯前端实现：不依赖第三方库
@@ -7619,6 +8366,27 @@ const CommandPalette = (function() {
                 desc: '深色 / 浅色模式',
                 icon: 'icon-moon',
                 run: () => Theme?.toggleTheme?.(),
+            },
+            {
+                id: 'health-panorama',
+                title: '系统健康全景图',
+                desc: '输出 FPS / LongTask / 内存趋势',
+                icon: 'icon-shield',
+                run: () => Diagnostics?.print?.(),
+            },
+            {
+                id: 'health-watch',
+                title: '开始健康监控（5s）',
+                desc: '每 5 秒输出一次健康快照',
+                icon: 'icon-bell',
+                run: () => Diagnostics?.watch?.({ intervalMs: 5000, clear: false }),
+            },
+            {
+                id: 'health-unwatch',
+                title: '停止健康监控',
+                desc: '停止定时输出（保留采样）',
+                icon: 'icon-x',
+                run: () => Diagnostics?.unwatch?.(),
             },
             {
                 id: 'copy-link',
@@ -7928,6 +8696,7 @@ const App = {
         ServiceWorker.init();
         PWAInstall.init();
         CrossTabSync.init();
+        Diagnostics.init();
 
         // URL 参数触发的一次性提示（避免刷新重复弹出）
         try {
