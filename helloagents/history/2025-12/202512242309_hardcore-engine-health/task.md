@@ -11,4 +11,4 @@
 - [√] 文档同步：更新 `helloagents/wiki/modules/runtime-js.md` 与 `helloagents/CHANGELOG.md`
 - [√] 缓存穿透版本号：执行 bump（HTML + sw.js）
 - [√] 质量验证：`npm run verify` + `npm test` + `npm run test:coverage`（确保 CI 口径一致）
-- [ ] 交付：提交 git 变更并尝试推送到 `origin`
+- [√] 交付：提交 git 变更并尝试推送到 `origin`
