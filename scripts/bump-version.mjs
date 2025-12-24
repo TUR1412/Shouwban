@@ -80,8 +80,8 @@ function bumpSwVersion(sw, nextVersion) {
 
 function bumpTaskStatus(text, nextVersion) {
   // 只替换“版本号”标记行，避免误伤日期/数字
-  const re = /缓存穿透统一版本号：`[^`]+`/g;
-  return replaceAll(text, re, `缓存穿透统一版本号：\`${nextVersion}\``);
+  const re = /(缓存穿透统一版本号\*{0,2}：)`[^`]+`/g;
+  return replaceAll(text, re, `$1\`${nextVersion}\``);
 }
 
 function main() {

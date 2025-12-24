@@ -26,15 +26,9 @@
             } catch (e) { /* ignore */ }
         })();
     </script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251222.5">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251222.5">
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="styles/main.css?v=20251224.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251224.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -56,7 +50,7 @@
 
                     <li class="header__nav-item header__nav-item--dropdown">
                         <a class="header__nav-link header__dropdown-toggle" href="products.html">
-                            手办分类 <i class="fas fa-angle-down" aria-hidden="true"></i>
+                            手办分类 <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-chevron-down" xlink:href="assets/icons.svg#icon-chevron-down"></use></svg>
                         </a>
                         <ul class="header__dropdown-menu" aria-label="手办分类">
                             <li class="header__dropdown-item"><a href="category.html?cat=scale">比例手办</a></li>
@@ -75,21 +69,21 @@
 
             <div class="header__actions">
                 <button type="button" class="header__action-link" aria-label="搜索" aria-expanded="false">
-                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-search" xlink:href="assets/icons.svg#icon-search"></use></svg>
                 </button>
 
                 <a href="favorites.html" class="header__action-link" aria-label="收藏">
-                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-heart" xlink:href="assets/icons.svg#icon-heart"></use></svg>
                     <span class="header__fav-count" aria-label="收藏数量" style="display:none;">0</span>
                 </a>
 
                 <a href="cart.html" class="header__action-link" aria-label="购物车">
-                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-cart" xlink:href="assets/icons.svg#icon-cart"></use></svg>
                     <span class="header__cart-count" aria-label="购物车商品数量" style="display:none;">0</span>
                 </a>
 
                 <button type="button" class="header__action-link header__theme-toggle" aria-label="切换主题" aria-pressed="false">
-                    <i class="fas fa-moon" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-moon" xlink:href="assets/icons.svg#icon-moon"></use></svg>
                 </button>
 
                 <button class="header__menu-toggle" type="button" aria-label="切换导航" aria-expanded="false">
@@ -102,8 +96,8 @@
             <div class="container">
                 <form action="products.html" method="get" class="header__search-form">
                     <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索" autocomplete="off" enterkeyhint="search">
-                    <button type="button" class="header__search-clear" aria-label="清除搜索"><i class="fas fa-times" aria-hidden="true"></i></button>
-                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    <button type="button" class="header__search-clear" aria-label="清除搜索"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-x" xlink:href="assets/icons.svg#icon-x"></use></svg></button>
+                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-search" xlink:href="assets/icons.svg#icon-search"></use></svg></button>
                 </form>
             </div>
         </div>
@@ -157,9 +151,9 @@
             <div class="footer__social">
                 <h5>关注我们</h5>
                 <div class="footer__social-links-container">
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo" aria-hidden="true"></i></a>
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili" aria-hidden="true"></i></a>
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin" aria-hidden="true"></i></a>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weibo" xlink:href="assets/icons.svg#icon-weibo"></use></svg></a>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bilibili" xlink:href="assets/icons.svg#icon-bilibili"></use></svg></a>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weixin" xlink:href="assets/icons.svg#icon-weixin"></use></svg></a>
                 </div>
             </div>
         </div>
@@ -170,8 +164,8 @@
         </div>
     </footer>
 
-    <script src="scripts/motion.js?v=20251222.5"></script>
-    <script src="scripts/core.js?v=20251222.5"></script>
-    <script src="scripts/main.js?v=20251222.5"></script>
+    <script src="scripts/motion.js?v=20251224.1"></script>
+    <script src="scripts/core.js?v=20251224.1"></script>
+    <script src="scripts/main.js?v=20251224.1"></script>
 </body>
 </html>

@@ -35,15 +35,9 @@
             "logo": "https://tur1412.github.io/Shouwban/assets/favicon.svg"
         }
     </script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251222.5">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251222.5">
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="styles/main.css?v=20251224.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251224.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -66,7 +60,7 @@
 
                     <li class="header__nav-item header__nav-item--dropdown">
                         <a class="header__nav-link header__dropdown-toggle" href="products.html">
-                            手办分类 <i class="fas fa-angle-down" aria-hidden="true"></i>
+                            手办分类 <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-chevron-down" xlink:href="assets/icons.svg#icon-chevron-down"></use></svg>
                         </a>
                         <ul class="header__dropdown-menu" aria-label="手办分类">
                             <li class="header__dropdown-item"><a href="category.html?cat=scale">比例手办</a></li>
@@ -85,21 +79,21 @@
 
             <div class="header__actions">
                 <button type="button" class="header__action-link" aria-label="搜索" aria-expanded="false">
-                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-search" xlink:href="assets/icons.svg#icon-search"></use></svg>
                 </button>
 
                 <a href="favorites.html" class="header__action-link" aria-label="收藏">
-                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-heart" xlink:href="assets/icons.svg#icon-heart"></use></svg>
                     <span class="header__fav-count" aria-label="收藏数量" style="display:none;">0</span>
                 </a>
 
                 <a href="cart.html" class="header__action-link" aria-label="购物车">
-                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-cart" xlink:href="assets/icons.svg#icon-cart"></use></svg>
                     <span class="header__cart-count" aria-label="购物车商品数量" style="display:none;">0</span>
                 </a>
 
                 <button type="button" class="header__action-link header__theme-toggle" aria-label="切换主题" aria-pressed="false">
-                    <i class="fas fa-moon" aria-hidden="true"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-moon" xlink:href="assets/icons.svg#icon-moon"></use></svg>
                 </button>
 
                 <button class="header__menu-toggle" type="button" aria-label="切换导航" aria-expanded="false">
@@ -112,8 +106,8 @@
             <div class="container">
                 <form action="products.html" method="get" class="header__search-form">
                     <input type="search" name="query" placeholder="搜索手办..." class="header__search-input" aria-label="搜索" autocomplete="off" enterkeyhint="search">
-                    <button type="button" class="header__search-clear" aria-label="清除搜索"><i class="fas fa-times" aria-hidden="true"></i></button>
-                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    <button type="button" class="header__search-clear" aria-label="清除搜索"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-x" xlink:href="assets/icons.svg#icon-x"></use></svg></button>
+                    <button type="submit" class="header__search-submit" aria-label="提交搜索"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-search" xlink:href="assets/icons.svg#icon-search"></use></svg></button>
                 </form>
             </div>
         </div>
@@ -192,42 +186,42 @@
                 </div>
                 <div class="bento-grid">
                     <article class="bento-card bento-card--wide fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-certificate" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-certificate" xlink:href="assets/icons.svg#icon-certificate"></use></svg></div>
                         <div>
                             <h4>正品溯源</h4>
                             <p>授权信息、编号与厂牌透明展示，确保每一件收藏可被证明。</p>
                         </div>
                     </article>
                     <article class="bento-card fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-bell" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bell" xlink:href="assets/icons.svg#icon-bell"></use></svg></div>
                         <div>
                             <h4>预售提醒</h4>
                             <p>关键档期自动提示，热门款不再错过开订窗口。</p>
                         </div>
                     </article>
                     <article class="bento-card bento-card--tall fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-box" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-box" xlink:href="assets/icons.svg#icon-box"></use></svg></div>
                         <div>
                             <h4>安全包装</h4>
                             <p>多层缓冲与加固盒型，专为易损收藏品设计。</p>
                         </div>
                     </article>
                     <article class="bento-card fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-users" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-users" xlink:href="assets/icons.svg#icon-users"></use></svg></div>
                         <div>
                             <h4>收藏社区</h4>
                             <p>分享开箱、搭配展示与改造心得，热爱在此共鸣。</p>
                         </div>
                     </article>
                     <article class="bento-card fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-star" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-star-filled" xlink:href="assets/icons.svg#icon-star-filled"></use></svg></div>
                         <div>
                             <h4>策展评分</h4>
                             <p>由资深收藏顾问提供评分与入手建议，避免踩雷。</p>
                         </div>
                     </article>
                     <article class="bento-card fade-in-up">
-                        <div class="bento-card__icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
+                        <div class="bento-card__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-shield" xlink:href="assets/icons.svg#icon-shield"></use></svg></div>
                         <div>
                             <h4>防伪档案</h4>
                             <p>入库前完成多维检视，配套防伪档案随箱提供。</p>
@@ -305,7 +299,7 @@
                     <h4>匠心独运，复刻热爱</h4>
                     <p>在塑梦潮玩，我们相信每一件手办都承载着一份独特的情感与记忆。我们与全球顶尖的原型师和制造商紧密合作，严选材质，精雕细琢，力求还原角色的每一处神韵与细节。</p>
                     <p>我们不仅销售产品，更致力于构建一个连接创作者与爱好者的社区，分享收藏的喜悦，传递对 ACG 文化的热爱。选择塑梦潮玩，选择一份值得珍藏的匠心之作。</p>
-                    <a href="index.html#contact" class="cta-button-secondary">联系我们 <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="index.html#contact" class="cta-button-secondary">联系我们 <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-arrow-right" xlink:href="assets/icons.svg#icon-arrow-right"></use></svg></a>
                 </div>
                 <div class="about-image fade-in-up">
                      <img class="lazyload" loading="lazy" src="assets/images/placeholder-lowquality.svg" data-src="assets/images/placeholder-about.svg" alt="塑梦潮玩工作室或产品展示" decoding="async">
@@ -319,20 +313,20 @@
                 <p class="contact-intro">欢迎垂询合作、咨询预售或分享您的收藏故事！我们期待与您交流。</p>
                 <div class="contact-details">
                     <div class="contact-item">
-                        <span class="contact-icon"><i class="fas fa-envelope"></i></span>
+                        <span class="contact-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-envelope" xlink:href="assets/icons.svg#icon-envelope"></use></svg></span>
                         <a href="mailto:info@sumengtoys.com">info@sumengtoys.com</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon"><i class="fas fa-phone"></i></span>
+                        <span class="contact-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-phone" xlink:href="assets/icons.svg#icon-phone"></use></svg></span>
                         <span>(可留空或填写客服热线)</span>
                     </div>
                  </div>
                  <div class="social-links">
                     <h4>关注我们</h4>
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo"></i></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili"></i></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin"></i></a>
-                 </div>
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weibo" xlink:href="assets/icons.svg#icon-weibo"></use></svg></a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bilibili" xlink:href="assets/icons.svg#icon-bilibili"></use></svg></a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weixin" xlink:href="assets/icons.svg#icon-weixin"></use></svg></a>
+                </div>
             </div>
         </section>
     </main>
@@ -357,10 +351,10 @@
             <div class="footer__social">
                 <h5>关注我们</h5>
                  <div class="footer__social-links-container">
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><i class="fab fa-weibo" aria-hidden="true"></i></a>
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><i class="fab fa-bilibili" aria-hidden="true"></i></a>
-                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><i class="fab fa-weixin" aria-hidden="true"></i></a>
-                 </div>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微博"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weibo" xlink:href="assets/icons.svg#icon-weibo"></use></svg></a>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Bilibili"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bilibili" xlink:href="assets/icons.svg#icon-bilibili"></use></svg></a>
+                    <a class="footer__social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="微信公众号"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-weixin" xlink:href="assets/icons.svg#icon-weixin"></use></svg></a>
+                </div>
             </div>
         </div>
         <div class="footer__bottom">
@@ -370,9 +364,8 @@
         </div>
     </footer>
 
-    <script src="scripts/motion.js?v=20251222.5"></script>
-    <script src="scripts/core.js?v=20251222.5"></script>
-    <script src="scripts/main.js?v=20251222.5"></script>
+    <script src="scripts/motion.js?v=20251224.1"></script>
+    <script src="scripts/core.js?v=20251224.1"></script>
+    <script src="scripts/main.js?v=20251224.1"></script>
 </body>
 </html>
-

@@ -108,7 +108,9 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 ## 核心能力
 
 - 2025 Quark UI 体系：Bento Grid + 玻璃拟态 + 极光背景 + 影院级分层（兼顾 WCAG AA 可读性）
+- 零运行时 CDN 依赖：图标使用本地 SVG Sprite（`assets/icons.svg`），字体使用系统字体栈（更快、更稳、更隐私）
 - 影院级微交互（新增）：基于浏览器原生 WAAPI 的 Motion-lite 动效层（`scripts/motion.js`），渐进增强且自动尊重 `prefers-reduced-motion`
+- 命令面板（新增）：`Ctrl/Cmd + K` 快速跳转/搜索/复制链接/切换主题（无第三方依赖）
 - 多页面电商流程：列表/分类/详情/购物车/结算/收藏/静态内容
 - 商品对比（新增）：最多对比 3 件商品，支持从列表/详情加入、对比页移除与加购（`compare.html`）
 - 订单中心（新增）：模拟下单 → 生成订单 → 订单成功页 → 订单中心查看、复制订单号、再次购买（`orders.html` / `order-success.html`）
@@ -158,6 +160,7 @@ pwsh -NoLogo -NoProfile -Command 'python -m http.server 5173'
 - `scripts/bump-version.mjs`：统一 bump 版本号脚本（缓存穿透）
 - `sw.js`：Service Worker（PWA 缓存策略）
 - `assets/`：图片 / favicon / manifest 等静态资源
+- `assets/icons.svg`：本地 SVG Sprite 图标库（替代外部 Icon CDN）
 
 ## 本地预览（推荐）
 

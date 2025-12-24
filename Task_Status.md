@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -NoProfile -Command '...'` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20251222.5`
+> **缓存穿透统一版本号**：`20251224.1`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -54,7 +54,7 @@
 - [x] 动效库瘦身：移除 vendor 的 Motion One，改为自研 `Motion.animate()`（WAAPI 适配层），显著降低 payload
 - [x] LazyLoad 复用观察者：单例 IntersectionObserver + 支持 root scope，减少重复创建与全局扫描
 - [x] PDP XSS 加固：规格/描述渲染改为 DOM 安全插入，并对白名单标签做过滤
-- [x] 第三方声明更新：`THIRD_PARTY_NOTICES.md` 改为运行时依赖（Font Awesome CDN）说明
+- [x] 运行时依赖清零：移除 Google Fonts / Font Awesome CDN，改为本地 SVG Sprite + 系统字体栈（同步更新 `THIRD_PARTY_NOTICES.md`）
 - [x] 版本号 bump：`20251222.4`（已同步 HTML/SW/核心资源引用）
 - [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
 

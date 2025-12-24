@@ -103,6 +103,48 @@ const Utils = {
 };
 
 // ==============================================
+// Local Icon System (SVG Sprite)
+// - Replace external icon CDN (Font Awesome) with a self-hosted sprite.
+// - Keep markup small + accessible.
+// ==============================================
+const Icons = {
+    spritePath: 'assets/icons.svg',
+
+    href: (symbolId) => `${Icons.spritePath}#${String(symbolId || '').trim()}`,
+
+    svgHtml: (symbolId, { className = 'icon', ariaHidden = true } = {}) => {
+        const href = Icons.href(symbolId);
+        const safeClass = String(className || 'icon').trim() || 'icon';
+        const aria = ariaHidden ? ' aria-hidden="true"' : '';
+        return `<svg class="${safeClass}"${aria} focusable="false"><use href="${href}" xlink:href="${href}"></use></svg>`;
+    },
+
+    createSvg: (symbolId, { className = 'icon', ariaHidden = true } = {}) => {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', String(className || 'icon').trim() || 'icon');
+        svg.setAttribute('focusable', 'false');
+        if (ariaHidden) svg.setAttribute('aria-hidden', 'true');
+
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        const href = Icons.href(symbolId);
+        use.setAttribute('href', href);
+        use.setAttribute('xlink:href', href);
+        svg.appendChild(use);
+        return svg;
+    },
+
+    setSvgUse: (svgEl, symbolId) => {
+        const svg = svgEl && svgEl.querySelector ? svgEl : null;
+        if (!svg) return;
+        const use = svg.querySelector('use');
+        if (!use) return;
+        const href = Icons.href(symbolId);
+        use.setAttribute('href', href);
+        use.setAttribute('xlink:href', href);
+    },
+};
+
+// ==============================================
 // Pricing / Shipping Helpers
 // ==============================================
 const Pricing = (function() {
@@ -1749,7 +1791,7 @@ const BackToTop = (function() {
         button.type = 'button';
         button.className = 'back-to-top';
         button.setAttribute('aria-label', '返回顶部');
-        button.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
+        button.innerHTML = Icons.svgHtml('icon-arrow-up');
         document.body.appendChild(button);
         return button;
     }
@@ -2056,9 +2098,7 @@ const Theme = (function() {
         const isDark = theme === 'dark';
         btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
         btn.setAttribute('aria-label', isDark ? '切换到浅色模式' : '切换到深色模式');
-        btn.innerHTML = isDark
-            ? '<i class="fas fa-sun" aria-hidden="true"></i>'
-            : '<i class="fas fa-moon" aria-hidden="true"></i>';
+        btn.innerHTML = Icons.svgHtml(isDark ? 'icon-sun' : 'icon-moon');
     }
 
     function applyTheme(theme, { persist = false } = {}) {
@@ -2153,10 +2193,9 @@ const Favorites = (function() {
         btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         btn.setAttribute('aria-label', isActive ? '取消收藏' : '加入收藏');
 
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.classList.toggle('fa-solid', isActive);
-            icon.classList.toggle('fa-regular', !isActive);
+        const iconSvg = btn.querySelector('svg');
+        if (iconSvg) {
+            Icons.setSvgUse(iconSvg, isActive ? 'icon-heart-filled' : 'icon-heart');
         }
     }
 
@@ -2238,7 +2277,7 @@ const Compare = (function() {
         link.className = 'header__action-link header__compare-link';
         link.setAttribute('aria-label', '对比');
         link.innerHTML =
-            '<i class="fas fa-scale-balanced" aria-hidden="true"></i><span class="header__compare-count" aria-label="对比数量" style="display:none;">0</span>';
+            `${Icons.svgHtml('icon-scale')}<span class="header__compare-count" aria-label="对比数量" style="display:none;">0</span>`;
 
         const themeToggle = actions.querySelector('.header__theme-toggle');
         if (themeToggle) actions.insertBefore(link, themeToggle);
@@ -2612,7 +2651,7 @@ const Orders = (function() {
         link.className = 'header__action-link header__orders-link';
         link.setAttribute('aria-label', '订单');
         link.innerHTML =
-            '<i class="fas fa-receipt" aria-hidden="true"></i><span class="header__orders-count" aria-label="订单数量" style="display:none;">0</span>';
+            `${Icons.svgHtml('icon-receipt')}<span class="header__orders-count" aria-label="订单数量" style="display:none;">0</span>`;
 
         const compareLink = actions.querySelector('.header__compare-link');
         const themeToggle = actions.querySelector('.header__theme-toggle');
@@ -2811,7 +2850,7 @@ const Rewards = (function() {
         link.className = 'header__action-link header__account-link';
         link.setAttribute('aria-label', '会员中心');
         link.innerHTML =
-            '<i class="fa-regular fa-user" aria-hidden="true"></i><span class="header__account-badge" aria-label="可用积分" style="display:none;">0</span>';
+            `${Icons.svgHtml('icon-user')}<span class="header__account-badge" aria-label="可用积分" style="display:none;">0</span>`;
 
         const cartLink = actions.querySelector('a[href="cart.html"]');
         if (cartLink) actions.insertBefore(link, cartLink);
@@ -3441,7 +3480,7 @@ const PWAInstall = (function() {
         btn.setAttribute('aria-label', '安装应用');
         btn.title = '安装为桌面应用（PWA）';
         btn.style.display = 'none';
-        btn.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+        btn.innerHTML = Icons.svgHtml('icon-download');
 
         const themeToggle = actions.querySelector('.header__theme-toggle');
         if (themeToggle) actions.insertBefore(btn, themeToggle);
@@ -3915,7 +3954,7 @@ const PDP = (function() {
             favoriteBtn.setAttribute('aria-label', '加入收藏');
             favoriteBtn.setAttribute('aria-pressed', 'false');
             favoriteBtn.innerHTML =
-                '<i class="fa-regular fa-heart" aria-hidden="true"></i><span class="favorite-btn__text">收藏</span>';
+                `${Icons.svgHtml('icon-heart')}<span class="favorite-btn__text">收藏</span>`;
             actionsContainer.appendChild(favoriteBtn);
         }
 
@@ -3933,7 +3972,7 @@ const PDP = (function() {
             compareBtn.setAttribute('aria-label', '加入对比');
             compareBtn.setAttribute('aria-pressed', 'false');
             compareBtn.innerHTML =
-                '<i class="fas fa-scale-balanced" aria-hidden="true"></i><span class="compare-btn__text">对比</span>';
+                `${Icons.svgHtml('icon-scale')}<span class="compare-btn__text">对比</span>`;
             actionsContainer.appendChild(compareBtn);
         }
 
@@ -3949,7 +3988,7 @@ const PDP = (function() {
             shareBtn.type = 'button';
             shareBtn.className = 'share-btn share-btn--pdp';
             shareBtn.setAttribute('aria-label', '复制当前商品链接');
-            shareBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i><span class="share-btn__text">复制链接</span>';
+            shareBtn.innerHTML = `${Icons.svgHtml('icon-link')}<span class="share-btn__text">复制链接</span>`;
             actionsContainer.appendChild(shareBtn);
         }
         return shareBtn;
@@ -3964,7 +4003,7 @@ const PDP = (function() {
             alertBtn.setAttribute('aria-label', '设置降价提醒');
             alertBtn.setAttribute('aria-pressed', 'false');
             alertBtn.setAttribute('data-price-alert', '');
-            alertBtn.innerHTML = '<i class="fas fa-bell" aria-hidden="true"></i><span class="alert-btn__text">降价提醒</span>';
+            alertBtn.innerHTML = `${Icons.svgHtml('icon-bell')}<span class="alert-btn__text">降价提醒</span>`;
             actionsContainer.appendChild(alertBtn);
         }
 
@@ -4129,10 +4168,7 @@ const PDP = (function() {
             const reviewCount = Number(product.reviewCount);
             if (Number.isFinite(rating)) {
                 ratingElement.innerHTML = "";
-                const icon = document.createElement("i");
-                icon.className = "fas fa-star";
-                icon.setAttribute("aria-hidden", "true");
-                ratingElement.appendChild(icon);
+                ratingElement.appendChild(Icons.createSvg('icon-star-filled'));
                 const text = document.createElement("span");
                 text.textContent = rating.toFixed(1);
                 ratingElement.appendChild(text);
@@ -4366,7 +4402,7 @@ const PDP = (function() {
 
         // Visual feedback (Keep existing)
         const originalText = addToCartBtn.innerHTML;
-        addToCartBtn.innerHTML = '已添加 <i class="fas fa-check"></i>';
+        addToCartBtn.innerHTML = `已添加 ${Icons.svgHtml('icon-check')}`;
         addToCartBtn.disabled = true;
         setTimeout(() => {
             if (addToCartBtn) {
@@ -4523,7 +4559,7 @@ const Cart = (function() {
 
         return `
             <div class="cart-item" data-product-id="${safeIdAttr}" draggable="true">
-                <div class="cart-item__drag" title="拖拽排序" aria-hidden="true"><i class="fas fa-grip-vertical"></i></div>
+                <div class="cart-item__drag" title="拖拽排序" aria-hidden="true">${Icons.svgHtml('icon-grip-vertical')}</div>
                 <div class="cart-item__image">
                     <a href="${detailHref}">
                         <img src="${safeImage}" alt="${safeName}">
@@ -4543,7 +4579,7 @@ const Cart = (function() {
                     <span>小计:</span> ¥<span class="subtotal-value">${subtotal.toFixed(2)}</span>
                 </div>
                 <div class="cart-item__remove">
-                    <button class="remove-btn" aria-label="移除商品"><i class="fas fa-trash-alt"></i></button>
+                    <button class="remove-btn" aria-label="移除商品">${Icons.svgHtml('icon-trash')}</button>
                 </div>
             </div>
         `;
@@ -5588,8 +5624,8 @@ const StaticPage = (function() {
 
                 <section class="static-section">
                     <h2>第三方资源</h2>
-                    <p>页面可能使用第三方公共资源（例如字体与图标 CDN）。这些服务可能会记录基础访问日志（如 IP、User-Agent）。</p>
-                    <p>若你需要完全离线/内网可用，建议将字体与图标改为本地自托管，并在部署时配置严格的内容安全策略（CSP）。</p>
+                    <p>当前默认不依赖运行时第三方 CDN 资源：图标使用本地 SVG Sprite，字体使用系统字体栈。</p>
+                    <p>如你在二次开发中引入第三方资源（字体/CDN/统计脚本等），建议同时配置 CSP，并在隐私政策中明确说明其数据收集范围。</p>
                 </section>
 
                 <section class="static-section">
@@ -5722,7 +5758,7 @@ const ProductListing = (function(){
         }
 
         const ratingHTML = Number.isFinite(ratingValue)
-            ? `<span class="product-card__rating"><i class="fas fa-star" aria-hidden="true"></i>${ratingValue.toFixed(1)}${Number.isFinite(reviewCount) && reviewCount > 0 ? `<small>(${reviewCount})</small>` : ''}</span>`
+            ? `<span class="product-card__rating">${Icons.svgHtml('icon-star-filled')}${ratingValue.toFixed(1)}${Number.isFinite(reviewCount) && reviewCount > 0 ? `<small>(${reviewCount})</small>` : ''}</span>`
             : '';
         const statusHTML = status ? `<span class="product-card__status">${statusLabel}</span>` : '';
 
@@ -5741,7 +5777,7 @@ const ProductListing = (function(){
         const badgesHTML = badges.length > 0 ? `<div class="product-card__badges">${badges.join('')}</div>` : '';
         const favBtnHTML = id !== '#'
             ? `<button class="favorite-btn" type="button" data-product-id="${safeIdAttr}" aria-label="加入收藏" aria-pressed="false">
-                    <i class="fa-regular fa-heart" aria-hidden="true"></i>
+                    ${Icons.svgHtml('icon-heart')}
                </button>`
             : '';
         const quickAddHTML = id !== '#'
@@ -7548,6 +7584,398 @@ const CrossTabSync = (function() {
 })();
 
 // ==============================================
+// Command Palette (Ctrl/Cmd + K)
+// - 现代产品常见的“命令面板”交互：快速跳转/搜索/切换主题
+// - 纯前端实现：不依赖第三方库
+// ==============================================
+const CommandPalette = (function() {
+    const dialogId = 'cmdk-dialog';
+    const supportsDialog = typeof HTMLDialogElement !== 'undefined';
+
+    let dialog = null;
+    let input = null;
+    let list = null;
+    let desc = null;
+    let results = [];
+    let activeIndex = 0;
+
+    function getShortcutText() {
+        try {
+            const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || '');
+            return isMac ? '⌘ K' : 'Ctrl K';
+        } catch {
+            return 'Ctrl K';
+        }
+    }
+
+    function isEditableTarget(target) {
+        const el = target && target.nodeType === 1 ? target : null;
+        if (!el) return false;
+        const tag = String(el.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+        return Boolean(el.isContentEditable);
+    }
+
+    function safeNavigate(href) {
+        const url = String(href || '').trim();
+        if (!url) return;
+        window.location.href = url;
+    }
+
+    async function safeCopy(text) {
+        const value = String(text ?? '');
+        if (!value) return false;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(value);
+                return true;
+            }
+        } catch {
+            // ignore
+        }
+
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = value;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            ta.remove();
+            return Boolean(ok);
+        } catch {
+            return false;
+        }
+    }
+
+    function getBaseCommands() {
+        return [
+            {
+                id: 'go-home',
+                title: '返回首页',
+                desc: '打开 index.html',
+                icon: 'icon-arrow-left',
+                run: () => safeNavigate('index.html'),
+            },
+            {
+                id: 'go-products',
+                title: '浏览所有商品',
+                desc: '打开 products.html',
+                icon: 'icon-grid',
+                run: () => safeNavigate('products.html'),
+            },
+            {
+                id: 'go-cart',
+                title: '打开购物车',
+                desc: '打开 cart.html',
+                icon: 'icon-cart',
+                run: () => safeNavigate('cart.html'),
+            },
+            {
+                id: 'go-favorites',
+                title: '打开收藏',
+                desc: '打开 favorites.html',
+                icon: 'icon-heart',
+                run: () => safeNavigate('favorites.html'),
+            },
+            {
+                id: 'go-compare',
+                title: '打开对比',
+                desc: '打开 compare.html',
+                icon: 'icon-scale',
+                run: () => safeNavigate('compare.html'),
+            },
+            {
+                id: 'go-orders',
+                title: '打开订单中心',
+                desc: '打开 orders.html',
+                icon: 'icon-receipt',
+                run: () => safeNavigate('orders.html'),
+            },
+            {
+                id: 'go-account',
+                title: '打开会员中心',
+                desc: '打开 account.html',
+                icon: 'icon-user',
+                run: () => safeNavigate('account.html'),
+            },
+            {
+                id: 'toggle-theme',
+                title: '切换主题',
+                desc: '深色 / 浅色模式',
+                icon: 'icon-moon',
+                run: () => Theme?.toggleTheme?.(),
+            },
+            {
+                id: 'copy-link',
+                title: '复制当前页面链接',
+                desc: '复制 URL 到剪贴板',
+                icon: 'icon-link',
+                run: async () => {
+                    const ok = await safeCopy(window.location.href);
+                    Toast?.show?.(ok ? '链接已复制' : '复制失败', ok ? 'success' : 'error', 1600);
+                },
+            },
+        ];
+    }
+
+    function normalizeQuery(value) {
+        return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    }
+
+    function buildResults(query) {
+        const q = normalizeQuery(query);
+        const base = getBaseCommands();
+
+        if (!q) {
+            return base;
+        }
+
+        const lower = q.toLowerCase();
+        const filtered = base.filter((c) => {
+            const hay = `${c.title} ${c.desc}`.toLowerCase();
+            return hay.includes(lower);
+        });
+
+        // Always provide a search action as the last fallback.
+        filtered.push({
+            id: 'search-products',
+            title: `搜索商品：${q}`,
+            desc: '在商品列表页查看搜索结果',
+            icon: 'icon-search',
+            run: () => safeNavigate(`products.html?query=${encodeURIComponent(q)}`),
+        });
+
+        return filtered;
+    }
+
+    function render() {
+        if (!list || !input) return;
+        const query = input.value;
+        results = buildResults(query);
+        activeIndex = Math.min(activeIndex, Math.max(0, results.length - 1));
+
+        if (desc) {
+            desc.textContent = results.length
+                ? `回车执行 · ↑↓ 选择 · Esc 关闭 · ${getShortcutText()} 打开`
+                : `没有匹配项 · ${getShortcutText()} 打开`;
+        }
+
+        list.innerHTML = results
+            .map((item, idx) => {
+                const selected = idx === activeIndex ? 'true' : 'false';
+                const icon = item.icon ? Icons.svgHtml(item.icon) : '';
+                const title = Utils.escapeHtml(item.title);
+                const sub = Utils.escapeHtml(item.desc || '');
+                return `
+                    <button type="button" class="cmdk-item" role="option" aria-selected="${selected}" data-cmdk-index="${idx}">
+                        <span class="cmdk-item__left">
+                            ${icon}
+                            <span class="cmdk-item__text">
+                                <span class="cmdk-item__title">${title}</span>
+                                ${sub ? `<span class="cmdk-item__desc">${sub}</span>` : ''}
+                            </span>
+                        </span>
+                        <span class="cmdk-item__hint">↵</span>
+                    </button>
+                `.trim();
+            })
+            .join('');
+    }
+
+    async function runActive() {
+        const item = results[activeIndex];
+        if (!item || typeof item.run !== 'function') return;
+        try {
+            close();
+            await item.run();
+        } catch (e) {
+            console.warn('CommandPalette: run failed', e);
+            Toast?.show?.('命令执行失败', 'error', 1600);
+        }
+    }
+
+    function move(delta) {
+        if (!results.length) return;
+        activeIndex = (activeIndex + delta + results.length) % results.length;
+        render();
+        // Ensure selected item is visible
+        try {
+            const el = list?.querySelector?.(`.cmdk-item[data-cmdk-index="${activeIndex}"]`);
+            el?.scrollIntoView?.({ block: 'nearest' });
+        } catch {
+            // ignore
+        }
+    }
+
+    function onListClick(event) {
+        const btn = event.target?.closest?.('.cmdk-item[data-cmdk-index]');
+        if (!btn) return;
+        const idx = Number(btn.dataset.cmdkIndex);
+        if (!Number.isFinite(idx)) return;
+        activeIndex = idx;
+        runActive();
+    }
+
+    function onDialogKeydown(event) {
+        if (!event) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+            return;
+        }
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            move(1);
+            return;
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            move(-1);
+            return;
+        }
+        if (event.key === 'Enter') {
+            // Allow IME composition; avoid triggering while composing.
+            if (event.isComposing) return;
+            event.preventDefault();
+            runActive();
+        }
+    }
+
+    function ensureDialog() {
+        if (dialog) return dialog;
+
+        // Fallback: focus header search when dialog isn't supported.
+        if (!supportsDialog) return null;
+
+        dialog = document.createElement('dialog');
+        dialog.id = dialogId;
+        dialog.className = 'glass-dialog cmdk-dialog';
+        dialog.innerHTML = `
+            <div class="glass-dialog__card cmdk-card">
+                <div class="glass-dialog__header cmdk-header">
+                    <h3 class="glass-dialog__title cmdk-title">命令面板</h3>
+                    <p class="glass-dialog__subtitle text-muted cmdk-subtitle">快速跳转 / 搜索 / 操作</p>
+                </div>
+
+                <div class="cmdk-input-row">
+                    <input class="glass-dialog__input cmdk-input" type="search" placeholder="输入关键词或命令…（例如：购物车 / 切换主题 / 初音）" autocomplete="off" spellcheck="false" enterkeyhint="search" />
+                </div>
+
+                <div class="cmdk-meta text-muted" data-cmdk-desc></div>
+
+                <div class="cmdk-list" role="listbox" aria-label="命令列表" data-cmdk-list></div>
+
+                <div class="glass-dialog__actions cmdk-actions">
+                    <button type="button" class="cta-button-secondary" data-cmdk-close>关闭</button>
+                </div>
+            </div>
+        `.trim();
+
+        document.body.appendChild(dialog);
+
+        input = dialog.querySelector('.cmdk-input');
+        list = dialog.querySelector('[data-cmdk-list]');
+        desc = dialog.querySelector('[data-cmdk-desc]');
+
+        dialog.addEventListener('keydown', onDialogKeydown);
+        list?.addEventListener?.('click', onListClick);
+
+        const closeBtn = dialog.querySelector('[data-cmdk-close]');
+        closeBtn?.addEventListener?.('click', close);
+
+        input?.addEventListener?.('input', () => {
+            activeIndex = 0;
+            render();
+        });
+
+        // Click backdrop to close (native dialog doesn't emit backdrop click; approximate)
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) close();
+        });
+
+        return dialog;
+    }
+
+    function open(prefill = '') {
+        // Fallback: open header search bar.
+        if (!supportsDialog) {
+            const searchBtn = document.querySelector('.header__action-link[aria-label="搜索"]');
+            const searchBar = document.querySelector('.header__search-bar');
+            const searchInput = document.querySelector('.header__search-input');
+            try {
+                if (searchBar && !searchBar.classList.contains('is-open')) {
+                    searchBtn?.click?.();
+                }
+                searchInput?.focus?.();
+                if (prefill) searchInput.value = prefill;
+            } catch {
+                // ignore
+            }
+            return;
+        }
+
+        const dlg = ensureDialog();
+        if (!dlg) return;
+
+        try {
+            if (!dlg.open) dlg.showModal();
+        } catch {
+            // ignore
+        }
+
+        if (input) input.value = normalizeQuery(prefill);
+        activeIndex = 0;
+        render();
+        input?.focus?.();
+        input?.select?.();
+    }
+
+    function close() {
+        if (!dialog) return;
+        try {
+            if (dialog.open) dialog.close();
+        } catch {
+            // ignore
+        }
+    }
+
+    function handleGlobalKeydown(event) {
+        if (!event) return;
+        if (event.defaultPrevented) return;
+
+        // Avoid stealing shortcuts while typing, except Escape (handled inside dialog).
+        if (isEditableTarget(event.target)) {
+            // Allow Ctrl/Cmd+K even when in input for power users
+            const isCmdK = (event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K');
+            if (!isCmdK) return;
+        }
+
+        const isCmdK = (event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K');
+        if (isCmdK) {
+            event.preventDefault();
+            open();
+            return;
+        }
+
+        // "/" 快捷打开（类 GitHub），但不在输入框中触发
+        if (!isEditableTarget(event.target) && event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            open();
+        }
+    }
+
+    function init() {
+        document.addEventListener('keydown', handleGlobalKeydown);
+    }
+
+    return { init, open, close };
+})();
+
+// ==============================================
 // Application Initialization
 // ==============================================
 const App = {
@@ -7572,6 +8000,7 @@ const App = {
         AddressBook.init();
         PriceAlerts.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
+        CommandPalette.init();
         Promotion.init();
         QuickAdd.init();
         Homepage.init(); 

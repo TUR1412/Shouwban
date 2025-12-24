@@ -137,6 +137,7 @@ function assertRequiredRepoFilesExist() {
     'styles/extensions.css',
     'scripts/motion.js',
     'scripts/core.js',
+    'assets/icons.svg',
   ];
   const errors = [];
   for (const rel of required) {
@@ -365,6 +366,33 @@ function assertNoTargetBlankWithoutNoopener(htmlFiles) {
   return errors;
 }
 
+function assertNoExternalRuntimeCdn(htmlFiles) {
+  const errors = [];
+  const checks = [
+    { name: 'Google Fonts', re: /fonts\.googleapis\.com|fonts\.gstatic\.com/i },
+    { name: 'Font Awesome / cdnjs', re: /cdnjs\.cloudflare\.com\/ajax\/libs\/font-awesome/i },
+    { name: 'Generic CDN', re: /unpkg\.com|cdn\.jsdelivr\.net|cdnjs\.com/i },
+  ];
+
+  for (const f of htmlFiles) {
+    const c = readText(f);
+    const rel = path.relative(workspaceRoot, f);
+
+    for (const rule of checks) {
+      if (rule.re.test(c)) {
+        errors.push(`[HTML] 不应引入外部 CDN（${rule.name}）: ${rel}`);
+      }
+    }
+
+    // Guardrail: legacy Font Awesome markup should not exist after migration.
+    if (/<i\b[^>]*\bclass\s*=\s*["'][^"']*\bfa[srb]?\b/i.test(c)) {
+      errors.push(`[HTML] 检测到遗留的 <i class="fa..."> 图标标记（应改为 SVG Sprite）: ${rel}`);
+    }
+  }
+
+  return errors;
+}
+
 function assertSitemapLocAreAbsolute() {
   const sitemapPath = path.join(workspaceRoot, 'sitemap.xml');
   if (!isFile(sitemapPath)) return [];
@@ -461,6 +489,7 @@ function main() {
   const targetBlankErrors = assertNoTargetBlankWithoutNoopener(htmlFiles);
   const sitemapErrors = assertSitemapLocAreAbsolute();
   const robotsErrors = assertRobotsHasAbsoluteSitemap();
+  const cdnErrors = assertNoExternalRuntimeCdn(htmlFiles);
 
   const versionResult = assertHtmlAssetVersionsConsistent(htmlFiles);
   const versionErrors = versionResult.errors;
@@ -475,6 +504,7 @@ function main() {
     ...cssDupErrors,
     ...pwaErrors,
     ...targetBlankErrors,
+    ...cdnErrors,
     ...sitemapErrors,
     ...robotsErrors,
     ...versionErrors,

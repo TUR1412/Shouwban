@@ -68,10 +68,13 @@ pwsh -NoLogo -NoProfile -Command 'npm run verify'
 
 ## 5) “字体/图标加载失败”
 
-默认使用 Google Fonts 与 Font Awesome CDN。
+当前版本默认不依赖运行时第三方 CDN（字体使用系统字体栈；图标使用本地 `assets/icons.svg`）。
 
-在某些网络环境下可能被拦截或较慢，生产环境建议：
+如果出现“图标缺失/空白”：
 
-- 自托管字体与图标资源
+- 确认 `assets/icons.svg` 存在且路径正确（可运行 `npm run verify`）
+- 若开启了 Service Worker，尝试在 DevTools → Application → Service Workers 中“更新/注销”后硬刷新
+
+如你在二次开发中引入第三方字体或图标资源（CDN），生产环境建议：
+- 自托管资源或启用版本号缓存穿透（`?v=`）
 - 配合部署平台配置 CSP/安全响应头（如需要）
-

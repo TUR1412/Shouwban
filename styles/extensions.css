@@ -755,6 +755,116 @@ html[data-theme="dark"] .view-toggle__btn.is-active {
   margin-top: var(--spacing-base);
 }
 
+/* Command Palette (Cmd/Ctrl+K) */
+.cmdk-dialog .cmdk-card {
+  width: min(720px, 92vw);
+  padding: var(--spacing-md);
+}
+
+.cmdk-header {
+  margin-bottom: var(--spacing-sm);
+}
+
+.cmdk-input-row {
+  margin: var(--spacing-xs) 0;
+}
+
+.cmdk-input {
+  width: 100%;
+  max-width: 100%;
+}
+
+.cmdk-meta {
+  font-size: var(--font-size-sm);
+  margin: var(--spacing-xs) 0 var(--spacing-sm);
+}
+
+.cmdk-list {
+  display: grid;
+  gap: var(--spacing-xs);
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.cmdk-item {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.70);
+  color: var(--color-text-dark);
+  border-radius: var(--border-radius-md);
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  text-align: left;
+  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.cmdk-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+}
+
+.cmdk-item[aria-selected="true"] {
+  border-color: rgba(var(--color-primary-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.18);
+}
+
+.cmdk-item__left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.cmdk-item__text {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.cmdk-item__title {
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+}
+
+.cmdk-item__desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmdk-item__hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 10px;
+  padding: 0.12rem 0.4rem;
+  flex: 0 0 auto;
+}
+
+html[data-theme="dark"] .cmdk-item {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(16, 23, 42, 0.62);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-theme="dark"] .cmdk-item__desc,
+html[data-theme="dark"] .cmdk-item__hint {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+html[data-theme="dark"] .cmdk-item__hint {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 /* Account page */
 .account-grid {
   display: grid;

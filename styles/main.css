@@ -167,6 +167,24 @@ img {
     vertical-align: middle; /* Remove bottom space */
 }
 
+/* ==============================================
+   Inline SVG Icon System (local sprite)
+   - 使用 assets/icons.svg 的 <symbol> + <use>
+   - 目标：替换 Font Awesome 等外部依赖
+   ============================================== */
+svg.icon {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    vertical-align: -0.125em;
+    color: currentColor;
+    flex: 0 0 auto;
+}
+
+svg.icon > use {
+    pointer-events: none;
+}
+
 img.lazyload {
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
     background-size: 200% 100%;
@@ -930,14 +948,24 @@ select:focus:not(:focus-visible) {
 }
 
 .footer__social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     color: var(--color-text-footer);
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-lg); /* icon size */
     transition: var(--transition-fast);
 }
 
 .footer__social-link:hover {
     color: var(--text-light-color);
-    transform: scale(1.1);
+    transform: translateY(-1px) scale(1.03);
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
 .footer__bottom {
