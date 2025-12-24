@@ -58,17 +58,29 @@
 
 ```mermaid
 flowchart LR
-  Host[静态托管<br/>GitHub Pages / Nginx / Netlify] --> HTML[多页面 HTML]
-  HTML --> CSS[styles/main.css + styles/extensions.css]
-  HTML --> MotionLite[scripts/motion.js<br/>Motion-lite (WAAPI)]
-  MotionLite --> Core[scripts/core.js]
-  Core --> JS[scripts/main.js]
+  Host["静态托管<br/>GitHub Pages / Nginx / Netlify"]
+  HTML["多页面 HTML"]
+  CSS["styles/main.css + styles/extensions.css"]
+  MotionLite["scripts/motion.js<br/>Motion-lite (WAAPI)"]
+  Core["scripts/core.js"]
+  JS["scripts/main.js"]
 
-  subgraph Browser[浏览器运行时]
-    JS --> Modules[模块：Header/Theme/Favorites/Cart/Compare/Orders/Promotion/Rewards/AddressBook/PriceAlerts...]
-    Modules <--> LS[(localStorage)]
-    JS --> SW[sw.js Service Worker]
-    SW <--> Cache[(Cache Storage)]
+  Host --> HTML
+  HTML --> CSS
+  HTML --> MotionLite
+  MotionLite --> Core
+  Core --> JS
+
+  subgraph Browser["浏览器运行时"]
+    Modules["模块：Header/Theme/Favorites/Cart/Compare/Orders/Promotion/Rewards/AddressBook/PriceAlerts..."]
+    LS[(localStorage)]
+    SW["sw.js Service Worker"]
+    Cache[(Cache Storage)]
+
+    JS --> Modules
+    Modules <--> LS
+    JS --> SW
+    SW <--> Cache
   end
 ```
 
