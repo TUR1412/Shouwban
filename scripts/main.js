@@ -225,6 +225,109 @@ const Utils = {
 };
 
 // ==============================================
+// State Hub (Event + Atom)
+// - 统一交互组件状态事件（不替换现有 window CustomEvent，保持兼容）
+// - 提供轻量 atom：读写本地持久化 + 订阅变更
+// ==============================================
+const StateHub = (function() {
+    const listeners = new Map();
+
+    function normalizeType(type) {
+        return String(type || '').trim();
+    }
+
+    function on(type, handler) {
+        const name = normalizeType(type);
+        if (!name || typeof handler !== 'function') return () => {};
+        const set = listeners.get(name) || new Set();
+        set.add(handler);
+        listeners.set(name, set);
+        return () => off(name, handler);
+    }
+
+    function off(type, handler) {
+        const name = normalizeType(type);
+        const set = listeners.get(name);
+        if (!set || set.size === 0) return false;
+        set.delete(handler);
+        if (set.size === 0) listeners.delete(name);
+        return true;
+    }
+
+    function emit(type, detail) {
+        const name = normalizeType(type);
+        if (!name) return 0;
+        const set = listeners.get(name);
+        if (!set || set.size === 0) return 0;
+
+        let called = 0;
+        set.forEach((fn) => {
+            try {
+                fn(detail);
+                called += 1;
+            } catch {
+                // ignore
+            }
+        });
+        return called;
+    }
+
+    function atom(storageKey, fallbackValue, { scope } = {}) {
+        const key = String(storageKey || '').trim();
+        const changeScope = String(scope || key).trim();
+
+        function get() {
+            return Utils.readStorageJSON(key, fallbackValue);
+        }
+
+        function set(value, options = {}) {
+            const ok = Utils.writeStorageJSON(key, value);
+            if (!ok) return { ok: false };
+            if (!options.silent) Utils.dispatchChanged(changeScope);
+            return { ok: true };
+        }
+
+        function update(updater, options = {}) {
+            const fn = typeof updater === 'function' ? updater : (v) => v;
+            const next = fn(get());
+            return set(next, options);
+        }
+
+        function subscribe(handler) {
+            if (typeof handler !== 'function') return () => {};
+            const eventName = `${changeScope}:changed`;
+            const wrapped = () => {
+                try { handler(get()); } catch { /* ignore */ }
+            };
+            try {
+                window.addEventListener(eventName, wrapped);
+            } catch {
+                // ignore
+            }
+            // Immediate fire for “state-driven UI”
+            wrapped();
+            return () => {
+                try { window.removeEventListener(eventName, wrapped); } catch { /* ignore */ }
+            };
+        }
+
+        return Object.freeze({ key, scope: changeScope, get, set, update, subscribe });
+    }
+
+    return Object.freeze({ on, off, emit, atom });
+})();
+
+// 将 window 事件与 StateHub 事件桥接（保持现有代码不变，同时让新模块可统一订阅）
+(function bridgeDispatchToStateHub() {
+    const originalDispatch = Utils.dispatch;
+    Utils.dispatch = (type, detail) => {
+        const ok = originalDispatch(type, detail);
+        try { StateHub.emit(type, detail); } catch { /* ignore */ }
+        return ok;
+    };
+})();
+
+// ==============================================
 // Local Icon System (SVG Sprite)
 // - Replace external icon CDN (Font Awesome) with a self-hosted sprite.
 // - Keep markup small + accessible.
@@ -1399,6 +1502,569 @@ const ViewTransitions = (function() {
 })();
 
 // ==============================================
+// Navigation Transitions (WAAPI Fallback)
+// - 若浏览器不支持跨文档 View Transition，则对站内跳转提供“离场动画”
+// - 避免干扰：支持 View Transition 时完全交给 CSS @view-transition
+// ==============================================
+const NavigationTransitions = (function() {
+    let layer = null;
+    let locked = false;
+
+    function canUseNative() {
+        try {
+            if (!globalThis.CSS || typeof globalThis.CSS.supports !== 'function') return false;
+            return Boolean(globalThis.CSS.supports('view-transition-name', 'vt-test'));
+        } catch {
+            return false;
+        }
+    }
+
+    function canAnimate() {
+        if (Utils.prefersReducedMotion()) return false;
+        const motion = globalThis.Motion;
+        if (motion && typeof motion.animate === 'function') return true;
+        return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function';
+    }
+
+    function ensureLayer() {
+        if (layer) return layer;
+        layer = document.querySelector('.nav-transition-layer');
+        if (layer) return layer;
+
+        layer = document.createElement('div');
+        layer.className = 'nav-transition-layer';
+        layer.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(layer);
+        return layer;
+    }
+
+    function animate(el, keyframes, options) {
+        const motion = globalThis.Motion;
+        if (motion && typeof motion.animate === 'function') {
+            return motion.animate(el, keyframes, options);
+        }
+        try {
+            return el.animate(keyframes, options);
+        } catch {
+            return null;
+        }
+    }
+
+    function playExit() {
+        if (!canAnimate()) return Promise.resolve();
+        const el = ensureLayer();
+        if (!el) return Promise.resolve();
+
+        try {
+            el.getAnimations?.().forEach((a) => a.cancel());
+        } catch {
+            // ignore
+        }
+
+        el.style.opacity = '0';
+        el.style.transform = 'translate3d(0, 0, 0) scale(1)';
+
+        const anim = animate(
+            el,
+            { opacity: [0, 1], transform: ['translate3d(0, 8px, 0) scale(1)', 'translate3d(0, 0, 0) scale(1.02)'] },
+            { duration: 0.32, easing: [0.22, 1, 0.36, 1], fill: 'both' },
+        );
+        if (anim && anim.finished) return anim.finished.catch(() => {});
+
+        // Fallback: immediate
+        el.style.opacity = '1';
+        return Promise.resolve();
+    }
+
+    function getUrl(href) {
+        try {
+            return new URL(href, window.location.href);
+        } catch {
+            return null;
+        }
+    }
+
+    function isSameDocumentNavigation(url) {
+        try {
+            if (!url) return false;
+            const current = new URL(window.location.href);
+            // 仅 hash 变化：交给浏览器默认行为
+            return url.origin === current.origin && url.pathname === current.pathname && url.search === current.search;
+        } catch {
+            return false;
+        }
+    }
+
+    function shouldHandleAnchor(anchor, event) {
+        if (!anchor || !event) return false;
+        if (event.defaultPrevented) return false;
+        if (event.button !== 0) return false;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+
+        const target = String(anchor.getAttribute('target') || '').trim();
+        if (target && target !== '_self') return false;
+        if (anchor.hasAttribute('download')) return false;
+
+        const href = anchor.getAttribute('href') || anchor.href;
+        if (!href) return false;
+        const url = getUrl(href);
+        if (!url) return false;
+        if (url.origin !== window.location.origin) return false;
+        if (isSameDocumentNavigation(url) && url.hash) return false;
+        return true;
+    }
+
+    function init() {
+        // 支持 View Transition 的浏览器：使用 CSS @view-transition(navigation:auto)
+        if (canUseNative()) return;
+        if (!canAnimate()) return;
+
+        document.addEventListener(
+            'click',
+            async (event) => {
+                if (locked) return;
+                const anchor = event.target?.closest?.('a[href]');
+                if (!shouldHandleAnchor(anchor, event)) return;
+                const url = getUrl(anchor.getAttribute('href') || anchor.href);
+                if (!url) return;
+
+                locked = true;
+                event.preventDefault();
+                try {
+                    await playExit();
+                } finally {
+                    window.location.href = url.href;
+                }
+            },
+            { capture: true },
+        );
+    }
+
+    return { init };
+})();
+
+// ==============================================
+// HTTP Client (Retry + Cache)
+// - 为未来 API 对接准备：统一错误重试、超时、GET 缓存
+// - 当前主要用于埋点上报 / 预取（可选）
+// ==============================================
+const Http = (function() {
+    const memoryCache = new Map();
+
+    function now() {
+        return Date.now();
+    }
+
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function jitter(ms) {
+        const n = Number(ms);
+        if (!Number.isFinite(n) || n <= 0) return 0;
+        return Math.round(n * (0.85 + Math.random() * 0.3));
+    }
+
+    function normalizeMethod(method) {
+        return String(method || 'GET').trim().toUpperCase() || 'GET';
+    }
+
+    function normalizeUrl(url) {
+        try {
+            return new URL(String(url || ''), window.location.href).toString();
+        } catch {
+            return '';
+        }
+    }
+
+    function cacheGet(key) {
+        const entry = memoryCache.get(key);
+        if (!entry) return null;
+        if (!Number.isFinite(entry.expiresAt) || entry.expiresAt <= now()) {
+            memoryCache.delete(key);
+            return null;
+        }
+        return entry;
+    }
+
+    function cacheSet(key, value, ttlMs) {
+        const ttl = Number(ttlMs);
+        if (!Number.isFinite(ttl) || ttl <= 0) return false;
+        memoryCache.set(key, { expiresAt: now() + ttl, ...value });
+        return true;
+    }
+
+    function shouldRetryStatus(status) {
+        const s = Number(status);
+        if (!Number.isFinite(s)) return false;
+        return s === 429 || (s >= 500 && s <= 599);
+    }
+
+    async function request(url, options = {}, config = {}) {
+        const href = normalizeUrl(url);
+        if (!href) return { ok: false, status: 0, error: 'invalid_url' };
+
+        const opts = options && typeof options === 'object' ? options : {};
+        const cfg = config && typeof config === 'object' ? config : {};
+
+        const method = normalizeMethod(opts.method);
+        const isGet = method === 'GET';
+
+        const timeoutMs = Number.isFinite(Number(cfg.timeoutMs)) ? Number(cfg.timeoutMs) : 9000;
+        const retries = Number.isFinite(Number(cfg.retries)) ? Math.max(0, Math.min(4, Number(cfg.retries))) : 2;
+        const baseDelayMs = Number.isFinite(Number(cfg.baseDelayMs)) ? Math.max(60, Number(cfg.baseDelayMs)) : 260;
+        const maxDelayMs = Number.isFinite(Number(cfg.maxDelayMs)) ? Math.max(baseDelayMs, Number(cfg.maxDelayMs)) : 2000;
+        const cacheTtlMs = isGet && Number.isFinite(Number(cfg.cacheTtlMs)) ? Math.max(0, Number(cfg.cacheTtlMs)) : 0;
+        const cacheKey = isGet ? String(cfg.cacheKey || `${method}:${href}`) : '';
+
+        if (isGet && cacheTtlMs > 0) {
+            const cached = cacheGet(cacheKey);
+            if (cached) {
+                return {
+                    ok: true,
+                    status: 200,
+                    cached: true,
+                    url: href,
+                    headers: cached.headers || {},
+                    text: cached.text || '',
+                };
+            }
+        }
+
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            const timer = timeoutMs > 0
+                ? setTimeout(() => {
+                    try { controller?.abort?.(); } catch { /* ignore */ }
+                }, timeoutMs)
+                : null;
+
+            try {
+                const res = await fetch(href, { ...opts, method, signal: controller?.signal });
+                const status = res?.status || 0;
+
+                const headers = {};
+                try {
+                    res?.headers?.forEach?.((value, key) => {
+                        headers[String(key || '').toLowerCase()] = String(value ?? '');
+                    });
+                } catch {
+                    // ignore
+                }
+
+                const text = await res.text();
+                const ok = Boolean(res && res.ok);
+
+                if (ok) {
+                    if (isGet && cacheTtlMs > 0) {
+                        cacheSet(cacheKey, { text, headers }, cacheTtlMs);
+                    }
+                    return { ok: true, status, url: href, headers, text };
+                }
+
+                const retryable = shouldRetryStatus(status);
+                if (!retryable || attempt >= retries) {
+                    return { ok: false, status, url: href, headers, text };
+                }
+            } catch (error) {
+                if (attempt >= retries) {
+                    return { ok: false, status: 0, url: href, error: String(error?.message || error || 'network_error') };
+                }
+            } finally {
+                if (timer) clearTimeout(timer);
+            }
+
+            const backoff = Math.min(maxDelayMs, baseDelayMs * (2 ** attempt));
+            await sleep(jitter(backoff));
+        }
+
+        return { ok: false, status: 0, url: href, error: 'unknown' };
+    }
+
+    async function getJSON(url, options = {}, config = {}) {
+        const res = await request(url, { ...options, method: 'GET' }, config);
+        if (!res.ok) return { ...res, data: null };
+        try {
+            const data = JSON.parse(res.text || 'null');
+            return { ...res, data };
+        } catch {
+            return { ...res, ok: false, error: 'invalid_json', data: null };
+        }
+    }
+
+    async function postJSON(url, body, options = {}, config = {}) {
+        const headers = { ...(options.headers || {}) };
+        if (!headers['Content-Type'] && !headers['content-type']) {
+            headers['Content-Type'] = 'application/json; charset=utf-8';
+        }
+        const payload = JSON.stringify(body ?? {});
+        return request(
+            url,
+            { ...options, method: 'POST', headers, body: payload },
+            config,
+        );
+    }
+
+    return { request, getJSON, postJSON };
+})();
+
+// ==============================================
+// Prefetch Engine (Search Prefetch / Hover Prefetch)
+// - 基于 <link rel="prefetch/preload">，无依赖
+// - 自动避开 save-data/弱网场景，避免占用带宽
+// ==============================================
+const Prefetch = (function() {
+    const seen = new Set();
+    const maxLinks = 48;
+
+    function canPrefetch() {
+        try {
+            const conn = navigator?.connection;
+            const saveData = Boolean(conn?.saveData);
+            const effectiveType = String(conn?.effectiveType || '').toLowerCase();
+            if (saveData) return false;
+            if (effectiveType === '2g' || effectiveType === 'slow-2g') return false;
+        } catch {
+            // ignore
+        }
+        return true;
+    }
+
+    function schedule(task) {
+        const fn = typeof task === 'function' ? task : null;
+        if (!fn) return;
+        try {
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => fn(), { timeout: 1200 });
+                return;
+            }
+        } catch {
+            // ignore
+        }
+        setTimeout(() => fn(), 120);
+    }
+
+    function injectLink({ rel, href, as } = {}) {
+        const safeRel = String(rel || '').trim();
+        const safeHref = String(href || '').trim();
+        if (!safeRel || !safeHref) return false;
+        if (seen.size >= maxLinks) return false;
+
+        const key = `${safeRel}:${safeHref}:${String(as || '')}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+
+        try {
+            const link = document.createElement('link');
+            link.rel = safeRel;
+            link.href = safeHref;
+            if (as) link.as = String(as);
+            document.head.appendChild(link);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function prefetchUrl(href, options = {}) {
+        if (!canPrefetch()) return;
+        const opts = options && typeof options === 'object' ? options : {};
+        const rel = opts.rel || 'prefetch';
+        const as = opts.as;
+        const url = (() => {
+            try { return new URL(String(href || ''), window.location.href).toString(); } catch { return ''; }
+        })();
+        if (!url) return;
+
+        schedule(() => injectLink({ rel, href: url, as }));
+    }
+
+    function prefetchProduct(product) {
+        const id = String(product?.id || product || '').trim();
+        if (!id) return;
+        prefetchUrl(`product-detail.html?id=${encodeURIComponent(id)}`, { rel: 'prefetch' });
+
+        const image = product?.images && product.images[0] ? String(product.images[0].thumb || product.images[0].large || '').trim() : '';
+        if (image) {
+            prefetchUrl(image, { rel: 'preload', as: 'image' });
+        }
+    }
+
+    function prefetchSearch(query) {
+        const q = String(query || '').trim();
+        if (!q) return;
+        prefetchUrl(`products.html?query=${encodeURIComponent(q)}`, { rel: 'prefetch' });
+    }
+
+    return { prefetchUrl, prefetchProduct, prefetchSearch };
+})();
+
+// ==============================================
+// Telemetry (User Behavior Tracking)
+// - 默认仅本地队列，不上传（可配置 endpoint 后自动上报）
+// - 避免 PII：对用户输入做 hash + 长度统计，不存原文
+// ==============================================
+const Telemetry = (function() {
+    const queueKey = 'sbTelemetryQueue';
+    const endpointKey = 'sbTelemetryEndpoint';
+    const maxQueue = 240;
+
+    function fnv1a32(str) {
+        const s = String(str || '');
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < s.length; i += 1) {
+            hash ^= s.charCodeAt(i);
+            // hash *= 16777619 (via shifts)
+            hash = (hash + (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) >>> 0;
+        }
+        return hash >>> 0;
+    }
+
+    function getSessionId() {
+        const key = 'sbTelemetrySessionId';
+        try {
+            const cached = sessionStorage.getItem(key);
+            if (cached) return cached;
+        } catch {
+            // ignore
+        }
+        const id = Utils.generateId('T');
+        try { sessionStorage.setItem(key, id); } catch { /* ignore */ }
+        return id;
+    }
+
+    function readQueue() {
+        const list = Utils.readStorageJSON(queueKey, []);
+        return Array.isArray(list) ? list : [];
+    }
+
+    function writeQueue(list) {
+        const safe = Array.isArray(list) ? list : [];
+        Utils.writeStorageJSON(queueKey, safe.slice(-maxQueue));
+    }
+
+    function resolveEndpoint() {
+        try {
+            const meta = document.querySelector('meta[name="shouwban-telemetry-endpoint"]');
+            const fromMeta = meta?.getAttribute?.('content') || '';
+            const fromStorage = localStorage.getItem(endpointKey) || '';
+            const fromWindow = globalThis.__SHOUWBAN_TELEMETRY__?.endpoint || '';
+            const raw = String(fromWindow || fromMeta || fromStorage || '').trim();
+            return raw;
+        } catch {
+            return '';
+        }
+    }
+
+    function baseContext() {
+        return {
+            ts: Date.now(),
+            page: Utils.getPageName(),
+            href: (() => { try { return window.location.href; } catch { return ''; } })(),
+            ref: String(document.referrer || ''),
+            sid: getSessionId(),
+            theme: (() => {
+                try { return String(document.documentElement?.dataset?.theme || ''); } catch { return ''; }
+            })(),
+        };
+    }
+
+    function track(name, payload = {}, options = {}) {
+        const eventName = String(name || '').trim();
+        if (!eventName) return false;
+
+        const data = payload && typeof payload === 'object' ? payload : {};
+        const evt = {
+            id: Utils.generateId('E'),
+            name: eventName,
+            ...baseContext(),
+            payload: data,
+        };
+
+        const queue = readQueue();
+        queue.push(evt);
+        writeQueue(queue);
+
+        if (options.flush === true) {
+            flush();
+        }
+        return true;
+    }
+
+    async function flush() {
+        const endpoint = resolveEndpoint();
+        if (!endpoint) return { ok: false, reason: 'no_endpoint' };
+
+        const events = readQueue();
+        if (events.length === 0) return { ok: true, sent: 0 };
+
+        const res = await Http.postJSON(
+            endpoint,
+            { sentAt: Date.now(), events },
+            {},
+            { retries: 2, baseDelayMs: 280, maxDelayMs: 2200, timeoutMs: 9000 },
+        );
+
+        if (res.ok) {
+            writeQueue([]);
+            return { ok: true, sent: events.length };
+        }
+        return { ok: false, status: res.status || 0 };
+    }
+
+    function trackPageView() {
+        track('page_view', { title: String(document.title || '') });
+    }
+
+    function attachGlobalListeners() {
+        // 核心状态变化（不存具体数据，只存计数）
+        window.addEventListener('cart:changed', () => {
+            try {
+                const lines = Utils.readStorageJSON('cart', []);
+                const count = Array.isArray(lines)
+                    ? lines.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0)
+                    : 0;
+                track('cart_changed', { count: Math.max(0, count) });
+            } catch {
+                track('cart_changed', { count: 0 });
+            }
+        });
+
+        window.addEventListener('favorites:changed', () => {
+            const ids = Utils.normalizeStringArray(Utils.readStorageJSON('favorites', []));
+            track('favorites_changed', { count: ids.length });
+        });
+
+        window.addEventListener('compare:changed', () => {
+            const ids = Utils.normalizeStringArray(Utils.readStorageJSON('compare', []));
+            track('compare_changed', { count: ids.length });
+        });
+
+        // 页面生命周期：尽可能 flush
+        const flushSoon = () => { flush(); };
+        window.addEventListener('pagehide', flushSoon);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flushSoon();
+        });
+    }
+
+    function hashQuery(query) {
+        const q = String(query || '').trim();
+        return {
+            qLen: q.length,
+            qHash: q ? fnv1a32(q) : 0,
+        };
+    }
+
+    function init() {
+        trackPageView();
+        attachGlobalListeners();
+    }
+
+    return { init, track, flush, hashQuery };
+})();
+
+// ==============================================
 // Header Module
 // ==============================================
 const Header = (function() {
@@ -1522,6 +2188,23 @@ const Header = (function() {
         event.preventDefault(); // Prevent default form submission
         const searchTerm = searchInput?.value.trim();
         if (searchTerm) {
+            try {
+                if (typeof Telemetry !== 'undefined' && Telemetry.track && Telemetry.hashQuery) {
+                    const h = Telemetry.hashQuery(searchTerm);
+                    Telemetry.track('search_submit', { ...h }, { flush: true });
+                }
+            } catch {
+                // ignore
+            }
+
+            try {
+                if (typeof Prefetch !== 'undefined' && Prefetch.prefetchSearch) {
+                    Prefetch.prefetchSearch(searchTerm);
+                }
+            } catch {
+                // ignore
+            }
+
             // Redirect to products page with search query
             window.location.href = `products.html?query=${encodeURIComponent(searchTerm)}`;
         } else {
@@ -1643,6 +2326,15 @@ const Header = (function() {
             return;
         }
 
+        // 实时搜索预提取：预取搜索页 + Top 建议详情页/首图（弱网/save-data 自动跳过）
+        try {
+            const q = searchInput?.value || '';
+            Prefetch?.prefetchSearch?.(q);
+            suggestions.slice(0, 2).forEach((item) => Prefetch?.prefetchProduct?.(item));
+        } catch {
+            // ignore
+        }
+
         suggestions.forEach((item, index) => {
             const link = document.createElement('a');
             link.className = 'header__search-suggestion';
@@ -1678,7 +2370,18 @@ const Header = (function() {
             link.appendChild(textWrap);
             link.appendChild(price);
             link.addEventListener('click', () => {
+                try {
+                    const q = searchInput?.value || '';
+                    const h = Telemetry?.hashQuery?.(q) || { qLen: 0, qHash: 0 };
+                    const pid = String(item?.id || '').trim();
+                    Telemetry?.track?.('search_suggestion_click', { ...h, productId: pid, index: index + 1 }, { flush: true });
+                } catch {
+                    // ignore
+                }
                 clearSearchSuggestions();
+            });
+            link.addEventListener('mouseenter', () => {
+                try { Prefetch?.prefetchProduct?.(item); } catch { /* ignore */ }
             });
 
             box.appendChild(link);
@@ -2307,6 +3010,77 @@ const ImageFallback = (function() {
 })();
 
 // ==============================================
+// Skeleton Screen Module
+// - 用于“首屏/慢渲染”占位，提升感知性能
+// - 仅在需要时挂载，不影响实际数据渲染
+// ==============================================
+const Skeleton = (function() {
+    function escapeAttr(value) {
+        return Utils.escapeHtml(String(value ?? ''));
+    }
+
+    function createProductCardSkeletonHTML({ index = 0 } = {}) {
+        const id = `skeleton-${index + 1}`;
+        const aria = `aria-hidden="true" data-skeleton="1" data-skeleton-id="${escapeAttr(id)}"`;
+        return `
+          <div class="product-card skeleton skeleton-card fade-in-up" ${aria}>
+              <div class="product-card__image skeleton-card__media"></div>
+              <div class="product-card__content skeleton-card__content">
+                  <div class="skeleton-line" style="width: 72%"></div>
+                  <div class="skeleton-line" style="width: 52%"></div>
+                  <div class="skeleton-line" style="width: 36%"></div>
+              </div>
+          </div>
+        `;
+    }
+
+    function mountGrid(grid, { count = 8 } = {}) {
+        const host = grid && grid.nodeType === 1 ? grid : null;
+        if (!host) return false;
+        if (host.dataset && host.dataset.skeletonMounted === '1') return true;
+
+        const n = Math.max(1, Math.min(24, Number(count) || 8));
+        try { host.dataset.skeletonMounted = '1'; } catch { /* ignore */ }
+        host.innerHTML = Array.from({ length: n }, (_, i) => createProductCardSkeletonHTML({ index: i })).join('');
+
+        // 保持现有动效/懒加载体系一致
+        try {
+            if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) ScrollAnimations.init(host);
+        } catch {
+            // ignore
+        }
+        return true;
+    }
+
+    function clear(grid) {
+        const host = grid && grid.nodeType === 1 ? grid : null;
+        if (!host) return false;
+        if (!host.dataset || host.dataset.skeletonMounted !== '1') return false;
+
+        try { delete host.dataset.skeletonMounted; } catch { /* ignore */ }
+        // 不主动清空 innerHTML：由调用方渲染真实内容覆盖
+        return true;
+    }
+
+    async function withGridSkeleton(grid, task, { count = 8 } = {}) {
+        const host = grid && grid.nodeType === 1 ? grid : null;
+        const fn = typeof task === 'function' ? task : null;
+        if (!host || !fn) return;
+
+        mountGrid(host, { count });
+        // 让浏览器先绘制一帧 skeleton，再进行重渲染（更接近真实“骨架屏”）
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        try {
+            fn();
+        } finally {
+            clear(host);
+        }
+    }
+
+    return { mountGrid, clear, withGridSkeleton };
+})();
+
+// ==============================================
 // Toast / Feedback Module (轻量提示，不依赖外部库)
 // ==============================================
 const Toast = (function() {
@@ -2341,6 +3115,24 @@ const Toast = (function() {
             toast.classList.remove('is-visible');
             toast.addEventListener('transitionend', () => toast.remove(), { once: true });
         }, Math.max(800, durationMs));
+    }
+
+    // 允许任意模块通过 Utils.dispatch('toast:show', {...}) 触发全局提示
+    try {
+        window.addEventListener('toast:show', (event) => {
+            const detail = event?.detail;
+            if (!detail) return;
+            if (typeof detail === 'string') {
+                show(detail, 'info', 2200);
+                return;
+            }
+            const msg = detail.message || detail.text || '';
+            const type = detail.type || 'info';
+            const duration = Number(detail.durationMs ?? detail.duration ?? 2400);
+            show(msg, type, duration);
+        });
+    } catch {
+        // ignore
     }
 
     return { show };
@@ -6087,9 +6879,26 @@ const ProductListing = (function(){
     const activeFiltersContainer = listingContainer.querySelector('[data-active-filters]');
     const paginationContainer = listingContainer.querySelector('.pagination');
     const breadcrumbContainer = listingContainer.querySelector('.breadcrumb-nav .breadcrumb');
+    const advancedFilterToggle = listingContainer.querySelector('.filter-toggle');
     const sortStorageKey = 'plpSort';
     const filterStorageKey = 'plpFilter';
     const viewStorageKey = 'plpViewMode';
+    const advancedFilterStorageKey = 'plpFiltersV2';
+
+    const defaultAdvancedFilters = Object.freeze({
+        categories: [],
+        tags: [],
+        status: [],
+        rarity: [],
+        priceMin: null,
+        priceMax: null,
+        ratingMin: null,
+    });
+
+    const advancedFilterAtom =
+        typeof StateHub !== 'undefined' && StateHub.atom
+            ? StateHub.atom(advancedFilterStorageKey, defaultAdvancedFilters, { scope: 'plpFiltersV2' })
+            : null;
 
     // State Variables (Keep existing)
     let currentPage = 1;
@@ -6101,6 +6910,10 @@ const ProductListing = (function(){
     let pageMode = 'all';
     let currentQuery = '';
     let currentCategory = '';
+    let hasRenderedOnce = false;
+    let advancedFilters = defaultAdvancedFilters;
+    let filterDialog = null;
+    let lastPrefetchProductId = '';
     let allProductsCache = [];
     let baseTitle = '';
     let stressCount = 0; // URL 参数：?stress=100000（仅用于性能压测/演示）
@@ -6259,12 +7072,62 @@ const ProductListing = (function(){
         return map[sortKey] || '默认排序';
     }
 
+    function normalizePickList(value, allowed) {
+        const allow = new Set(Array.isArray(allowed) ? allowed : []);
+        const list = Utils.normalizeStringArray(Array.isArray(value) ? value : []);
+        return Array.from(new Set(list.filter((x) => allow.has(x))));
+    }
+
+    function normalizeNumberOrNull(value, { min = 0, max = 999999 } = {}) {
+        const n = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+        if (!Number.isFinite(n)) return null;
+        const clamped = Math.min(max, Math.max(min, n));
+        return clamped;
+    }
+
+    function normalizeAdvancedFilters(raw) {
+        const obj = raw && typeof raw === 'object' ? raw : {};
+        const categories = normalizePickList(obj.categories, ['scale', 'nendoroid', 'figma', 'other']);
+        const tags = normalizePickList(obj.tags, ['hot', 'limited', 'preorder']);
+        const status = normalizePickList(obj.status, ['预售', '现货']);
+        const rarity = normalizePickList(obj.rarity, ['限定', '常规']);
+        const priceMin = normalizeNumberOrNull(obj.priceMin, { min: 0, max: 999999 });
+        const priceMax = normalizeNumberOrNull(obj.priceMax, { min: 0, max: 999999 });
+        const ratingMin = normalizeNumberOrNull(obj.ratingMin, { min: 0, max: 5 });
+
+        // 价格区间纠偏：min > max 时交换，避免 UI 输入导致“无结果”
+        if (Number.isFinite(priceMin) && Number.isFinite(priceMax) && priceMin > priceMax) {
+            return { categories, tags, status, rarity, priceMin: priceMax, priceMax: priceMin, ratingMin };
+        }
+
+        return { categories, tags, status, rarity, priceMin, priceMax, ratingMin };
+    }
+
+    function isAdvancedFiltersActive(filters) {
+        const f = filters && typeof filters === 'object' ? filters : defaultAdvancedFilters;
+        if (Array.isArray(f.categories) && f.categories.length > 0) return true;
+        if (Array.isArray(f.tags) && f.tags.length > 0) return true;
+        if (Array.isArray(f.status) && f.status.length > 0) return true;
+        if (Array.isArray(f.rarity) && f.rarity.length > 0) return true;
+        if (Number.isFinite(Number(f.priceMin)) || Number.isFinite(Number(f.priceMax))) return true;
+        if (Number.isFinite(Number(f.ratingMin))) return true;
+        return false;
+    }
+
+    function setAdvancedFilters(next, options = {}) {
+        const opts = options && typeof options === 'object' ? options : {};
+        advancedFilters = normalizeAdvancedFilters(next);
+        try { advancedFilterAtom?.set?.(advancedFilters, opts); } catch { /* ignore */ }
+        updateActiveFilterPills(getSortLabel(currentSort), getFilterLabel(currentFilter));
+    }
+
     function updateListingMeta(total) {
         if (!listingSummary) return;
         const safeTotal = Number.isFinite(total) ? total : 0;
         const sortLabel = getSortLabel(currentSort);
         const filterLabel = getFilterLabel(currentFilter);
-        listingSummary.textContent = `共 ${safeTotal} 件藏品 · ${sortLabel} · ${filterLabel}`;
+        const advLabel = isAdvancedFiltersActive(advancedFilters) ? ' · 多级筛选' : '';
+        listingSummary.textContent = `共 ${safeTotal} 件藏品 · ${sortLabel} · ${filterLabel}${advLabel}`;
         updateActiveFilterPills(sortLabel, filterLabel);
     }
 
@@ -6272,8 +7135,67 @@ const ProductListing = (function(){
         if (!activeFiltersContainer) return;
         const pills = [];
         if (currentFilter && currentFilter !== 'all') {
-            pills.push(`<span class="filter-pill filter-pill--accent">筛选：${Utils.escapeHtml(filterLabel)}</span>`);
+            pills.push(`<span class="filter-pill filter-pill--accent">快速：${Utils.escapeHtml(filterLabel)}</span>`);
         }
+
+        // 多级筛选 pills（OR within group, AND across groups）
+        const f = advancedFilters && typeof advancedFilters === 'object' ? advancedFilters : defaultAdvancedFilters;
+        const tagMap = { hot: '热门', limited: '限定', preorder: '预售' };
+
+        const categoryName = (key) => {
+            try {
+                if (typeof SharedData !== 'undefined' && typeof SharedData.getCategoryName === 'function') {
+                    return SharedData.getCategoryName(key);
+                }
+            } catch {
+                // ignore
+            }
+            const map = { scale: '比例手办', nendoroid: '粘土人', figma: 'Figma', other: '其他手办' };
+            return map[key] || key;
+        };
+
+        const formatMoney = (value) => {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return '';
+            try {
+                if (typeof Pricing !== 'undefined' && typeof Pricing.formatCny === 'function') {
+                    return Pricing.formatCny(n);
+                }
+            } catch {
+                // ignore
+            }
+            return `￥${n.toFixed(2)}`;
+        };
+
+        (f.categories || []).forEach((key) => {
+            pills.push(`<span class="filter-pill">分类：${Utils.escapeHtml(categoryName(key))}</span>`);
+        });
+
+        (f.tags || []).forEach((key) => {
+            const label = tagMap[key] || key;
+            pills.push(`<span class="filter-pill">标签：${Utils.escapeHtml(label)}</span>`);
+        });
+
+        (f.status || []).forEach((key) => {
+            pills.push(`<span class="filter-pill">状态：${Utils.escapeHtml(key)}</span>`);
+        });
+
+        (f.rarity || []).forEach((key) => {
+            pills.push(`<span class="filter-pill">稀有：${Utils.escapeHtml(key)}</span>`);
+        });
+
+        const hasMin = Number.isFinite(Number(f.priceMin));
+        const hasMax = Number.isFinite(Number(f.priceMax));
+        if (hasMin || hasMax) {
+            const minText = hasMin ? formatMoney(f.priceMin) : '不限';
+            const maxText = hasMax ? formatMoney(f.priceMax) : '不限';
+            pills.push(`<span class="filter-pill">价格：${Utils.escapeHtml(`${minText} - ${maxText}`)}</span>`);
+        }
+
+        if (Number.isFinite(Number(f.ratingMin))) {
+            pills.push(`<span class="filter-pill">评分：≥${Utils.escapeHtml(String(Number(f.ratingMin).toFixed(1)))}</span>`);
+        }
+
         if (currentSort && currentSort !== 'default') {
             pills.push(`<span class="filter-pill">排序：${Utils.escapeHtml(sortLabel)}</span>`);
         }
@@ -6281,6 +7203,17 @@ const ProductListing = (function(){
             const viewLabel = currentView === 'list' ? '列表视图' : '网格视图';
             pills.push(`<span class="filter-pill">视图：${Utils.escapeHtml(viewLabel)}</span>`);
         }
+
+        // 防止 pills 过多撑爆布局：最多显示 8 个
+        const maxPills = 8;
+        if (pills.length > maxPills) {
+            const more = pills.length - (maxPills - 1);
+            const head = pills.slice(0, maxPills - 1);
+            head.push(`<span class="filter-pill">+${Utils.escapeHtml(String(more))}</span>`);
+            activeFiltersContainer.innerHTML = head.join('');
+            return;
+        }
+
         activeFiltersContainer.innerHTML = pills.join('');
     }
 
@@ -6308,6 +7241,7 @@ const ProductListing = (function(){
         currentFilter = 'all';
         currentSort = 'default';
         currentPage = 1;
+        setAdvancedFilters(defaultAdvancedFilters, { silent: true });
         if (sortSelect) sortSelect.value = 'default';
         syncFilterButtons();
         try {
@@ -6320,6 +7254,230 @@ const ProductListing = (function(){
         renderPage();
         if (typeof Toast !== 'undefined' && Toast.show) {
             Toast.show('已重置筛选与排序', 'info', 1600);
+        }
+    }
+
+    // --- Advanced Filter Dialog (多级智能筛选引擎 UI) ---
+    function ensureFilterDialog() {
+        if (filterDialog) return filterDialog;
+        if (!document.body) return null;
+
+        const categoryName = (key) => {
+            try {
+                if (typeof SharedData !== 'undefined' && typeof SharedData.getCategoryName === 'function') {
+                    return SharedData.getCategoryName(key);
+                }
+            } catch {
+                // ignore
+            }
+            const map = { scale: '比例手办', nendoroid: '粘土人', figma: 'Figma', other: '其他手办' };
+            return map[key] || key;
+        };
+
+        const dialog = document.createElement('dialog');
+        dialog.className = 'glass-dialog filter-dialog';
+        dialog.setAttribute('aria-label', '高级筛选');
+        dialog.innerHTML = `
+          <div class="glass-dialog__card filter-dialog__card">
+              <div class="glass-dialog__header">
+                  <h3 class="glass-dialog__title">多级智能筛选</h3>
+                  <p class="glass-dialog__subtitle text-muted">分类 · 标签 · 价格 · 评分 · 状态（实时预览）</p>
+              </div>
+              <div class="filter-dialog__content">
+                  <div class="filter-section">
+                      <h4 class="filter-section__title">分类</h4>
+                      <div class="filter-options">
+                          ${['scale', 'nendoroid', 'figma', 'other'].map((key) => `
+                              <label class="filter-option">
+                                  <input type="checkbox" name="adv-category" value="${Utils.escapeHtml(key)}" />
+                                  <span>${Utils.escapeHtml(categoryName(key))}</span>
+                              </label>
+                          `).join('')}
+                      </div>
+                  </div>
+
+                  <div class="filter-section">
+                      <h4 class="filter-section__title">标签</h4>
+                      <div class="filter-options">
+                          ${[
+                              { key: 'hot', label: '热门' },
+                              { key: 'limited', label: '限定' },
+                              { key: 'preorder', label: '预售' },
+                          ].map((item) => `
+                              <label class="filter-option">
+                                  <input type="checkbox" name="adv-tag" value="${Utils.escapeHtml(item.key)}" />
+                                  <span>${Utils.escapeHtml(item.label)}</span>
+                              </label>
+                          `).join('')}
+                      </div>
+                  </div>
+
+                  <div class="filter-section">
+                      <h4 class="filter-section__title">状态 / 稀有度</h4>
+                      <div class="filter-options">
+                          ${['预售', '现货'].map((label) => `
+                              <label class="filter-option">
+                                  <input type="checkbox" name="adv-status" value="${Utils.escapeHtml(label)}" />
+                                  <span>${Utils.escapeHtml(label)}</span>
+                              </label>
+                          `).join('')}
+                          ${['限定', '常规'].map((label) => `
+                              <label class="filter-option">
+                                  <input type="checkbox" name="adv-rarity" value="${Utils.escapeHtml(label)}" />
+                                  <span>${Utils.escapeHtml(label)}</span>
+                              </label>
+                          `).join('')}
+                      </div>
+                  </div>
+
+                  <div class="filter-section">
+                      <h4 class="filter-section__title">价格区间（￥）</h4>
+                      <div class="filter-range">
+                          <input class="glass-dialog__input" type="number" inputmode="decimal" placeholder="最低价" min="0" step="1" data-filter-field="priceMin" />
+                          <span class="filter-range__sep">—</span>
+                          <input class="glass-dialog__input" type="number" inputmode="decimal" placeholder="最高价" min="0" step="1" data-filter-field="priceMax" />
+                      </div>
+                  </div>
+
+                  <div class="filter-section">
+                      <h4 class="filter-section__title">最低评分</h4>
+                      <select class="glass-dialog__input" data-filter-field="ratingMin" aria-label="最低评分">
+                          <option value="">不限</option>
+                          <option value="4.0">4.0+</option>
+                          <option value="4.5">4.5+</option>
+                          <option value="4.8">4.8+</option>
+                      </select>
+                  </div>
+
+                  <div class="filter-dialog__preview text-muted">
+                      符合条件：<strong data-filter-preview-count>0</strong> 件
+                  </div>
+              </div>
+              <div class="glass-dialog__actions filter-dialog__actions">
+                  <button type="button" class="cta-button-secondary" data-filter-reset>重置</button>
+                  <button type="button" class="cta-button-secondary" data-filter-close>关闭</button>
+                  <button type="button" class="cta-button" data-filter-apply>应用</button>
+              </div>
+          </div>
+        `;
+
+        document.body.appendChild(dialog);
+        filterDialog = dialog;
+
+        // 点击遮罩关闭（对话框本体作为 backdrop 点击）
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) {
+                try { dialog.close(); } catch { /* ignore */ }
+            }
+        });
+
+        const updatePreviewDebounced = Utils.debounce(() => updateFilterDialogPreview(), 80);
+        dialog.addEventListener('input', updatePreviewDebounced);
+
+        dialog.addEventListener('click', (event) => {
+            const applyBtn = event.target?.closest?.('[data-filter-apply]');
+            const resetBtn = event.target?.closest?.('[data-filter-reset]');
+            const closeBtn = event.target?.closest?.('[data-filter-close]');
+
+            if (closeBtn) {
+                try { dialog.close(); } catch { /* ignore */ }
+                return;
+            }
+
+            if (resetBtn) {
+                setAdvancedFilters(defaultAdvancedFilters, { silent: false });
+                syncFilterDialogFromState();
+                updateFilterDialogPreview();
+                currentPage = 1;
+                renderPage();
+                Telemetry?.track?.('filters_reset', { scope: 'plp' });
+                Utils.dispatch('toast:show', { message: '已重置高级筛选', type: 'info', durationMs: 1600 });
+                return;
+            }
+
+            if (applyBtn) {
+                const next = readFilterDialogState();
+                setAdvancedFilters(next, { silent: false });
+                currentPage = 1;
+                renderPage();
+                Telemetry?.track?.('filters_apply', { scope: 'plp', active: isAdvancedFiltersActive(next) ? 1 : 0 });
+                Utils.dispatch('toast:show', { message: '已应用高级筛选', type: 'success', durationMs: 1600 });
+                try { dialog.close(); } catch { /* ignore */ }
+            }
+        });
+
+        return filterDialog;
+    }
+
+    function readFilterDialogState() {
+        const dlg = ensureFilterDialog();
+        if (!dlg) return defaultAdvancedFilters;
+
+        const pickChecked = (name) =>
+            Array.from(dlg.querySelectorAll(`input[name="${name}"]:checked`)).map((el) => el.value);
+
+        const priceMin = dlg.querySelector('[data-filter-field="priceMin"]')?.value ?? '';
+        const priceMax = dlg.querySelector('[data-filter-field="priceMax"]')?.value ?? '';
+        const ratingMin = dlg.querySelector('[data-filter-field="ratingMin"]')?.value ?? '';
+
+        return normalizeAdvancedFilters({
+            categories: pickChecked('adv-category'),
+            tags: pickChecked('adv-tag'),
+            status: pickChecked('adv-status'),
+            rarity: pickChecked('adv-rarity'),
+            priceMin,
+            priceMax,
+            ratingMin,
+        });
+    }
+
+    function syncFilterDialogFromState() {
+        const dlg = ensureFilterDialog();
+        if (!dlg) return false;
+        const f = advancedFilters && typeof advancedFilters === 'object' ? advancedFilters : defaultAdvancedFilters;
+
+        const setGroup = (name, values) => {
+            const set = new Set(Array.isArray(values) ? values : []);
+            dlg.querySelectorAll(`input[name="${name}"]`).forEach((el) => {
+                try { el.checked = set.has(el.value); } catch { /* ignore */ }
+            });
+        };
+
+        setGroup('adv-category', f.categories);
+        setGroup('adv-tag', f.tags);
+        setGroup('adv-status', f.status);
+        setGroup('adv-rarity', f.rarity);
+
+        const minEl = dlg.querySelector('[data-filter-field="priceMin"]');
+        const maxEl = dlg.querySelector('[data-filter-field="priceMax"]');
+        const ratingEl = dlg.querySelector('[data-filter-field="ratingMin"]');
+
+        if (minEl) minEl.value = Number.isFinite(Number(f.priceMin)) ? String(Number(f.priceMin)) : '';
+        if (maxEl) maxEl.value = Number.isFinite(Number(f.priceMax)) ? String(Number(f.priceMax)) : '';
+        if (ratingEl) ratingEl.value = Number.isFinite(Number(f.ratingMin)) ? String(Number(f.ratingMin)) : '';
+        return true;
+    }
+
+    function updateFilterDialogPreview() {
+        const dlg = ensureFilterDialog();
+        if (!dlg) return false;
+
+        const next = readFilterDialogState();
+        const list = filterProductsWith(currentProducts, currentFilter, next);
+        const countEl = dlg.querySelector('[data-filter-preview-count]');
+        if (countEl) countEl.textContent = String(list.length);
+        return true;
+    }
+
+    function openFilterDialog() {
+        const dlg = ensureFilterDialog();
+        if (!dlg) return;
+        syncFilterDialogFromState();
+        updateFilterDialogPreview();
+        try {
+            if (!dlg.open) dlg.showModal();
+        } catch {
+            // ignore
         }
     }
 
@@ -6369,15 +7527,73 @@ const ProductListing = (function(){
         return sortedProducts;
     }
 
-    function applyFilter(products) {
-        if (currentFilter === 'all') return products;
-        return (products || []).filter((product) => {
-            const tags = product?.tags || [];
-            if (currentFilter === 'hot') return tags.includes('hot');
-            if (currentFilter === 'limited') return tags.includes('limited') || product?.rarity === '限定';
-            if (currentFilter === 'preorder') return tags.includes('preorder') || product?.status === '预售';
+    function filterProductsWith(products, quickKey, adv) {
+        const base = Array.isArray(products) ? products : [];
+        const quick = String(quickKey || 'all').trim() || 'all';
+        const f = adv && typeof adv === 'object' ? adv : defaultAdvancedFilters;
+
+        // 1) 快速筛选（兼容旧逻辑）
+        const quickApplied =
+            quick === 'all'
+                ? base
+                : base.filter((product) => {
+                    const tags = Array.isArray(product?.tags) ? product.tags : [];
+                    if (quick === 'hot') return tags.includes('hot');
+                    if (quick === 'limited') return tags.includes('limited') || product?.rarity === '限定';
+                    if (quick === 'preorder') return tags.includes('preorder') || product?.status === '预售';
+                    return true;
+                });
+
+        // 2) 多级筛选（AND across groups, OR within group）
+        if (!isAdvancedFiltersActive(f)) return quickApplied;
+
+        return quickApplied.filter((product) => {
+            const p = product || {};
+            const categoryKey = String(p.category?.key || '').trim();
+            const tags = Array.isArray(p.tags) ? p.tags : [];
+            const status = String(p.status || '').trim();
+            const rarity = String(p.rarity || '').trim();
+            const price = Number(p.price);
+            const rating = Number(p.rating);
+
+            if (Array.isArray(f.categories) && f.categories.length > 0) {
+                if (!categoryKey || !f.categories.includes(categoryKey)) return false;
+            }
+
+            if (Array.isArray(f.tags) && f.tags.length > 0) {
+                const ok = f.tags.some((t) => tags.includes(t));
+                if (!ok) return false;
+            }
+
+            if (Array.isArray(f.status) && f.status.length > 0) {
+                if (!status || !f.status.includes(status)) return false;
+            }
+
+            if (Array.isArray(f.rarity) && f.rarity.length > 0) {
+                if (!rarity || !f.rarity.includes(rarity)) return false;
+            }
+
+            if (Number.isFinite(Number(f.priceMin))) {
+                const v = Number.isFinite(price) ? price : 0;
+                if (v < Number(f.priceMin)) return false;
+            }
+
+            if (Number.isFinite(Number(f.priceMax))) {
+                const v = Number.isFinite(price) ? price : 0;
+                if (v > Number(f.priceMax)) return false;
+            }
+
+            if (Number.isFinite(Number(f.ratingMin))) {
+                const v = Number.isFinite(rating) ? rating : 0;
+                if (v < Number(f.ratingMin)) return false;
+            }
+
             return true;
         });
+    }
+
+    function applyFilter(products) {
+        return filterProductsWith(products, currentFilter, advancedFilters);
     }
 
     function syncFilterButtons() {
@@ -6489,7 +7705,15 @@ const ProductListing = (function(){
     }
 
     // --- Render Page --- (Keep existing)
-    function renderPage() {
+    function renderPage(options = {}) {
+         const opts = options && typeof options === 'object' ? options : {};
+         if (!opts.skipSkeleton && !hasRenderedOnce && stressCount <= 0 && productGrid && typeof Skeleton !== 'undefined' && Skeleton.withGridSkeleton) {
+             hasRenderedOnce = true;
+             Skeleton.withGridSkeleton(productGrid, () => renderPage({ skipSkeleton: true }), { count: itemsPerPage });
+             return;
+         }
+         hasRenderedOnce = true;
+
          if (stressCount > 0 && currentView === 'list') {
              UXMotion.withViewTransition(() => {
                  mountVirtualList({ itemCount: stressCount, getItem: getStressProduct });
@@ -6562,7 +7786,7 @@ const ProductListing = (function(){
 
             emptyMessageElement.appendChild(img);
             emptyMessageElement.appendChild(title);
-            if (currentFilter !== 'all') {
+            if (currentFilter !== 'all' || isAdvancedFiltersActive(advancedFilters)) {
                 const clearBtn = document.createElement('button');
                 clearBtn.type = 'button';
                 clearBtn.className = 'cta-button-secondary';
@@ -6617,6 +7841,28 @@ const ProductListing = (function(){
         }
         if (resetListingBtn) {
             resetListingBtn.addEventListener('click', () => resetListingState({ resetView: true }));
+        }
+
+        if (advancedFilterToggle) {
+            advancedFilterToggle.addEventListener('click', () => {
+                openFilterDialog();
+                Telemetry?.track?.('filters_open', { scope: 'plp' });
+            });
+        }
+
+        // Hover/指针预取：提升“列表 -> 详情”跳转首屏速度
+        if (productGrid) {
+            productGrid.addEventListener(
+                'pointerover',
+                (event) => {
+                    const card = event.target?.closest?.('.product-card[data-product-id]');
+                    const id = String(card?.dataset?.productId || '').trim();
+                    if (!id || id === '#' || id === lastPrefetchProductId) return;
+                    lastPrefetchProductId = id;
+                    try { Prefetch?.prefetchProduct?.(id); } catch { /* ignore */ }
+                },
+                { passive: true },
+            );
         }
     }
 
@@ -6749,6 +7995,26 @@ const ProductListing = (function(){
             } catch { /* ignore */ }
             syncFilterButtons();
         }
+
+        // 读取多级筛选（V2）
+        try {
+            const stored = advancedFilterAtom?.get?.();
+            advancedFilters = normalizeAdvancedFilters(stored);
+        } catch {
+            advancedFilters = defaultAdvancedFilters;
+        }
+
+        // 其他标签页/模块更新筛选时同步（例如未来接入跨页面筛选面板）
+        try {
+            window.addEventListener('plpFiltersV2:changed', () => {
+                advancedFilters = normalizeAdvancedFilters(advancedFilterAtom?.get?.());
+                currentPage = 1;
+                renderPage();
+            });
+        } catch {
+            // ignore
+        }
+
         updateFilterCounts(currentProducts);
         renderPage();
         addEventListeners();
@@ -6772,6 +8038,7 @@ const Homepage = (function() {
     function populateFeaturedProducts() {
         if (!featuredGrid) return;
 
+        const run = () => {
         // Enhanced Check: Ensure SharedData and ProductListing with its function are available
         if (typeof SharedData === 'undefined' || !SharedData.getAllProducts ||
             typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') {
@@ -6800,6 +8067,14 @@ const Homepage = (function() {
             ViewTransitions.restoreLastProductCard(featuredGrid);
         }
         if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(featuredGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 }); }
+        };
+
+        if (typeof Skeleton !== 'undefined' && Skeleton.withGridSkeleton) {
+            Skeleton.withGridSkeleton(featuredGrid, run, { count: numberOfFeatured });
+            return;
+        }
+
+        run();
     }
 
     function moveIndicator(target) {
@@ -6937,15 +8212,24 @@ const Homepage = (function() {
             curationGrid.innerHTML = '<p class="product-listing__empty-message text-center">暂无策展内容。</p>';
             return;
         }
-        if (typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') return;
-        curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
-        if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(curationGrid); }
-        if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
-        if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }
-        if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
-            ViewTransitions.restoreLastProductCard(curationGrid);
+        const run = () => {
+            if (typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') return;
+            curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
+            if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(curationGrid); }
+            if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
+            if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }
+            if (typeof ViewTransitions !== 'undefined' && ViewTransitions.restoreLastProductCard) {
+                ViewTransitions.restoreLastProductCard(curationGrid);
+            }
+            if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(curationGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 }); }
+        };
+
+        if (typeof Skeleton !== 'undefined' && Skeleton.withGridSkeleton) {
+            Skeleton.withGridSkeleton(curationGrid, run, { count: Math.max(3, Math.min(6, list.length)) });
+            return;
         }
-        if (typeof ScrollAnimations !== 'undefined' && ScrollAnimations.init) { ScrollAnimations.init(curationGrid, { y: 22, blur: 14, duration: 0.44, stagger: 0.032, maxStaggerItems: 12 }); }
+
+        run();
     }
 
     function activateTab(button) {
@@ -8662,9 +9946,11 @@ const App = {
         // Initialize modules in order of dependency or desired execution
         // SharedData doesn't need init as it's just data
         Header.init();
+        Telemetry.init();
         Rewards.init(); // 注入会员入口后再做首屏入场动效
         Cinematic.init();
         ViewTransitions.init();
+        NavigationTransitions.init();
         Theme.init();
         ShippingRegion.init();
         SmoothScroll.init();

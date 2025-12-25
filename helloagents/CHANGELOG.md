@@ -6,6 +6,25 @@
 
 ## [Unreleased]
 
+## [20251226.1] - 2025-12-26
+
+### 新增
+- Infinite Evolution Visual System（Phase 1）：黄金比例字阶/间距 token、12 列响应式栅格、动态阴影层级、毛玻璃 + 动态渐变边框、SVG 路径加载动画、Skeleton 样式
+- StateHub（Phase 2）：统一事件中心 + atom（本地持久化 + `scope:changed` 订阅），并桥接到 `Utils.dispatch()`
+- NavigationTransitions（Phase 2）：跨文档 View Transition 不支持时的站内跳转离场动效（WAAPI fallback）
+- Http（Phase 3）：fetch 超时 + 429/5xx 退避重试 + GET 内存缓存
+- Prefetch（Phase 3）：搜索/hover 预取（弱网/save-data 自动跳过）
+- Telemetry（Phase 3）：用户行为埋点（默认仅本地队列；输入仅记录 hash/长度，避免保存原文）
+- ProductListing 多级智能筛选（Phase 3）：高级筛选 Dialog + `plpFiltersV2` + pills 展示
+
+### 变更
+- Header 搜索建议：渲染时触发预取（搜索页 + top 2 详情页/首图），并补齐建议点击/搜索提交埋点
+- ProductListing：首渲染自动 Skeleton，占位后再渲染真实内容；列表 hover 预取详情
+- PWA：缓存穿透版本号升级到 `20251226.1`（HTML query + Service Worker cache name 同步）
+
+### 修复
+- Toast：补齐 `info/warning/error` 类型的边框样式
+
 ## [20251224.3] - 2025-12-24
 
 ### 新增
