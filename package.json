@@ -16,7 +16,6 @@
     "preview": "vite preview --strictPort --port 5173"
   },
   "devDependencies": {
-    "terser": "^5.44.1",
     "vite": "^7.3.0"
   }
 }

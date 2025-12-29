@@ -59,20 +59,10 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     target: 'es2018',
-    minify: 'terser',
+    minify: 'esbuild',
     reportCompressedSize: true,
-    terserOptions: {
-      compress: {
-        passes: 3,
-        drop_console: true,
-        drop_debugger: true,
-      },
-      mangle: {
-        safari10: true,
-      },
-      format: {
-        comments: false,
-      },
+    esbuild: {
+      drop: ['console', 'debugger'],
     },
     rollupOptions: {
       input: toRollupInputMap(htmlPages),

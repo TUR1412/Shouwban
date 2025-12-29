@@ -10,6 +10,7 @@
 | 202512242220 | ultimate-compression | 重构/优化 | ✅已完成 | `2025-12/202512242220_ultimate-compression/` |
 | 202512242309 | hardcore-engine-health | 引擎/性能/诊断 | ✅已完成 | `2025-12/202512242309_hardcore-engine-health/` |
 | 202512260005 | infinite-evolution-ui | UI/交互/功能基座 | ✅已完成 | `2025-12/202512260005_infinite-evolution-ui/` |
+| 202512291841 | singularity-modular-loader | 重构/增强 | ✅已完成 | `2025-12/202512291841_singularity-modular-loader/` |
 
 ## 按月归档
 
@@ -18,3 +19,4 @@
 - [202512242220_ultimate-compression](2025-12/202512242220_ultimate-compression/) - 去重抽象 + Vite 极限构建链路 + 文档与校验同步
 - [202512242309_hardcore-engine-health](2025-12/202512242309_hardcore-engine-health/) - 虚拟滚动 + 二进制存储协议 + 控制台健康全景图
 - [202512260005_infinite-evolution-ui](2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）+ Skeleton/转场 + 多级筛选/预取/埋点/请求层
+- [202512291841_singularity-modular-loader](2025-12/202512291841_singularity-modular-loader/) - 按页初始化 + 本地数据导入/导出 + 构建链路熵减（esbuild）

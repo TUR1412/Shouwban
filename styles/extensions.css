@@ -1941,3 +1941,34 @@ p {
   margin-top: 0;
   margin-bottom: var(--space-phi--1);
 }
+
+/* Account: 本地数据导入/导出/清空（数据可迁移） */
+.account-data__actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-phi--2, var(--spacing-md));
+}
+
+.account-data__actions .cta-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account-data__danger {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+html[data-theme="dark"] .account-data__danger {
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+@media (min-width: 768px) {
+  .account-data__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .account-data__actions .account-data__danger {
+    grid-column: 1 / -1;
+  }
+}

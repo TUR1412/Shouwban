@@ -44,6 +44,16 @@
 - `ShouwbanCore.encodeStringArrayBase64()` / `decodeStringArrayBase64()`
 - `ShouwbanCore.encodeCartLinesBase64()` / `decodeCartLinesBase64()`
 
+## 数据可迁移（DataPortability）
+
+目的：为纯静态站点的本地数据提供“可备份/可迁移/可恢复”的能力，降低 demo/原型在多设备/多浏览器之间迁移成本。
+
+- 模块：`scripts/main.js` → `DataPortability`
+- UI：`account.html` → 数据管理（导出备份 / 导入备份 / 清空本地数据）
+- 备份策略：导出 **raw string**（保留 `SB_*` 前缀协议），避免二次编码导致兼容性问题
+- 安全策略：schema 校验 + key 白名单 + value 必须为字符串 + 文件大小上限（2MB）
+- 导入/清空后：自动刷新页面，保证 UI 状态一致性
+
 ## 虚拟滚动（VirtualScroll）
 
 目的：让超长列表在 10 万条数据下仍保持可交互（DOM 常驻数量固定，滚动更新在 `requestAnimationFrame` 内完成）。

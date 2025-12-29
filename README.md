@@ -136,6 +136,7 @@ pwsh -NoLogo -Command "python -m http.server 5173"
 - 积分体系（新增）：下单返积分、结算可用积分抵扣（本地规则示例）
 - 常用地址簿（新增）：结算页一键选择常用地址/保存地址（减少填写摩擦）
 - 降价提醒（新增）：列表/详情一键设置目标价，达到时本地提示（示例逻辑）
+- 本地数据备份/迁移（新增）：会员中心「数据管理」支持导出/导入/清空本地数据（JSON 备份）
 - 搜索联想：顶部搜索即输即提示，支持键盘选择直达详情
 - 最近浏览：首页自动复盘最近查看的商品（`recentlyViewed`）
 - 本地数据闭环：购物车/收藏/对比/订单/结算草稿即时写入 `localStorage`，刷新不丢，多标签页自动同步
@@ -253,7 +254,7 @@ pwsh -NoLogo -Command "npm run build"
 输出目录：`dist/`（已加入 `.gitignore`，不会被提交）。
 
 该命令会：
-- 运行 `vite build`（多页面打包 + terser 极限压缩）
+- 运行 `vite build`（多页面打包 + esbuild 压缩）
 - 将运行时“字符串路径引用”的静态资源补齐到 `dist/`（如 `assets/icons.svg`、`assets/images/*`、`robots.txt`、`sitemap.xml`）
 - 生成 `.br` / `.gz` 预压缩文件（便于支持预压缩的静态托管直接启用）
 

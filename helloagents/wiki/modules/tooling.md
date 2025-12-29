@@ -17,9 +17,9 @@
 
 ## 可选构建链路：Vite
 
-> 运行时依然保持零第三方依赖；Vite/terser 仅作为开发期工具，用于生成更小的 `dist/` 产物。
+> 运行时依然保持零第三方依赖；Vite 仅作为开发期工具，用于生成更小的 `dist/` 产物（默认压缩由 Vite 内置的 esbuild 链路完成）。
 
-- `vite.config.mjs`：多页面输入（14 个 HTML）+ terser 极限压缩配置
+- `vite.config.mjs`：多页面输入（14 个 HTML）+ esbuild 压缩配置
 - `scripts/build-ultra.mjs`：一键执行构建 + 产物补齐 + 预压缩（对应 `npm run build`）
 - `scripts/postbuild-copy.mjs`：补齐运行时以“字符串路径”引用的静态资源（`assets/icons.svg`、`assets/images/*` 等）
 - `scripts/compress-dist.mjs`：为 `dist/` 生成 `.br` / `.gz` 预压缩文件（便于静态托管启用预压缩分发）

@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [20251229.1] - 2025-12-29
+
+### 新增
+- DataPortability：会员中心新增「数据管理」卡片，支持本地数据导出/导入/清空（JSON 备份，schema + 白名单校验）
+
+### 变更
+- App.init 按页初始化：页面级模块仅在对应页面执行；Diagnostics/CommandPalette 延后到空闲时初始化以降低首屏主线程压力
+- 可选构建链路：移除 `terser` devDependency，Vite 构建压缩改为 `esbuild`（并保持 drop console/debugger 约束）
+
 ## [20251226.1] - 2025-12-26
 
 ### 新增

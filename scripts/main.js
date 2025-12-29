@@ -4453,6 +4453,228 @@ const PriceAlerts = (function() {
 })();
 
 // ==============================================
+// Data Portability / Backup (localStorage)
+// - 导出/导入/重置：帮助用户迁移本地模拟数据
+// - 仅操作本地 localStorage，不进行网络上传
+// ==============================================
+const DataPortability = (function() {
+    const backupSchema = 'shouwban.backup.v1';
+
+    const keyWhitelist = Object.freeze([
+        // UX / settings
+        'theme',
+        'shippingRegion',
+        'pwaInstallDismissedAt',
+
+        // Core flows
+        'cart',
+        'promotion',
+        'checkoutDraft',
+        'orders',
+
+        // Personalization
+        'favorites',
+        'compare',
+        'recentlyViewed',
+
+        // Membership
+        'rewards',
+        'useRewardsPoints',
+
+        // Address / alerts
+        'addressBook',
+        'priceAlerts',
+
+        // Listing preferences
+        'plpSort',
+        'plpFilter',
+        'plpViewMode',
+        'plpFiltersV2',
+
+        // Optional: local telemetry queue (if present)
+        'telemetryQueue',
+    ]);
+
+    function safeNowIso() {
+        try {
+            return new Date().toISOString();
+        } catch {
+            return '';
+        }
+    }
+
+    function formatDateForFile(isoString) {
+        const iso = String(isoString || '');
+        if (!iso) return 'unknown-date';
+        return iso.replace(/[:.]/g, '').replace('T', '-').replace('Z', '');
+    }
+
+    function downloadText(filename, text) {
+        const name = String(filename || '').trim() || 'shouwban-backup.json';
+        const payload = String(text ?? '');
+
+        try {
+            const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.rel = 'noopener';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function buildExportObject() {
+        const out = {
+            schema: backupSchema,
+            createdAt: safeNowIso(),
+            origin: (() => {
+                try { return String(window.location.origin || ''); } catch { return ''; }
+            })(),
+            userAgent: (() => {
+                try { return String(navigator.userAgent || ''); } catch { return ''; }
+            })(),
+            keys: {},
+        };
+
+        // Export raw strings to preserve SB_* binary prefixes and avoid re-encoding.
+        try {
+            keyWhitelist.forEach((k) => {
+                const key = String(k || '').trim();
+                if (!key) return;
+                const value = localStorage.getItem(key);
+                if (typeof value === 'string') out.keys[key] = value;
+            });
+        } catch {
+            // ignore
+        }
+
+        return out;
+    }
+
+    function validateImportObject(data) {
+        if (!data || typeof data !== 'object') return { ok: false, error: '备份文件格式不正确（不是对象）。' };
+        if (String(data.schema || '') !== backupSchema) return { ok: false, error: '备份文件 schema 不匹配。' };
+        if (!data.keys || typeof data.keys !== 'object') return { ok: false, error: '备份文件缺少 keys 字段。' };
+
+        const keys = data.keys;
+        const allowed = new Set(keyWhitelist);
+        const accepted = {};
+
+        for (const rawKey of Object.keys(keys)) {
+            const key = String(rawKey || '').trim();
+            if (!key || !allowed.has(key)) continue;
+            const value = keys[rawKey];
+            if (typeof value !== 'string') continue;
+            accepted[key] = value;
+        }
+
+        const acceptedCount = Object.keys(accepted).length;
+        if (acceptedCount === 0) return { ok: false, error: '备份文件中未发现可导入的数据键。' };
+
+        return { ok: true, accepted };
+    }
+
+    function applyImport(accepted) {
+        if (!accepted || typeof accepted !== 'object') return false;
+        try {
+            Object.keys(accepted).forEach((k) => {
+                localStorage.setItem(k, String(accepted[k] ?? ''));
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function resetAll() {
+        const ok = window.confirm(
+            '确定要清空本机浏览器中保存的所有示例数据吗？\\n\\n将清空：购物车/收藏/对比/订单/积分/地址簿/降价提醒/筛选偏好等。',
+        );
+        if (!ok) return false;
+
+        try {
+            keyWhitelist.forEach((k) => {
+                try { localStorage.removeItem(String(k || '')); } catch { /* ignore */ }
+            });
+        } catch {
+            // ignore
+        }
+
+        Toast?.show?.('已清空本地数据，将刷新页面…', 'success', 1600);
+        setTimeout(() => {
+            try { window.location.reload(); } catch { /* ignore */ }
+        }, 380);
+        return true;
+    }
+
+    function exportBackup() {
+        const data = buildExportObject();
+        const json = JSON.stringify(data, null, 2);
+        const stamp = formatDateForFile(data.createdAt);
+        const filename = `shouwban-backup-${stamp}.json`;
+        const ok = downloadText(filename, json);
+        Toast?.show?.(ok ? '备份已导出（本地下载）' : '导出失败，请检查浏览器权限', ok ? 'success' : 'error', 1800);
+        return ok;
+    }
+
+    async function importBackupFromFile(file) {
+        const f = file;
+        if (!f) return false;
+
+        const name = String(f.name || '').trim();
+        const tooLarge = typeof f.size === 'number' && f.size > 2 * 1024 * 1024;
+        if (tooLarge) {
+            Toast?.show?.('备份文件过大（>2MB），已拒绝导入。', 'error', 2200);
+            return false;
+        }
+
+        try {
+            const text = await f.text();
+            const parsed = Utils.safeJsonParse(text, null);
+            const r = validateImportObject(parsed);
+            if (!r.ok) {
+                Toast?.show?.(r.error || '备份文件不可导入。', 'error', 2200);
+                return false;
+            }
+
+            const keyCount = Object.keys(r.accepted).length;
+            const ok = window.confirm(`检测到可导入数据键：${keyCount} 个。\\n\\n导入将覆盖当前本机数据。是否继续？`);
+            if (!ok) return false;
+
+            const applied = applyImport(r.accepted);
+            if (!applied) {
+                Toast?.show?.('导入失败：无法写入本地存储。', 'error', 2200);
+                return false;
+            }
+
+            Toast?.show?.(`导入成功（${keyCount} 项），将刷新页面…`, 'success', 1800);
+            setTimeout(() => {
+                try { window.location.reload(); } catch { /* ignore */ }
+            }, 520);
+
+            return true;
+        } catch {
+            Toast?.show?.(`导入失败：无法读取文件 ${name ? `(${name})` : ''}`, 'error', 2400);
+            return false;
+        }
+    }
+
+    return {
+        exportBackup,
+        importBackupFromFile,
+        resetAll,
+    };
+})();
+
+// ==============================================
 // Service Worker Module (PWA offline support)
 // ==============================================
 const ServiceWorker = (function() {
@@ -8764,6 +8986,11 @@ const AccountPage = (function() {
     const alertsList = container.querySelector('[data-alert-list]');
     const alertsEmpty = container.querySelector('[data-alert-empty]');
 
+    const dataExportBtn = container.querySelector('[data-data-export]');
+    const dataImportBtn = container.querySelector('[data-data-import]');
+    const dataFileInput = container.querySelector('[data-data-file]');
+    const dataResetBtn = container.querySelector('[data-data-reset]');
+
     let didEnterCards = false;
     let didEnterAddresses = false;
     let didEnterAlerts = false;
@@ -8943,6 +9170,30 @@ const AccountPage = (function() {
             if (!ok) return;
             Rewards?.setPoints?.(0);
             Toast?.show?.('积分已清空', 'success', 1600);
+        });
+
+        dataExportBtn?.addEventListener?.('click', () => {
+            DataPortability?.exportBackup?.();
+        });
+
+        dataImportBtn?.addEventListener?.('click', () => {
+            if (!dataFileInput) {
+                Toast?.show?.('当前页面缺少文件选择器，无法导入。', 'error', 2200);
+                return;
+            }
+            try { dataFileInput.value = ''; } catch { /* ignore */ }
+            dataFileInput.click();
+        });
+
+        dataFileInput?.addEventListener?.('change', async () => {
+            const file = dataFileInput.files && dataFileInput.files[0];
+            if (!file) return;
+            await DataPortability?.importBackupFromFile?.(file);
+            try { dataFileInput.value = ''; } catch { /* ignore */ }
+        });
+
+        dataResetBtn?.addEventListener?.('click', () => {
+            DataPortability?.resetAll?.();
         });
 
         addressOpenFormBtn?.addEventListener?.('click', () => openAddressForm(null));
@@ -9943,8 +10194,9 @@ const CommandPalette = (function() {
 // ==============================================
 const App = {
     init: function() {
-        // Initialize modules in order of dependency or desired execution
-        // SharedData doesn't need init as it's just data
+        const page = Utils.getPageName();
+
+        // 全站基础：尽量保持“薄启动”，重模块按页初始化
         Header.init();
         Telemetry.init();
         Rewards.init(); // 注入会员入口后再做首屏入场动效
@@ -9956,33 +10208,74 @@ const App = {
         SmoothScroll.init();
         ScrollProgress.init();
         BackToTop.init();
-        ScrollAnimations.init(); 
+        ScrollAnimations.init();
         ImageFallback.init();
-        LazyLoad.init(); 
+        LazyLoad.init();
         Favorites.init();
         Compare.init();
         Orders.init();
         AddressBook.init();
         PriceAlerts.init();
         Cart.init(); // Init Cart early so others can use its exposed functions
-        CommandPalette.init();
         Promotion.init();
         QuickAdd.init();
-        Homepage.init(); 
-        RecentlyViewed.init();
-        PDP.init(); 
-        Checkout.init();
-        ComparePage.init();
-        OrdersPage.init();
-        AccountPage.init();
-        OrderSuccessPage.init();
-        StaticPage.init();
-        OfflinePage.init();
-        ProductListing.init();
         ServiceWorker.init();
         PWAInstall.init();
         CrossTabSync.init();
-        Diagnostics.init();
+
+        // 诊断与命令面板：延后到空闲时，降低首屏主线程压力
+        try {
+            const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
+            idle(() => {
+                try { CommandPalette.init(); } catch { /* ignore */ }
+                try { Diagnostics.init(); } catch { /* ignore */ }
+            });
+        } catch {
+            try { CommandPalette.init(); } catch { /* ignore */ }
+            try { Diagnostics.init(); } catch { /* ignore */ }
+        }
+
+        // 页面级初始化：仅在对应页面执行（避免无意义 init 调用）
+        if (page === 'index.html') {
+            Homepage.init();
+        }
+
+        if (page === 'product-detail.html') {
+            PDP.init();
+            RecentlyViewed.init();
+        }
+
+        if (page === 'checkout.html') {
+            Checkout.init();
+        }
+
+        if (page === 'compare.html') {
+            ComparePage.init();
+        }
+
+        if (page === 'orders.html') {
+            OrdersPage.init();
+        }
+
+        if (page === 'account.html') {
+            AccountPage.init();
+        }
+
+        if (page === 'order-success.html') {
+            OrderSuccessPage.init();
+        }
+
+        if (page === 'static-page.html') {
+            StaticPage.init();
+        }
+
+        if (page === 'offline.html') {
+            OfflinePage.init();
+        }
+
+        if (page === 'products.html' || page === 'category.html') {
+            ProductListing.init();
+        }
 
         // URL 参数触发的一次性提示（避免刷新重复弹出）
         try {

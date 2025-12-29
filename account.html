@@ -27,8 +27,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20251226.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251226.1">
+    <link rel="stylesheet" href="styles/main.css?v=20251229.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20251229.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -199,6 +199,33 @@
                         <div class="account-alerts__list" data-alert-list></div>
                     </div>
                 </article>
+
+                <article class="account-card fade-in-up" data-account-data>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-sync" xlink:href="assets/icons.svg#icon-sync"></use></svg> 数据管理</h2>
+                    </div>
+
+                    <div class="account-data">
+                        <p class="text-muted account-data__hint">
+                            导出/导入/清空仅作用于本机浏览器本地存储（示例站点），不会上传网络。
+                        </p>
+                        <div class="account-data__actions">
+                            <button type="button" class="cta-button-secondary" data-data-export>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-download" xlink:href="assets/icons.svg#icon-download"></use></svg>
+                                导出备份
+                            </button>
+                            <button type="button" class="cta-button-secondary" data-data-import>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-arrow-up" xlink:href="assets/icons.svg#icon-arrow-up"></use></svg>
+                                导入备份
+                            </button>
+                            <input type="file" accept="application/json" data-data-file class="sr-only" aria-hidden="true">
+                            <button type="button" class="cta-button-secondary account-data__danger" data-data-reset>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-trash" xlink:href="assets/icons.svg#icon-trash"></use></svg>
+                                清空本地数据
+                            </button>
+                        </div>
+                    </div>
+                </article>
             </section>
         </div>
     </main>
@@ -236,8 +263,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20251226.1"></script>
-    <script type="module" src="scripts/core.js?v=20251226.1"></script>
-    <script type="module" src="scripts/main.js?v=20251226.1"></script>
+    <script type="module" src="scripts/motion.js?v=20251229.1"></script>
+    <script type="module" src="scripts/core.js?v=20251229.1"></script>
+    <script type="module" src="scripts/main.js?v=20251229.1"></script>
 </body>
 </html>

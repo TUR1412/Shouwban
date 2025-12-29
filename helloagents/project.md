@@ -4,7 +4,7 @@
 - **形态**：纯静态站点（多页面 HTML / CSS / JS）+ PWA（Service Worker）
 - **前端运行时**：浏览器原生能力（无运行时第三方依赖）
 - **Node.js（仅用于校验/脚本/可选构建）**：用于 `npm run verify` / `npm test` / `npm run build` 等
-- **可选构建链路**：Vite + terser（devDependencies，仅影响构建产物 `dist/`，不影响源站直接静态部署）
+- **可选构建链路**：Vite（默认使用 esbuild 压缩；devDependencies，仅影响构建产物 `dist/`，不影响源站直接静态部署）
 
 ## 代码与架构约定
 - **可维护性优先**：公共能力收敛在 `scripts/core.js`（纯函数，可测试）与 `scripts/main.js`（DOM/交互/模块化）
