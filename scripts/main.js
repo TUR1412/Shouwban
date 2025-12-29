@@ -3206,10 +3206,26 @@ const Theme = (function() {
         return getStoredTheme() || getSystemTheme();
     }
 
+    function readCssVar(name) {
+        try {
+            const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+            const s = String(v || '').trim();
+            return s || null;
+        } catch {
+            return null;
+        }
+    }
+
     function setMetaThemeColor(theme) {
-        const meta = document.querySelector('meta[name="theme-color"]');
+        const meta = document.querySelector('meta[name="theme-color"]');        
         if (!meta) return;
-        meta.setAttribute('content', theme === 'dark' ? '#0B1220' : '#00BCD4');
+
+        // 避免“写死颜色”导致 UI 与当前主题/配色不一致：从 CSS 变量动态读取
+        const next = theme === 'dark'
+            ? (readCssVar('--color-background-darker') || readCssVar('--color-background-dark') || '#0B1220')
+            : (readCssVar('--color-primary') || '#1F6FEB');
+
+        meta.setAttribute('content', next);
     }
 
     function updateToggleUI(theme) {
@@ -5231,9 +5247,220 @@ const PDP = (function() {
     let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
     let shareBtn = actionsContainer?.querySelector('.share-btn--pdp') || null;
     let compareBtn = actionsContainer?.querySelector('.compare-btn--pdp') || null;
-    let alertBtn = actionsContainer?.querySelector('.alert-btn--pdp') || null;
+    let alertBtn = actionsContainer?.querySelector('.alert-btn--pdp') || null;  
 
     let currentProductData = null;
+    let lightbox = null;
+
+    function ensureLightbox() {
+        if (lightbox) return lightbox;
+
+        const dialog = document.createElement('dialog');
+        dialog.className = 'glass-dialog lightbox-dialog';
+        dialog.setAttribute('aria-label', '查看大图');
+        dialog.innerHTML = `
+            <div class="glass-dialog__card lightbox-dialog__card">
+                <div class="lightbox__header">
+                    <div class="lightbox__title">查看大图</div>
+                    <button type="button" class="favorite-btn lightbox__close" aria-label="关闭">
+                        ${Icons.svgHtml('icon-x')}
+                    </button>
+                </div>
+                <div class="lightbox__stage">
+                    <button type="button" class="lightbox__nav lightbox__nav--prev" aria-label="上一张">
+                        ${Icons.svgHtml('icon-arrow-left')}
+                    </button>
+                    <img class="lightbox__image" alt="" decoding="async">
+                    <button type="button" class="lightbox__nav lightbox__nav--next" aria-label="下一张">
+                        ${Icons.svgHtml('icon-arrow-right')}
+                    </button>
+                </div>
+                <div class="lightbox__thumbs" aria-label="缩略图列表"></div>
+            </div>
+        `;
+        document.body.appendChild(dialog);
+
+        const imageEl = dialog.querySelector('.lightbox__image');
+        const closeBtn = dialog.querySelector('.lightbox__close');
+        const prevBtn = dialog.querySelector('.lightbox__nav--prev');
+        const nextBtn = dialog.querySelector('.lightbox__nav--next');
+        const thumbs = dialog.querySelector('.lightbox__thumbs');
+
+        let images = [];
+        let currentIndex = 0;
+        let returnFocusEl = null;
+
+        function setReturnFocus(el) {
+            returnFocusEl = el && typeof el.focus === 'function' ? el : null;
+        }
+
+        function close() {
+            try {
+                dialog.close();
+            } catch {
+                try { dialog.removeAttribute('open'); } catch { /* ignore */ }
+            }
+        }
+
+        function renderThumbs() {
+            if (!thumbs) return;
+            thumbs.innerHTML = '';
+            images.forEach((item, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'lightbox__thumb';
+                btn.dataset.index = String(i);
+                btn.setAttribute('aria-label', `查看第 ${i + 1} 张`);
+
+                const img = document.createElement('img');
+                img.src = String(item?.thumb || item?.large || '');
+                img.alt = String(item?.alt || '');
+                img.loading = 'lazy';
+                img.decoding = 'async';
+
+                btn.appendChild(img);
+                thumbs.appendChild(btn);
+            });
+        }
+
+        function setImages(list) {
+            images = Array.isArray(list) ? list : [];
+            currentIndex = 0;
+            renderThumbs();
+        }
+
+        function syncThumbState() {
+            try {
+                thumbs?.querySelectorAll?.('.lightbox__thumb')?.forEach?.((b) => {
+                    const idx = Number(b.dataset.index);
+                    const active = Number.isFinite(idx) && idx === currentIndex;
+                    b.classList.toggle('is-active', active);
+                    if (active) b.setAttribute('aria-current', 'true');
+                    else b.removeAttribute('aria-current');
+                });
+            } catch {
+                // ignore
+            }
+        }
+
+        function setIndex(nextIndex) {
+            const len = images.length;
+            if (!len) return;
+
+            const raw = Number(nextIndex);
+            const normalized = Number.isFinite(raw) ? Math.trunc(raw) : 0;
+            currentIndex = ((normalized % len) + len) % len;
+            const item = images[currentIndex];
+
+            if (imageEl && item?.large) {
+                imageEl.src = String(item.large);
+                imageEl.alt = String(item.alt || currentProductData?.name || '');
+                imageEl.decoding = 'async';
+            }
+
+            syncThumbState();
+
+            const multi = len > 1;
+            if (prevBtn) prevBtn.disabled = !multi;
+            if (nextBtn) nextBtn.disabled = !multi;
+
+            // 同步 PDP 主图：关闭弹窗后页面保持一致（更符合“商业级”预期）
+            try { handleThumbnailClick(item); } catch { /* ignore */ }
+        }
+
+        function step(delta) {
+            const len = images.length;
+            if (!len) return;
+            const d = Number(delta);
+            setIndex(currentIndex + (Number.isFinite(d) ? d : 1));
+        }
+
+        closeBtn?.addEventListener?.('click', close);
+        prevBtn?.addEventListener?.('click', () => step(-1));
+        nextBtn?.addEventListener?.('click', () => step(1));
+
+        thumbs?.addEventListener?.('click', (event) => {
+            const target = event?.target?.closest?.('.lightbox__thumb');
+            if (!target) return;
+            const idx = Number(target.dataset.index);
+            if (!Number.isFinite(idx)) return;
+            setIndex(idx);
+        });
+
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) close();
+        });
+
+        dialog.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                step(-1);
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                step(1);
+            }
+        });
+
+        dialog.addEventListener('close', () => {
+            try { returnFocusEl?.focus?.(); } catch { /* ignore */ }
+            returnFocusEl = null;
+        });
+
+        lightbox = { dialog, close, setImages, setIndex, step, setReturnFocus };
+        return lightbox;
+    }
+
+    function getCurrentImageIndex() {
+        const images = currentProductData?.images;
+        if (!Array.isArray(images) || images.length === 0) return 0;
+
+        const currentLarge = String(mainImage?.dataset?.large || mainImage?.getAttribute?.('src') || '').trim();
+        const idx = images.findIndex((img) => String(img?.large || '').trim() === currentLarge);
+        return idx >= 0 ? idx : 0;
+    }
+
+    function openLightboxAt(index) {
+        const images = currentProductData?.images;
+        if (!Array.isArray(images) || images.length === 0) return;
+
+        const lb = ensureLightbox();
+        if (typeof lb.dialog?.showModal !== 'function') {
+            const safeIndex = Math.max(0, Math.min(images.length - 1, Number(index) || 0));
+            const item = images[safeIndex];
+            if (item?.large) window.open(String(item.large), '_blank', 'noopener,noreferrer');
+            return;
+        }
+
+        lb.setImages(images);
+        lb.setReturnFocus(mainImage);
+        lb.setIndex(index);
+        try {
+            if (!lb.dialog.open) lb.dialog.showModal();
+        } catch {
+            try { lb.dialog.setAttribute('open', ''); } catch { /* ignore */ }
+        }
+    }
+
+    function initLightbox() {
+        if (!mainImage) return;
+        try {
+            mainImage.style.cursor = 'zoom-in';
+            mainImage.setAttribute('tabindex', '0');
+            mainImage.setAttribute('role', 'button');
+            mainImage.setAttribute('aria-label', '查看大图');
+        } catch {
+            // ignore
+        }
+
+        const open = () => openLightboxAt(getCurrentImageIndex());
+        mainImage.addEventListener('click', open);
+        mainImage.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                open();
+            }
+        });
+    }
 
     function ensureFavoriteButton(productId) {
         if (!actionsContainer) return null;
@@ -5444,10 +5671,10 @@ const PDP = (function() {
             statusElement.textContent = status;
             statusElement.style.display = status ? "inline-flex" : "none";
         }
-        priceElement.textContent = typeof product.price === "number" ? `￥${product.price.toFixed(2)}` : "价格待定";
+        priceElement.textContent = Number.isFinite(product.price) ? Pricing.formatCny(product.price) : "价格待定";
         if (originalPriceElement) {
             if (product.originalPrice && product.originalPrice > product.price) {
-                originalPriceElement.textContent = `¥${product.originalPrice.toFixed(2)}`;
+                originalPriceElement.textContent = Pricing.formatCny(product.originalPrice);
                 originalPriceElement.style.display = 'inline';
             } else {
                 originalPriceElement.style.display = 'none';
@@ -5457,8 +5684,9 @@ const PDP = (function() {
         // Update Image Gallery (Handle missing thumbnailContainer gracefully)
         if (product.images && product.images.length > 0) {
             mainImage.src = product.images[0].large;
-            mainImage.alt = product.images[0].alt || product.name;
+            mainImage.alt = product.images[0].alt || product.name;        
             mainImage.decoding = 'async';
+            try { mainImage.dataset.large = product.images[0].large; } catch { /* ignore */ }
             if (thumbnailContainer) {
                  thumbnailContainer.innerHTML = '';
                  product.images.forEach((img, index) => {
@@ -5604,6 +5832,7 @@ const PDP = (function() {
          if (!mainImage || !imageData.large) return;
         mainImage.src = imageData.large;
         mainImage.alt = imageData.alt;
+        try { mainImage.dataset.large = imageData.large; } catch { /* ignore */ }
         thumbnailContainer?.querySelectorAll('.product-gallery-pdp__thumbnail').forEach(t => {
             t.classList.toggle('product-gallery-pdp__thumbnail--active', t.dataset.large === imageData.large);
         });
@@ -5712,6 +5941,7 @@ const PDP = (function() {
             initQuantitySelector();
             initAddToCart();
             initShareButton();
+            initLightbox();
         } else {
             console.error("PDP module initialization failed due to population errors.");
         }
@@ -6356,7 +6586,19 @@ const Checkout = (function() {
 
     let lastTotal = NaN;
 
-    // --- Helper Functions --- (Keep formatPrice, clearError, showError)
+    function syncPaymentOptionUI() {
+        try {
+            paymentOptions?.forEach?.((option) => {
+                const host = option?.closest?.('.payment-option');
+                if (!host) return;
+                host.classList.toggle('is-selected', Boolean(option.checked));
+            });
+        } catch {
+            // ignore
+        }
+    }
+
+    // --- Helper Functions --- (Keep formatPrice, clearError, showError)       
       function formatPrice(price) {
           return `¥${price.toFixed(2)}`;
       }
@@ -6433,14 +6675,15 @@ const Checkout = (function() {
             ShippingRegion?.set?.(regionSelect.value, { silent: true });
         }
 
-        if (draft.payment && paymentOptions && paymentOptions.length > 0) {
+        if (draft.payment && paymentOptions && paymentOptions.length > 0) {     
             paymentOptions.forEach((option) => {
                 option.checked = option.value === draft.payment;
             });
         }
+        syncPaymentOptionUI();
 
         if (typeof Toast !== 'undefined' && Toast.show) {
-            Toast.show('已恢复上次填写的收货信息（本地保存）', 'info', 2000);
+            Toast.show('已恢复上次填写的收货信息（本地保存）', 'info', 2000);   
         }
     }
 
@@ -6450,6 +6693,7 @@ const Checkout = (function() {
         clearDraft();
         checkoutForm.querySelectorAll('.input-error').forEach((el) => el.classList.remove('input-error'));
         checkoutForm.querySelectorAll('.error-message').forEach((el) => el.remove());
+        syncPaymentOptionUI();
     }
 
     // --- Validation Logic --- (Keep validateInput, validateForm)
@@ -6641,9 +6885,10 @@ const Checkout = (function() {
     // --- Event Handling --- (Keep handlePaymentSelection, handlePlaceOrder, addEventListeners)
     function handlePaymentSelection() {
        // ... (no changes needed here)
-          const paymentSection = document.getElementById('payment-method');
-        const errorElement = paymentSection?.querySelector('.error-message');
+          const paymentSection = document.getElementById('payment-method');     
+        const errorElement = paymentSection?.querySelector('.error-message');   
         if (errorElement) errorElement.remove();
+        syncPaymentOptionUI();
     }
 
     function handlePlaceOrder(event) {
@@ -6809,6 +7054,7 @@ const Checkout = (function() {
               }
               renderOrderSummary({ animateItems: true });
               applyDraft();
+              syncPaymentOptionUI();
               addEventListeners();
 
               // 同标签页内购物车变化（例如从其他模块写入）时刷新摘要

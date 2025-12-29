@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [20251229.2] - 2025-12-29
+
+### 新增
+- PDP Lightbox：商品详情页主图支持「点击/回车」打开大图预览（左右切换、缩略图选择、Esc/点击遮罩关闭、关闭后焦点回归）
+
+### 变更
+- Theme：`meta[name="theme-color"]` 不再硬编码，改为从 CSS Token 动态读取（浅色使用 `--color-primary`，深色使用 `--color-background-darker`）以保持与当前品牌配色一致
+- Checkout UI：结算页表单控件统一玻璃拟态质感；支付方式卡片增加明确的 hover/selected 视觉反馈（`is-selected` + `:has()` 渐进增强）
+
 ## [20251229.1] - 2025-12-29
 
 ### 新增

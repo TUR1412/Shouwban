@@ -128,6 +128,7 @@ pwsh -NoLogo -Command "python -m http.server 5173"
 - 虚拟滚动引擎（新增）：零依赖 VirtualScroll，支持超长列表性能压测（`products.html?stress=100000`）
 - 系统健康全景图（新增）：控制台诊断工具 `window.ShouwbanDiagnostics`（FPS/LongTask/内存趋势，亦可 `?health=1` 自动监控）
 - 多页面电商流程：列表/分类/详情/购物车/结算/收藏/静态内容
+- 商品大图预览（新增）：详情页点击主图或按 Enter 打开 Lightbox（左右切换、缩略图选择、Esc 关闭）
 - 商品对比（新增）：最多对比 3 件商品，支持从列表/详情加入、对比页移除与加购（`compare.html`）
 - 订单中心（新增）：模拟下单 → 生成订单 → 订单成功页 → 订单中心查看、复制订单号、再次购买（`orders.html` / `order-success.html`）
 - 优惠码（新增）：支持 `SHOUWBAN10` / `NEW50` / `FREESHIP`（本地逻辑示例，购物车与结算同步）
