@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20251229.2
+   - Cache version follows asset query: 20251231.1
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20251229.2';
+const CACHE_NAME = 'shouwban-20251231.1';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -23,11 +23,21 @@ const PRECACHE_URLS = [
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20251229.2',
-  'styles/extensions.css?v=20251229.2',
-  'scripts/motion.js?v=20251229.2',
-  'scripts/core.js?v=20251229.2',
-  'scripts/main.js?v=20251229.2',
+  'styles/main.css?v=20251231.1',
+  'styles/extensions.css?v=20251231.1',
+  'scripts/motion.js?v=20251231.1',
+  'scripts/core.js?v=20251231.1',
+  'scripts/main.js?v=20251231.1',
+  'scripts/pages/homepage.js?v=20251231.1',
+  'scripts/pages/product-listing.js?v=20251231.1',
+  'scripts/pages/product-detail.js?v=20251231.1',
+  'scripts/pages/checkout.js?v=20251231.1',
+  'scripts/pages/static-page.js?v=20251231.1',
+  'scripts/pages/offline.js?v=20251231.1',
+  'scripts/pages/compare.js?v=20251231.1',
+  'scripts/pages/orders.js?v=20251231.1',
+  'scripts/pages/account.js?v=20251231.1',
+  'scripts/pages/order-success.js?v=20251231.1',
 
   'assets/favicon.svg',
   'assets/icons.svg',

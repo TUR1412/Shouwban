@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [20251231.1] - 2025-12-31
+
+### 新增
+- PageModules（按页代码分割）：页面级模块迁移到 `scripts/pages/*.js`，运行时按 `Utils.getPageName()` 动态加载，避免非当前页面模块被解析/执行
+- PWA 预缓存补齐：`sw.js` 的 `PRECACHE_URLS` 增加 `scripts/pages/*.js?v=...`，保证离线与首屏一致性
+
+### 变更
+- 工程守护升级：
+  - `scripts/bump-version.mjs`：版本号替换覆盖 `scripts/pages/*`
+  - `scripts/validate.mjs`：校验 `PRECACHE_URLS` 必须包含页面模块脚本
+  - `package.json`：`npm run check` 覆盖 `scripts/pages/*.js`
+- Runtime：`scripts/main.js` 增加 `PageModules` loader，并将原“页面模块”从单文件中拆分
+
 ## [20251229.2] - 2025-12-29
 
 ### 新增

@@ -75,6 +75,14 @@ function bumpSwVersion(sw, nextVersion) {
   out = r7.next;
   changed ||= r7.changed;
 
+  const r8 = replaceAll(
+    out,
+    /scripts\/pages\/([A-Za-z0-9_-]+)\.js\?v=[^'"]+/g,
+    `scripts/pages/$1.js?v=${nextVersion}`,
+  );
+  out = r8.next;
+  changed ||= r8.changed;
+
   return { next: out, changed };
 }
 

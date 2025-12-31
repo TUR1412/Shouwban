@@ -7,7 +7,18 @@
 - 统一图标输出（SVG Sprite）
 
 ## 关键文件
-- `scripts/main.js`：主脚本（包含多个 IIFE 模块 + App.init）
+- `scripts/main.js`：运行时入口（全站基础模块 + `PageModules` loader + `App.init`）
+- `scripts/pages/*.js`：页面级模块（按需动态加载，实现真正代码分割）
+  - `scripts/pages/homepage.js`：`index.html`
+  - `scripts/pages/product-listing.js`：`products.html` / `category.html`
+  - `scripts/pages/product-detail.js`：`product-detail.html`（含 RecentlyViewed + PDP）
+  - `scripts/pages/checkout.js`：`checkout.html`
+  - `scripts/pages/compare.js`：`compare.html`
+  - `scripts/pages/orders.js`：`orders.html`
+  - `scripts/pages/account.js`：`account.html`
+  - `scripts/pages/order-success.js`：`order-success.html`
+  - `scripts/pages/static-page.js`：`static-page.html`
+  - `scripts/pages/offline.js`：`offline.html`
 - `scripts/core.js`：可测试的纯函数集合（金额、数量、折扣等）
 - `scripts/motion.js`：Motion-lite（WAAPI）
 
@@ -15,6 +26,18 @@
 - HTML 中的运行时脚本统一使用 `type="module"`（确保可被 Vite 构建链路处理）
 - 重复逻辑统一收敛到 `Utils`（避免多处实现导致回归）
 - 事件广播统一使用 `scope:changed`（兼容 window CustomEvent），并可被 `StateHub` 订阅
+
+## PageModules（按页代码分割）
+
+目标：让“逻辑上的按页初始化”升级为“物理上的按页加载”，避免非当前页面模块被解析/编译/执行。
+
+- 位置：`scripts/main.js` → `PageModules`
+- 触发：`App.init()` 内部根据 `Utils.getPageName()` 选择对应页面模块
+- 两种运行模式：
+  - **Vite（dev/build）**：走静态可分析的 `import('./pages/xxx.js')`，产物可 code split
+  - **根目录静态部署**：走 `import(/* @vite-ignore */ './pages/xxx.js?v=YYYYMMDD.N')`，并从入口 `scripts/main.js?v=...` 解析 `v`，保证缓存穿透一致性
+- 依赖注入：页面模块统一暴露 `init(ctx)`，由 `scripts/main.js` 注入运行时依赖
+  - 说明：避免页面模块直接 `import './main.js'` 导致 `?v=` URL 不一致（浏览器会视为不同模块而重复加载）
 
 ## Utils（通用能力收敛）
 - `Utils.copyText()`：剪贴板复制（安全上下文优先 + legacy fallback）
@@ -59,7 +82,7 @@
 目的：让超长列表在 10 万条数据下仍保持可交互（DOM 常驻数量固定，滚动更新在 `requestAnimationFrame` 内完成）。
 
 - 引擎位置：`scripts/main.js` → `VirtualScroll`
-- 接入点：`ProductListing`（可通过参数开启压测/演示）
+- 接入点：`ProductListing`（位于 `scripts/pages/product-listing.js`，可通过参数开启压测/演示）
 - 启用方式：
   - 压测模式：`products.html?stress=100000`（自动切换列表视图 + 虚拟滚动，并禁用排序/筛选控件避免误判性能瓶颈）
   - 强制虚拟化：`products.html?virtual=1`（当列表较长且处于列表视图时触发）
@@ -70,8 +93,8 @@
 
 - 模块：`scripts/main.js` → `Skeleton`
 - 接入点：
-  - `ProductListing` 首次渲染：`Skeleton.withGridSkeleton(...)`
-  - `Homepage` 精选与策展：`Skeleton.withGridSkeleton(...)`
+  - `ProductListing` 首次渲染（`scripts/pages/product-listing.js`）：`Skeleton.withGridSkeleton(...)`
+  - `Homepage` 精选与策展（`scripts/pages/homepage.js`）：`Skeleton.withGridSkeleton(...)`
 
 ## 页面转场（NavigationTransitions）
 

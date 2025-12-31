@@ -146,6 +146,17 @@ function assertRequiredRepoFilesExist() {
     'styles/extensions.css',
     'scripts/motion.js',
     'scripts/core.js',
+    'scripts/main.js',
+    'scripts/pages/homepage.js',
+    'scripts/pages/product-listing.js',
+    'scripts/pages/product-detail.js',
+    'scripts/pages/checkout.js',
+    'scripts/pages/static-page.js',
+    'scripts/pages/offline.js',
+    'scripts/pages/compare.js',
+    'scripts/pages/orders.js',
+    'scripts/pages/account.js',
+    'scripts/pages/order-success.js',
     'assets/icons.svg',
   ];
   const errors = [];
@@ -274,6 +285,16 @@ function assertServiceWorkerVersionMatches(version) {
     `scripts/motion.js?v=${version}`,
     `scripts/core.js?v=${version}`,
     `scripts/main.js?v=${version}`,
+    `scripts/pages/homepage.js?v=${version}`,
+    `scripts/pages/product-listing.js?v=${version}`,
+    `scripts/pages/product-detail.js?v=${version}`,
+    `scripts/pages/checkout.js?v=${version}`,
+    `scripts/pages/static-page.js?v=${version}`,
+    `scripts/pages/offline.js?v=${version}`,
+    `scripts/pages/compare.js?v=${version}`,
+    `scripts/pages/orders.js?v=${version}`,
+    `scripts/pages/account.js?v=${version}`,
+    `scripts/pages/order-success.js?v=${version}`,
   ];
   for (const s of expected) {
     if (!sw.includes(s)) errors.push(`[SW] PRECACHE_URLS 缺少: ${s}`);
