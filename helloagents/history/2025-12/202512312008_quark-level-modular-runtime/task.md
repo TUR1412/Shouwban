@@ -33,6 +33,6 @@
 - [√] 6.1 执行 `npm run verify`
 - [√] 6.2 执行 `npm test`
 - [√] 6.3 执行 `npm run build`
-- [ ] 6.4 生成原子提交（语义化 commit message）
+- [√] 6.4 生成原子提交（语义化 commit message）
 - [ ] 6.5 推送到远程仓库（若权限/凭据可用；如需 force push 必须单独确认）
 - [√] 6.6 迁移方案包至 `helloagents/history/2025-12/` 并更新索引
