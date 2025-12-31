@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [20251231.2] - 2025-12-31
+
+### 变更
+- Index：About/Contact 区块对齐 BEM 结构（`about__*` / `contact__*`），修复旧类名残留导致的样式漂移并提升可维护性
+- CSS 清理：移除一批历史遗留的重复样式与无效变量引用（`header:not(.header)` / 旧 Hero / 旧 Gallery / 旧 About/Contact），降低样式冲突风险
+- 渐进增强一致性：
+  - `fade-in-up` 动效仅在 `html.js` 下生效，避免无 JS 环境被隐藏/错位
+  - LazyLoad 样式与运行时类名对齐（`img.loaded/img.error`），避免 `lazyload.loaded` 无效分支
+
 ## [20251231.1] - 2025-12-31
 
 ### 新增
