@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -Command "..."` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20251231.2`
+> **缓存穿透统一版本号**：`20260101.1`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -64,7 +64,14 @@
 - [x] 版本号 bump：`20251222.5`（已同步 HTML/SW/核心资源引用）
 - [x] 有限验证：`npm run verify` + `npm test` + `npm run test:coverage`
 
-## 8. 验收命令（推荐）
+## 8. 第六轮递归进化（B6：Genesis Theme · 2026-01-01）
+- [x] 三态主题：Light → Dark → Genesis（本地持久化）
+- [x] Genesis 变体：`data-theme="dark"` + `data-variant="genesis"`（复用暗色主题覆写 + 叠加霓虹/极光 token）
+- [x] UI Token 收敛：主色相关 `rgba(31, 111, 235, …)` 统一改为 `rgba(var(--color-primary-rgb), …)`，保证不同主题下光晕/徽章/边框一致
+- [x] README 产品门户化：补齐 ASCII Title + Emoji 特性清单 + Genesis 主题说明
+- [ ] 推送与删除动作需明确授权确认（依旧保持高危单独确认）
+
+## 9. 验收命令（推荐）
 
 ```powershell
 pwsh -NoLogo -Command "npm run verify"

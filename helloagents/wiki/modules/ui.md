@@ -3,7 +3,7 @@
 ## 职责
 - 定义视觉变量（颜色、间距、字体栈等）
 - 组件样式与响应式布局
-- 深色/浅色主题表现
+- 深色/浅色/Genesis 主题表现（Genesis 为暗色基座 + 变体 token）
 - 玻璃拟态（Glassmorphism）与动效的视觉配合
 - Infinite Evolution Visual System：12 列栅格 / 动态阴影层级 / 黄金比例字阶与间距 / 渐变边框 / Skeleton
 
@@ -53,6 +53,7 @@
 - PDP Lightbox：`scripts/main.js` 的 PDP 模块会按需注入 `<dialog class="lightbox-dialog">`，支持点击主图/键盘 Enter 打开大图预览（左右键切换、缩略图选择）
 - Checkout 支付方式选中态：结算页通过 `.payment-option.is-selected`（JS 注入）与 `:has(input:checked)`（CSS 渐进增强）共同提供稳定的选中态视觉反馈
 - Theme Color：主题切换时会动态更新 `meta[name="theme-color"]`，从 CSS Token 读取，确保浏览器 UI（地址栏/状态栏）与站点配色一致
+- Genesis Theme：三态主题切换（Light → Dark → Genesis），其中 Genesis 采用 `data-theme="dark"` + `data-variant="genesis"` 的表达方式，以复用暗色主题覆写并叠加霓虹/极光 token
 
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）与 Skeleton/转场基础设施

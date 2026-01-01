@@ -13,15 +13,22 @@
         (function () {
             try {
                 var stored = localStorage.getItem('theme');
-                var theme = stored === 'dark' || stored === 'light'
+                var theme = (stored === 'dark' || stored === 'light' || stored === 'genesis')
                     ? stored
                     : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.dataset.theme = theme;
+
+                if (theme === 'genesis') {
+                    document.documentElement.dataset.theme = 'dark';
+                    document.documentElement.dataset.variant = 'genesis';
+                } else {
+                    document.documentElement.dataset.theme = theme;
+                    try { delete document.documentElement.dataset.variant; } catch (e) { /* ignore */ }
+                }
             } catch (e) { /* ignore */ }
         })();
     </script>
-    <link rel="stylesheet" href="styles/main.css?v=20251231.2">
-    <link rel="stylesheet" href="styles/extensions.css?v=20251231.2">
+    <link rel="stylesheet" href="styles/main.css?v=20260101.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260101.1">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
 </head>
@@ -138,9 +145,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20251231.2"></script>
-    <script type="module" src="scripts/core.js?v=20251231.2"></script>
-    <script type="module" src="scripts/main.js?v=20251231.2"></script>
+    <script type="module" src="scripts/motion.js?v=20260101.1"></script>
+    <script type="module" src="scripts/core.js?v=20260101.1"></script>
+    <script type="module" src="scripts/main.js?v=20260101.1"></script>
 </body>
 </html>
-

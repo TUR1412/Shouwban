@@ -5,14 +5,35 @@
 [![Last Commit](https://img.shields.io/github/last-commit/TUR1412/Shouwban?branch=master)](https://github.com/TUR1412/Shouwban/commits/master)
 [![Repo Size](https://img.shields.io/github/repo-size/TUR1412/Shouwban)](https://github.com/TUR1412/Shouwban)
 
+```text
+   _____ _                                _                 
+  / ____| |                              | |                
+ | (___ | |__   ___  _   _  __ _ _ __    | |__   __ _ _ __  
+  \___ \| '_ \ / _ \| | | |/ _` | '_ \   | '_ \ / _` | '_ \ 
+  ____) | | | | (_) | |_| | (_| | | | |  | |_) | (_| | | | |
+ |_____/|_| |_|\___/ \__,_|\__,_|_| |_|  |_.__/ \__,_|_| |_|
+```
+
 一个「纯静态、无后端依赖」的手办电商多页面模板（PWA Ready）：开箱即用，可直接部署到 GitHub Pages / Nginx / Netlify / Vercel 等任意静态托管。
 
 <p align="center">
   <img src="assets/images/hero-placeholder.svg" width="880" alt="塑梦潮玩（Shouwban）预览图">
 </p>
 
+## ✨ 核心特性
+
+- 🧊 Glassmorphism + 霓虹极光 Genesis 变体（Light → Dark → Genesis 三态主题）
+- ⚡️ 运行时零依赖：纯静态多页面站点（HTML/CSS/JS）
+- 🧭 命令面板：`Ctrl/Cmd + K` 快速跳转/搜索/复制链接/切换主题
+- 🧠 性能压榨：VirtualScroll（10w+ 压测）、`content-visibility`、LazyLoad
+- 🧩 模块化：`scripts/pages/*.js` 按页加载，减少非必要解析
+- 📦 PWA Ready：Service Worker 预缓存 + 离线页 + 安装引导
+- 🧪 原子级自检：`npm run verify`（结构校验/版本一致性）+ `npm test`（单测）
+- 🔐 安全基线：XSS 过滤/escape、localStorage schema 白名单校验、Telemetry 不记录输入原文
+
 ## 目录
 
+- [核心特性](#-核心特性)
 - [预览](#预览)
 - [动态演示](#动态演示)
 - [架构概览（含图）](#架构概览含图)

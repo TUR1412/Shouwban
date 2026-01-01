@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [20260101.1] - 2026-01-01
+
+### 新增
+- Genesis Theme：新增第三主题变体（Light → Dark → Genesis）。Genesis 采用 `data-theme="dark"` + `data-variant="genesis"`，在复用暗色主题覆写的同时叠加霓虹/极光 token
+
+### 变更
+- UI Token：主色相关的 `rgba(31, 111, 235, …)` 收敛为 `rgba(var(--color-primary-rgb), …)`，使按钮光晕/徽章/边框在不同主题下保持一致
+- Docs：README 作为“产品门户”补齐 ASCII 标题与 Emoji 功能清单，并更新主题切换说明
+
 ## [20251231.2] - 2025-12-31
 
 ### 变更

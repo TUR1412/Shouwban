@@ -3179,16 +3179,20 @@ const Celebration = (function() {
 })();
 
 // ==============================================
-// Theme Module (Light/Dark, persisted)
+// Theme Module (Light/Dark/Genesis, persisted)
 // ==============================================
 const Theme = (function() {
-    const storageKey = 'theme'; // 'light' | 'dark' | null(跟随系统)
+    const storageKey = 'theme'; // 'light' | 'dark' | 'genesis' | null(跟随系统)
+
+    function normalizeTheme(value) {
+        const v = String(value ?? '').trim().toLowerCase();
+        if (v === 'light' || v === 'dark' || v === 'genesis') return v;
+        return null;
+    }
 
     function getStoredTheme() {
         try {
-            const v = localStorage.getItem(storageKey);
-            if (v === 'light' || v === 'dark') return v;
-            return null;
+            return normalizeTheme(localStorage.getItem(storageKey));
         } catch {
             return null;
         }
@@ -3206,6 +3210,17 @@ const Theme = (function() {
         return getStoredTheme() || getSystemTheme();
     }
 
+    function getActiveThemeFromDom() {
+        try {
+            const root = document.documentElement;
+            if (root?.dataset?.variant === 'genesis') return 'genesis';
+            const base = root?.dataset?.theme;
+            return base === 'dark' || base === 'light' ? base : null;
+        } catch {
+            return null;
+        }
+    }
+
     function readCssVar(name) {
         try {
             const v = getComputedStyle(document.documentElement).getPropertyValue(name);
@@ -3220,47 +3235,81 @@ const Theme = (function() {
         const meta = document.querySelector('meta[name="theme-color"]');        
         if (!meta) return;
 
+        const active = normalizeTheme(theme) || getSystemTheme();
+
         // 避免“写死颜色”导致 UI 与当前主题/配色不一致：从 CSS 变量动态读取
-        const next = theme === 'dark'
+        const next = active === 'dark'
             ? (readCssVar('--color-background-darker') || readCssVar('--color-background-dark') || '#0B1220')
-            : (readCssVar('--color-primary') || '#1F6FEB');
+            : (readCssVar('--color-primary') || (active === 'genesis' ? '#8B5CF6' : '#1F6FEB'));
 
         meta.setAttribute('content', next);
     }
 
+    function getThemeLabel(theme) {
+        const active = normalizeTheme(theme) || 'light';
+        if (active === 'dark') return '深色';
+        if (active === 'genesis') return 'Genesis';
+        return '浅色';
+    }
+
+    function getNextTheme(theme) {
+        const active = normalizeTheme(theme) || 'light';
+        if (active === 'light') return 'dark';
+        if (active === 'dark') return 'genesis';
+        return 'light';
+    }
+
     function updateToggleUI(theme) {
-        const btn = document.querySelector('.header__theme-toggle');
+        const btn = document.querySelector('.header__theme-toggle');      
         if (!btn) return;
 
-        const isDark = theme === 'dark';
-        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-        btn.setAttribute('aria-label', isDark ? '切换到浅色模式' : '切换到深色模式');
-        btn.innerHTML = Icons.svgHtml(isDark ? 'icon-sun' : 'icon-moon');
+        const active = normalizeTheme(theme) || getSystemTheme();
+        const next = getNextTheme(active);
+
+        const pressed = active === 'dark' ? 'true' : (active === 'genesis' ? 'mixed' : 'false');
+        btn.setAttribute('aria-pressed', pressed);
+        btn.setAttribute('aria-label', `切换主题：${getThemeLabel(active)} → ${getThemeLabel(next)}`);
+        btn.setAttribute('title', `切换主题：${getThemeLabel(active)} → ${getThemeLabel(next)}`);
+
+        const icon = next === 'dark' ? 'icon-moon' : (next === 'genesis' ? 'icon-star-filled' : 'icon-sun');
+        btn.innerHTML = Icons.svgHtml(icon);
     }
 
     function applyTheme(theme, { persist = false } = {}) {
-        const next = theme === 'dark' ? 'dark' : 'light';
-        document.documentElement.dataset.theme = next;
-        setMetaThemeColor(next);
-        updateToggleUI(next);
+        const active = normalizeTheme(theme) || getSystemTheme();
+        const base = active === 'genesis' ? 'dark' : active;
+
+        document.documentElement.dataset.theme = base;
+        if (active === 'genesis') {
+            document.documentElement.dataset.variant = 'genesis';
+        } else {
+            try { delete document.documentElement.dataset.variant; } catch { /* ignore */ }
+        }
+
+        setMetaThemeColor(active);
+        updateToggleUI(active);
 
         if (persist) {
-            try { localStorage.setItem(storageKey, next); } catch { /* ignore */ }
+            try { localStorage.setItem(storageKey, active); } catch { /* ignore */ }
         }
     }
 
     function toggleTheme() {
-        const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-        const next = current === 'dark' ? 'light' : 'dark';
+        const current = getActiveThemeFromDom() || getResolvedTheme();
+        const next = getNextTheme(current);
         applyTheme(next, { persist: true });
         if (typeof Toast !== 'undefined' && Toast.show) {
-            Toast.show(next === 'dark' ? '已切换深色模式' : '已切换浅色模式', 'info', 1600);
+            Toast.show(
+                next === 'dark' ? '已切换深色模式' : (next === 'genesis' ? '已切换 Genesis 主题' : '已切换浅色模式'),
+                'info',
+                1600,
+            );
         }
     }
 
     function init() {
         // 由 head 内联脚本提前设置 data-theme，避免闪烁；这里负责补齐 UI 状态与监听
-        const theme = document.documentElement.dataset.theme || getResolvedTheme();
+        const theme = getActiveThemeFromDom() || getResolvedTheme();
         applyTheme(theme, { persist: false });
 
         const btn = document.querySelector('.header__theme-toggle');
@@ -3339,9 +3388,10 @@ const Favorites = (function() {
     function syncButtons(root = document) {
         if (!root || !root.querySelectorAll) return;
         const ids = getIds();
+        const idSet = new Set(ids);
         root.querySelectorAll('.favorite-btn[data-product-id]').forEach((btn) => {
             const productId = btn.dataset.productId;
-            applyButtonState(btn, ids.includes(productId));
+            applyButtonState(btn, idSet.has(productId));
         });
     }
 
@@ -3461,9 +3511,10 @@ const Compare = (function() {
     function syncButtons(root = document) {
         if (!root || !root.querySelectorAll) return;
         const ids = getIds();
+        const idSet = new Set(ids);
         root.querySelectorAll('.product-card__compare[data-product-id], .compare-btn[data-product-id]').forEach((btn) => {
             const productId = btn.dataset.productId;
-            applyButtonState(btn, ids.includes(productId));
+            applyButtonState(btn, idSet.has(productId));
         });
     }
 
