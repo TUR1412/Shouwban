@@ -159,5 +159,83 @@ export function createSeo(deps = {}, options = {}) {
     }
   }
 
-  return { canonicalizeHref, ensureCanonical, upsertJsonLd, upsertWebSiteJsonLd };
+  function readAttr(el, name) {
+    try {
+      if (!el) return '';
+      const n = String(name || '').trim();
+      if (!n) return '';
+      if (typeof el.getAttribute === 'function') return String(el.getAttribute(n) || '').trim();
+      return String(el[n] || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function findFirstLogoHref(doc) {
+    try {
+      if (!doc || typeof doc.querySelector !== 'function') return '';
+      const selectors = [
+        'link[rel="icon"]',
+        'link[rel="shortcut icon"]',
+        'link[rel="apple-touch-icon"]',
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+      ];
+      for (const sel of selectors) {
+        const el = doc.querySelector(sel);
+        if (!el) continue;
+        const val =
+          sel.startsWith('meta[') ? readAttr(el, 'content') : readAttr(el, 'href');
+        if (val) return val;
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  function upsertOrganizationJsonLd(params = {}) {
+    try {
+      const p = params && typeof params === 'object' ? params : {};
+      const name = String(p.name || '塑梦潮玩').trim();
+      if (!name) return false;
+
+      const current = canonicalizeHref(getHref(), getHref());
+      if (!current) return false;
+
+      const websiteUrl = canonicalizeHref('index.html', current);
+      if (!websiteUrl) return false;
+
+      const doc = getDocument();
+      const logoCandidate = String(p.logo || '').trim() || findFirstLogoHref(doc);
+      const logo = logoCandidate ? canonicalizeHref(logoCandidate, current) : '';
+
+      const sameAs = Array.isArray(p.sameAs)
+        ? p.sameAs
+            .map((x) => canonicalizeHref(String(x || '').trim(), current))
+            .filter(Boolean)
+        : [];
+
+      const data = {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name,
+        url: websiteUrl,
+        logo: logo || undefined,
+        sameAs: sameAs.length ? sameAs : undefined,
+      };
+
+      return upsertJsonLd('organization-jsonld', data);
+    } catch {
+      return false;
+    }
+  }
+
+  return {
+    canonicalizeHref,
+    ensureCanonical,
+    upsertJsonLd,
+    upsertWebSiteJsonLd,
+    upsertOrganizationJsonLd,
+  };
 }

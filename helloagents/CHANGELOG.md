@@ -12,6 +12,16 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.10] - 2026-01-12
+
+### 新增
+- SEO：全站新增 `Organization` JSON-LD（`#organization-jsonld`），补齐站点主体/品牌信息（可选 logo/sameAs）
+
+### 变更
+- SEO：`scripts/main.js` 启动期调用 `Seo.upsertOrganizationJsonLd()`，与 Canonical 规则一致（渐进增强）
+- 测试/文档：扩展 SEO 单测与模块文档，README 补齐能力说明
+- 版本：统一缓存穿透版本号 bump 到 `20260112.10`
+
 ## [20260112.9] - 2026-01-12
 
 ### 新增

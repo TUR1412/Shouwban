@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.9';
-import { createStorageKit } from './runtime/storage.js?v=20260112.9';
-import { createPerfKit } from './runtime/perf.js?v=20260112.9';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.9';
-import { createToast } from './modules/toast.js?v=20260112.9';
-import { createLogger } from './modules/logger.js?v=20260112.9';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.9';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.9';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.9';
-import { createSeo } from './modules/seo.js?v=20260112.9';
+import { createStateHub } from './runtime/state.js?v=20260112.10';
+import { createStorageKit } from './runtime/storage.js?v=20260112.10';
+import { createPerfKit } from './runtime/perf.js?v=20260112.10';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.10';
+import { createToast } from './modules/toast.js?v=20260112.10';
+import { createLogger } from './modules/logger.js?v=20260112.10';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.10';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.10';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.10';
+import { createSeo } from './modules/seo.js?v=20260112.10';
 
 // ==============================================
 // Utility Functions
@@ -6608,6 +6608,7 @@ const App = {
     init: function() {
         try { Seo.ensureCanonical(); } catch { /* ignore */ }
         try { Seo.upsertWebSiteJsonLd(); } catch { /* ignore */ }
+        try { Seo.upsertOrganizationJsonLd(); } catch { /* ignore */ }
 
         const page = Utils.getPageName();
         const pageModulePromise = PageModules.importPageModule(page);
