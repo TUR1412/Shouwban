@@ -1,8 +1,9 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260111.2';
-import { createStorageKit } from './runtime/storage.js?v=20260111.2';
-import { createPerfKit } from './runtime/perf.js?v=20260111.2';
-import { createAccessibility } from './modules/accessibility.js?v=20260111.2';
+import { createStateHub } from './runtime/state.js?v=20260111.3';
+import { createStorageKit } from './runtime/storage.js?v=20260111.3';
+import { createPerfKit } from './runtime/perf.js?v=20260111.3';
+import { createAccessibility } from './modules/accessibility.js?v=20260111.3';
+import { createToast } from './modules/toast.js?v=20260111.3';
 
 // ==============================================
 // Utility Functions
@@ -3013,60 +3014,7 @@ const Skeleton = (function() {
 // ==============================================
 // Toast / Feedback Module (轻量提示，不依赖外部库)
 // ==============================================
-const Toast = (function() {
-    let container = null;
-
-    function ensureContainer() {
-        if (container) return container;
-        container = document.querySelector('.toast-container');
-        if (container) return container;
-
-        container = document.createElement('div');
-        container.className = 'toast-container';
-        container.setAttribute('aria-live', 'polite');
-        container.setAttribute('aria-relevant', 'additions');
-        document.body.appendChild(container);
-        return container;
-    }
-
-    function show(message, type = 'info', durationMs = 2400) {
-        if (!message) return;
-        const root = ensureContainer();
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast--${type}`;
-        toast.textContent = message;
-        root.appendChild(toast);
-
-        // Trigger enter animation
-        requestAnimationFrame(() => toast.classList.add('is-visible'));
-
-        window.setTimeout(() => {
-            toast.classList.remove('is-visible');
-            toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-        }, Math.max(800, durationMs));
-    }
-
-    // 允许任意模块通过 Utils.dispatch('toast:show', {...}) 触发全局提示
-    try {
-        window.addEventListener('toast:show', (event) => {
-            const detail = event?.detail;
-            if (!detail) return;
-            if (typeof detail === 'string') {
-                show(detail, 'info', 2200);
-                return;
-            }
-            const msg = detail.message || detail.text || '';
-            const type = detail.type || 'info';
-            const duration = Number(detail.durationMs ?? detail.duration ?? 2400);
-            show(msg, type, duration);
-        });
-    } catch {
-        // ignore
-    }
-
-    return { show };
-})();
+const Toast = createToast();
 
 // ==============================================
 // Celebration / Confetti Module
@@ -6010,12 +5958,17 @@ const Cart = (function() {
         clearCartButton.addEventListener('click', () => {
             const cart = getCart();
             if (cart.length === 0) return;
-            const ok = window.confirm('确定要清空购物车吗？此操作不可撤销。');
+            const ok = window.confirm('确定要清空购物车吗？你可以在提示条中撤销。');
             if (!ok) return;
+            const snapshot = cart.map((item) => ({ ...item }));
             setCart([]);
-            if (typeof Toast !== 'undefined' && Toast.show) {
-                Toast.show('购物车已清空', 'success', 1800);
-            }
+            Toast?.show?.({
+                message: '购物车已清空',
+                type: 'success',
+                durationMs: 5200,
+                actionLabel: '撤销',
+                onAction: () => setCart(snapshot),
+            });
         });
 
         return clearCartButton;
@@ -6090,6 +6043,8 @@ const Cart = (function() {
         const itemElement = options.itemElement || null;
 
         const cart = getCart();
+        const removed = cart.find((item) => item.id === productId) || null;
+        const snapshot = cart.map((item) => ({ ...item }));
         const next = cart.filter((item) => item.id !== productId);
         if (next.length === cart.length) return;
 
@@ -6097,17 +6052,25 @@ const Cart = (function() {
 
         if (cartContainer && rerender) {
             renderCart();
-            return;
+        } else {
+            // Incremental UI update (avoid full rerender)
+            try { itemElement?.remove?.(); } catch { /* ignore */ }
+            if (next.length === 0) {
+                renderCart();
+            } else {
+                updateCartSummary(next);
+                renderRecommendations(next);
+            }
         }
 
-        // Incremental UI update (avoid full rerender)
-        try { itemElement?.remove?.(); } catch { /* ignore */ }
-        if (next.length === 0) {
-            renderCart();
-            return;
-        }
-        updateCartSummary(next);
-        renderRecommendations(next);
+        const removedName = String(removed?.name || '').trim() || '商品';
+        Toast?.show?.({
+            message: `已移除「${removedName}」`,
+            type: 'info',
+            durationMs: 5200,
+            actionLabel: '撤销',
+            onAction: () => setCart(snapshot),
+        });
     }
 
     function bindCartItemDelegation() {

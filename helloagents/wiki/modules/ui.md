@@ -11,6 +11,7 @@
 - `styles/main.css`：基础变量、布局、组件样式
 - `styles/extensions.css`：扩展组件（收藏/对比/订单/对话框/命令面板等）
 - `assets/icons.svg`：本地 SVG Sprite（替代外部 Icon CDN）
+- `scripts/modules/toast.js`：全局反馈 Toast（可操作 action/关闭，事件驱动）
 
 ## 视觉系统（Phase 1）核心约定
 
@@ -64,6 +65,7 @@
 - 会员中心关注中心：`watch-center` 列表动态渲染关注/降价/到货状态
 - 订单旅程：`orders.js` + `order-success.js` 写入 `order-journey` 时间轴
 - Checkout 支付方式选中态：结算页通过 `.payment-option.is-selected`（JS 注入）与 `:has(input:checked)`（CSS 渐进增强）共同提供稳定的选中态视觉反馈
+- Toast：`scripts/modules/toast.js` 会注入 `.toast-container` 并统一承接 `toast:show` 事件（支持 action/关闭）
 - Theme Color：主题切换时会动态更新 `meta[name="theme-color"]`，从 CSS Token 读取，确保浏览器 UI（地址栏/状态栏）与站点配色一致
 - Genesis Theme：三态主题切换（Light → Dark → Genesis），其中 Genesis 采用 `data-theme="dark"` + `data-variant="genesis"` 的表达方式，以复用暗色主题覆写并叠加霓虹/极光 token
 
@@ -77,3 +79,4 @@
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）与 Skeleton/转场基础设施
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Neo-Quark 视觉升级与新业务组件样式
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（减少动效/高对比/字体缩放）
+- [202601112345_actionable-toast-undo](../../history/2026-01/202601112345_actionable-toast-undo/) - 可操作 Toast 与购物车撤销交互

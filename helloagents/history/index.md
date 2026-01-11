@@ -14,6 +14,7 @@
 | 202512312008 | quark-level-modular-runtime | 重构/性能/PWA | ✅已完成 | `2025-12/202512312008_quark-level-modular-runtime/` |
 | 202601112017 | quark-overhaul | 重构/业务/视觉 | ✅已完成 | `2026-01/202601112017_quark-overhaul/` |
 | 202601112230 | accessibility-preferences | A11y/体验/守护 | ✅已完成 | `2026-01/202601112230_accessibility-preferences/` |
+| 202601112345 | actionable-toast-undo | UI/反馈/购物车 | ✅已完成 | `2026-01/202601112345_actionable-toast-undo/` |
 
 ## 按月归档
 
@@ -28,3 +29,4 @@
 ### 2026-01
 - [202601112017_quark-overhaul](2026-01/202601112017_quark-overhaul/) - Runtime 拆分 + 会员/关注/套装/订单旅程/策展 + Neo-Quark 视觉升级
 - [202601112230_accessibility-preferences](2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心 + 动效降级 + PWA/Tooling 守护
+- [202601112345_actionable-toast-undo](2026-01/202601112345_actionable-toast-undo/) - Toast 可操作升级（action/关闭）+ 购物车撤销交互

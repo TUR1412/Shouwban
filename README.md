@@ -15,6 +15,7 @@
 - **智能策展**：基于浏览/收藏/品类偏好生成推荐。
 - **三态主题**：Light → Dark → Genesis（暗色基座 + 变体 token）。
 - **无障碍与偏好中心（新增）**：减少动效 / 高对比模式 / 字体缩放（100%~125%）。
+- **可操作 Toast（新增）**：关键操作反馈支持“撤销”（如购物车清空/移除），并提供关闭入口。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -62,8 +63,9 @@
 - **Bundling Strategy**: bundle recommendations + bundle discounts + one-click removal.
 - **Order Journey**: a visual timeline + after-sales entry for the whole lifecycle.
 - **Smart Curation**: behavior-driven recommendations.
-- **3-state Theme**: Light → Dark → Genesis (dark base + variant tokens).
+- **3-state Theme**: Light → Dark → Genesis (dark base + variant tokens).       
 - **A11y & Preferences (NEW)**: reduce motion / high contrast / font scaling (100%~125%).
+- **Actionable Toasts (NEW)**: undo for destructive actions (e.g., cart clear/remove) with dismiss support.
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start
@@ -86,4 +88,3 @@
 - `scripts/pages/`: page-level modules (lazy-loaded)
 - `scripts/modules/`: shared feature modules (e.g. Accessibility)
 - `sw.js`: service worker (PWA caching & offline)
-

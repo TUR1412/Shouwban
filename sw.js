@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20260111.2
+   - Cache version follows asset query: 20260111.3
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20260111.2';
+const CACHE_NAME = 'shouwban-20260111.3';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -23,25 +23,26 @@ const PRECACHE_URLS = [
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20260111.2',
-  'styles/extensions.css?v=20260111.2',
-  'scripts/motion.js?v=20260111.2',
-  'scripts/core.js?v=20260111.2',
-  'scripts/main.js?v=20260111.2',
-  'scripts/runtime/state.js?v=20260111.2',
-  'scripts/runtime/storage.js?v=20260111.2',
-  'scripts/runtime/perf.js?v=20260111.2',
-  'scripts/modules/accessibility.js?v=20260111.2',
-  'scripts/pages/homepage.js?v=20260111.2',
-  'scripts/pages/product-listing.js?v=20260111.2',
-  'scripts/pages/product-detail.js?v=20260111.2',
-  'scripts/pages/checkout.js?v=20260111.2',
-  'scripts/pages/static-page.js?v=20260111.2',
-  'scripts/pages/offline.js?v=20260111.2',
-  'scripts/pages/compare.js?v=20260111.2',
-  'scripts/pages/orders.js?v=20260111.2',
-  'scripts/pages/account.js?v=20260111.2',
-  'scripts/pages/order-success.js?v=20260111.2',
+  'styles/main.css?v=20260111.3',
+  'styles/extensions.css?v=20260111.3',
+  'scripts/motion.js?v=20260111.3',
+  'scripts/core.js?v=20260111.3',
+  'scripts/main.js?v=20260111.3',
+  'scripts/runtime/state.js?v=20260111.3',
+  'scripts/runtime/storage.js?v=20260111.3',
+  'scripts/runtime/perf.js?v=20260111.3',
+  'scripts/modules/accessibility.js?v=20260111.3',
+  'scripts/modules/toast.js?v=20260111.3',
+  'scripts/pages/homepage.js?v=20260111.3',
+  'scripts/pages/product-listing.js?v=20260111.3',
+  'scripts/pages/product-detail.js?v=20260111.3',
+  'scripts/pages/checkout.js?v=20260111.3',
+  'scripts/pages/static-page.js?v=20260111.3',
+  'scripts/pages/offline.js?v=20260111.3',
+  'scripts/pages/compare.js?v=20260111.3',
+  'scripts/pages/orders.js?v=20260111.3',
+  'scripts/pages/account.js?v=20260111.3',
+  'scripts/pages/order-success.js?v=20260111.3',
 
   'assets/favicon.svg',
   'assets/icons.svg',

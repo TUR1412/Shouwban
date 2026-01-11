@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [20260111.3] - 2026-01-11
+
+### 新增
+- Toast：可操作反馈升级（支持 action/关闭），并抽离为 `scripts/modules/toast.js`
+- Cart：清空购物车/移除商品提供“撤销”入口（Toast action）
+
+### 变更
+- UI：Toast 样式结构化（icon/body/actions），并基于 `--glass-*` token 自动适配 Neo-Quark 与暗色主题
+- PWA/Guardrails：`sw.js` precache、`validate/check` 补齐新模块覆盖
+
 ## [20260111.2] - 2026-01-11
 
 ### 新增
