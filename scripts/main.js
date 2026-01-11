@@ -1,13 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.6';
-import { createStorageKit } from './runtime/storage.js?v=20260112.6';
-import { createPerfKit } from './runtime/perf.js?v=20260112.6';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.6';
-import { createToast } from './modules/toast.js?v=20260112.6';
-import { createLogger } from './modules/logger.js?v=20260112.6';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.6';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.6';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.6';
+import { createStateHub } from './runtime/state.js?v=20260112.7';
+import { createStorageKit } from './runtime/storage.js?v=20260112.7';
+import { createPerfKit } from './runtime/perf.js?v=20260112.7';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.7';
+import { createToast } from './modules/toast.js?v=20260112.7';
+import { createLogger } from './modules/logger.js?v=20260112.7';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.7';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.7';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.7';
+import { createSeo } from './modules/seo.js?v=20260112.7';
 
 // ==============================================
 // Utility Functions
@@ -1851,9 +1852,15 @@ const Prefetch = (function() {
 const Telemetry = createTelemetry({ Utils, Http });
 
 // ==============================================
+// SEO (Canonical)
+// - 兜底补齐 `link[rel="canonical"]`（去 hash、保留 query）
+// ==============================================
+const Seo = createSeo();
+
+// ==============================================
 // Perf Vitals (Performance Telemetry)
 // ==============================================
-const PerfVitals = createPerfVitals({ Logger, Telemetry, Utils });
+const PerfVitals = createPerfVitals({ Logger, Telemetry, Utils });       
 
 // ==============================================
 // Header Module
@@ -6595,53 +6602,12 @@ const PageModules = (function() {
 })();
 
 // ==============================================
-// SEO（Canonical）
-// - 兜底补齐 `link[rel="canonical"]`，用于减少 URL 变体的重复内容噪声
-// - 规则：去 hash（#...），保留 query（如 PDP `?id=...`）
-// - 渐进增强：仅在 http(s) 下写入，任何异常都不影响主流程
-// ==============================================
-const Seo = (function() {
-    function resolveCanonicalHref() {
-        try {
-            const url = new URL(window.location.href);
-            if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
-            url.hash = '';
-            return url.toString();
-        } catch {
-            return '';
-        }
-    }
-
-    function ensureCanonical() {
-        try {
-            const href = resolveCanonicalHref();
-            if (!href) return;
-
-            const head = document.head || document.getElementsByTagName('head')[0];
-            if (!head) return;
-
-            let link = head.querySelector('link[rel="canonical"]');
-            if (!link) {
-                link = document.createElement('link');
-                link.setAttribute('rel', 'canonical');
-                head.appendChild(link);
-            }
-            link.setAttribute('href', href);
-        } catch {
-            // ignore
-        }
-    }
-
-    return { ensureCanonical, resolveCanonicalHref };
-})();
-
-try { Seo.ensureCanonical(); } catch { /* ignore */ }
-
-// ==============================================
 // Application Initialization
 // ==============================================
 const App = {
     init: function() {
+        try { Seo.ensureCanonical(); } catch { /* ignore */ }
+
         const page = Utils.getPageName();
         const pageModulePromise = PageModules.importPageModule(page);
 

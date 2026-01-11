@@ -12,6 +12,19 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.7] - 2026-01-12
+
+### 新增
+- SEO：新增 `scripts/modules/seo.js`（Canonical 兜底模块化，支持依赖注入便于测试）
+- 测试：新增 `tests/seo.test.mjs` 覆盖 Canonical 规则与 upsert 行为
+
+### 变更
+- SEO：`scripts/main.js` 改为使用 SEO 模块（保持 `?v=` 版本一致性）
+- PWA：`sw.js` precache 补齐 `scripts/modules/seo.js?v=...`，避免离线场景缺失
+- 工程守护：`npm run check` 覆盖新增 SEO 模块
+- SEO：商品详情页 Product JSON-LD 补齐 `url`、`aggregateRating`、`itemCondition`，并对 offers.url 去 hash（与 canonical 对齐）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.7`
+
 ## [20260112.6] - 2026-01-12
 
 ### 新增

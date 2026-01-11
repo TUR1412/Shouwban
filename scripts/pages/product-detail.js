@@ -545,7 +545,11 @@ export function init(ctx = {}) {
                   : [];
   
               const url = (() => {
-                  try { return new URL(window.location.href).toString(); } catch { return ''; }
+                  try {
+                      const u = new URL(window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch { return ''; }
               })();
 
               const inventoryInfo = typeof InventoryPulse !== 'undefined' && InventoryPulse.getInfo
@@ -568,21 +572,36 @@ export function init(ctx = {}) {
                   return new Date(ts).toISOString();
               })();
 
+              const aggregateRating = (() => {
+                  const ratingValue = Number(product.rating);
+                  const reviewCount = Math.floor(Number(product.reviewCount));
+                  if (!Number.isFinite(ratingValue) || ratingValue <= 0) return undefined;
+                  if (!Number.isFinite(reviewCount) || reviewCount <= 0) return undefined;
+                  return {
+                      '@type': 'AggregateRating',
+                      ratingValue: ratingValue.toFixed(1),
+                      reviewCount: reviewCount,
+                  };
+              })();
+
               const data = {
                   '@context': 'https://schema.org',
                   '@type': 'Product',
                   name: String(product.name || ''),
                   sku: String(product.id || ''),
+                  url: url || undefined,
                   category: String(product.category?.name || ''),
                   image: images,
                   description: toPlainText(product.description),
                   brand: { '@type': 'Brand', name: '塑梦潮玩' },
+                  aggregateRating: aggregateRating,
                   offers: {
                       '@type': 'Offer',
                       priceCurrency: 'CNY',
                       price: typeof product.price === 'number' ? product.price.toFixed(2) : undefined,
                       availability: availability,
                       availabilityStarts: availabilityStarts,
+                      itemCondition: 'https://schema.org/NewCondition',
                       url: url || undefined,
                   },
               };
