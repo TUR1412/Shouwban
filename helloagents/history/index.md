@@ -19,6 +19,7 @@
 | 202601120102 | diagnostics-center | Observability/UI/诊断 | ✅已完成 | `2026-01/202601120102_diagnostics-center/` |
 | 202601120134 | telemetry-module | Runtime/Telemetry/守护 | ✅已完成 | `2026-01/202601120134_telemetry-module/` |
 | 202601120258 | dist-pwa-lighthouse | PWA/CI/Tooling | ✅已完成 | `2026-01/202601120258_dist-pwa-lighthouse/` |
+| 202601120330 | perf-budget-guardrail | Tooling/Perf | ✅已完成 | `2026-01/202601120330_perf-budget-guardrail/` |
 
 ## 按月归档
 
@@ -38,3 +39,4 @@
 - [202601120102_diagnostics-center](2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）+ Command Palette 入口 + 单测
 - [202601120134_telemetry-module](2026-01/202601120134_telemetry-module/) - Telemetry 抽离为独立模块 + 单测 + PWA 更新提示 Toast 化
 - [202601120258_dist-pwa-lighthouse](2026-01/202601120258_dist-pwa-lighthouse/) - dist 形态 PWA 同构（生成 dist/sw.js）+ Lighthouse CI 回归门禁
+- [202601120330_perf-budget-guardrail](2026-01/202601120330_perf-budget-guardrail/) - dist gzip 体积预算门禁（Performance Budget）+ Lighthouse 串联 budget

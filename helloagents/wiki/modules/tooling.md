@@ -31,3 +31,8 @@
 - 配置：`.lighthouserc.json`（关键页面 URL + 分项阈值断言）
 - 本地：`npm run lighthouse`（会先 `npm run build` 再执行 `lhci autorun`）
 - CI：`.github/workflows/lighthouse.yml`（自动构建并产出 `.lighthouseci` 报告作为 artifact）
+
+## 体积预算：Performance Budget
+- 脚本：`scripts/perf-budget.mjs`
+- 目的：对 dist 主入口（最大 `.js.gz/.css.gz`）与 `index.html.gz` 做 gzip 体积阈值断言，稳定捕捉 bundle 膨胀回退
+- 使用：`npm run build` 后执行 `npm run budget`（`npm run lighthouse` 已自动包含 budget 门禁）

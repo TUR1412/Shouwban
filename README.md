@@ -30,10 +30,11 @@
 
 ### 校验与测试
 - 语法检查：`npm run check`
-- 结构校验：`npm run validate`（资源引用、版本号一致性、SW precache 覆盖等）
+- 结构校验：`npm run validate`（资源引用、版本号一致性、SW precache 覆盖等）    
 - 完整校验：`npm run verify`
 - 单元测试：`npm test`
 - 覆盖率守护：`npm run test:coverage`（`scripts/core.js` 100% 覆盖率）
+- 性能预算：`npm run budget`（基于 dist 的 gzip 体积阈值，稳定捕捉 bundle 膨胀回退）
 - Lighthouse：`npm run lighthouse`（需要本机可用的 Chrome/Chromium；CI 已集成）
 
 ### 部署（建议）
@@ -90,6 +91,7 @@
 - Full verify: `npm run verify`
 - Unit tests: `npm test`
 - Coverage guardrail: `npm run test:coverage` (100% for `scripts/core.js`)
+- Perf budget: `npm run budget` (gzip size thresholds based on dist outputs; stable bundle regression guardrail)
 - Lighthouse: `npm run lighthouse` (requires Chrome/Chromium locally; enabled in CI)
 
 ### Structure

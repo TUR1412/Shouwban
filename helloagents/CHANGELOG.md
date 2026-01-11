@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### 新增
+- Tooling：新增 `scripts/perf-budget.mjs` 与 `npm run budget`（基于 dist gzip 体积阈值的稳定回归门禁）
+
+### 变更
+- Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
+
 ## [20260112.5] - 2026-01-12
 
 ### 新增
