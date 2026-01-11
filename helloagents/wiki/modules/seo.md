@@ -34,6 +34,11 @@
 - JSON-LD 内的 URL 统一去 hash（与 Canonical 对齐）
 - 多页面部署路径不假设为根目录：统一通过 `new URL(relative, location.href)` 构造绝对 URL
 
+### 实体链接（@id）
+- `Organization.@id` 统一为 `<index.html>#organization`（同一站点主体实体的稳定标识）
+- `WebSite.publisher.@id` 引用同一 `Organization.@id`（站点与组织实体关联）
+- PDP `Product.brand.@id` 引用同一 `Organization.@id`（与站点级组织一致，减少实体歧义）
+
 ### 体积控制
 - PLP `ItemList` 默认最多输出前 60 条（避免列表过大导致 JSON-LD 过重）
 - 所有 JSON-LD 写入前会清理 `undefined` 字段（保持 JSON 干净）
@@ -47,3 +52,4 @@
 - [202601120524_seo-rich-results](../../history/2026-01/202601120524_seo-rich-results/) - Rich Results：PDP BreadcrumbList + PLP ItemList JSON-LD
 - [202601120540_seo-searchaction-breadcrumbs](../../history/2026-01/202601120540_seo-searchaction-breadcrumbs/) - WebSite/SearchAction JSON-LD + PLP BreadcrumbList JSON-LD
 - [202601120556_seo-organization-jsonld](../../history/2026-01/202601120556_seo-organization-jsonld/) - Organization JSON-LD（站点级主体信息）
+- [202601120618_seo-jsonld-entity-linking](../../history/2026-01/202601120618_seo-jsonld-entity-linking/) - JSON-LD 实体关联（Organization/WebSite/Product 统一 @id）

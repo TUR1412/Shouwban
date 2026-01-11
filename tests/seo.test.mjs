@@ -101,6 +101,10 @@ describe('SEO', () => {
     assert.equal(json['@type'], 'WebSite');
     assert.equal(json.name, 'Shouwban');
     assert.equal(json.url, 'https://example.test/index.html');
+    assert.equal(
+      json.publisher['@id'],
+      'https://example.test/index.html#organization',
+    );
     assert.equal(json.potentialAction['@type'], 'SearchAction');
     assert.equal(
       json.potentialAction.target,
@@ -139,6 +143,7 @@ describe('SEO', () => {
 
     const json = JSON.parse(appended[0].textContent);
     assert.equal(json['@type'], 'Organization');
+    assert.equal(json['@id'], 'https://example.test/index.html#organization');
     assert.equal(json.name, 'Shouwban');
     assert.equal(json.url, 'https://example.test/index.html');
     assert.equal(json.logo, 'https://example.test/assets/favicon.svg');

@@ -12,6 +12,16 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.11] - 2026-01-12
+
+### 新增
+- SEO：JSON-LD 实体关联：为 `WebSite.publisher` 与 `Organization.@id` 建立稳定引用（`<index.html>#organization`）
+
+### 变更
+- SEO：PDP `Product.brand` 增补 `@id` 与站点级 `Organization` 对齐，减少实体歧义（渐进增强）
+- 测试/文档：扩展 SEO 单测与模块文档
+- 版本：统一缓存穿透版本号 bump 到 `20260112.11`
+
 ## [20260112.10] - 2026-01-12
 
 ### 新增

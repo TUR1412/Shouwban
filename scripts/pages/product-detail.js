@@ -624,6 +624,15 @@ export function init(ctx = {}) {
                   } catch { return ''; }
               })();
 
+              const websiteUrl = (() => {
+                  try {
+                      const u = new URL('index.html', url || window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch { return ''; }
+              })();
+              const orgId = websiteUrl ? `${websiteUrl}#organization` : '';
+
               const inventoryInfo = typeof InventoryPulse !== 'undefined' && InventoryPulse.getInfo
                   ? InventoryPulse.getInfo(product)
                   : null;
@@ -665,7 +674,7 @@ export function init(ctx = {}) {
                   category: String(product.category?.name || ''),
                   image: images,
                   description: toPlainText(product.description),
-                  brand: { '@type': 'Brand', name: '塑梦潮玩' },
+                  brand: { '@type': 'Brand', '@id': orgId || undefined, name: '塑梦潮玩' },
                   aggregateRating: aggregateRating,
                   offers: {
                       '@type': 'Offer',

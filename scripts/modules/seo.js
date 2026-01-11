@@ -140,12 +140,14 @@ export function createSeo(deps = {}, options = {}) {
 
       const sep = productsUrl.includes('?') ? '&' : '?';
       const urlTemplate = `${productsUrl}${sep}query={search_term_string}`;
+      const orgId = `${websiteUrl}#organization`;
 
       const data = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: siteName,
         url: websiteUrl,
+        publisher: { '@id': orgId },
         potentialAction: {
           '@type': 'SearchAction',
           target: urlTemplate,
@@ -206,6 +208,8 @@ export function createSeo(deps = {}, options = {}) {
       const websiteUrl = canonicalizeHref('index.html', current);
       if (!websiteUrl) return false;
 
+      const orgId = `${websiteUrl}#organization`;
+
       const doc = getDocument();
       const logoCandidate = String(p.logo || '').trim() || findFirstLogoHref(doc);
       const logo = logoCandidate ? canonicalizeHref(logoCandidate, current) : '';
@@ -219,6 +223,7 @@ export function createSeo(deps = {}, options = {}) {
       const data = {
         '@context': 'https://schema.org',
         '@type': 'Organization',
+        '@id': orgId,
         name,
         url: websiteUrl,
         logo: logo || undefined,
