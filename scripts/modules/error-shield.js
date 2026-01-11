@@ -296,6 +296,42 @@ export function createErrorShield(deps = {}, options = {}) {
     ensureUI().open();
   }
 
+  function capture(err, context = {}) {
+    try {
+      const ctx = context && typeof context === 'object' ? context : {};
+      const source = safeText(ctx.source, 'capture');
+      const lineno = Number(ctx.lineno) || 0;
+      const colno = Number(ctx.colno) || 0;
+
+      const { name, message, stack } = normalizeErrorLike(err);
+      const rawMessage = message || safeText(err, 'Captured error');
+
+      const signature = `cap:${hashOf(name)}:${hashOf(rawMessage)}:${hashOf(stack)}:${hashOf(source)}:${lineno}:${colno}`;
+      const meta = bumpDedupe(signature);
+
+      const entry = {
+        kind: 'capture',
+        time: nowIso(),
+        page: safeText(ctx.page, getPageName()),
+        href: safeText(ctx.href, getHref()),
+        source,
+        lineno,
+        colno,
+        messageRaw: rawMessage,
+        messageHash: hashOf(rawMessage),
+        stackHash: hashOf(stack),
+        count: meta.count,
+      };
+
+      record(entry);
+      recordLogger(entry, 'error');
+      trackTelemetry(entry, 'error');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function handleRuntimeError(event) {
     const msg = safeText(event?.message || '');
     const file = safeText(event?.filename || '');
@@ -403,5 +439,5 @@ export function createErrorShield(deps = {}, options = {}) {
     return true;
   }
 
-  return Object.freeze({ init, open, getRecent, clear });
+  return Object.freeze({ init, open, capture, getRecent, clear });
 }

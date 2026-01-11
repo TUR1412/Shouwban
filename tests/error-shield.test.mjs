@@ -101,6 +101,47 @@ describe('ErrorShield', () => {
     harness.restore();
   });
 
+  it('captures handled errors via capture()', () => {
+    const loggerCalls = [];
+    const telemetryCalls = [];
+
+    const Logger = {
+      error: (message, detail) => loggerCalls.push({ message, detail }),
+    };
+    const Telemetry = {
+      track: (name, payload) => telemetryCalls.push({ name, payload }),
+    };
+    const Utils = { getPageName: () => 'test' };
+
+    const shield = createErrorShield({ Logger, Telemetry, Utils });
+
+    const err = new Error('Boom');
+
+    const ok1 = shield.capture(err, {
+      source: 'PageModules',
+      page: 'products.html',
+    });
+    const ok2 = shield.capture(err, {
+      source: 'PageModules',
+      page: 'products.html',
+    });
+
+    assert.equal(ok1, true);
+    assert.equal(ok2, true);
+
+    const recent = shield.getRecent();
+    assert.equal(recent.length, 2);
+    assert.equal(recent[0].kind, 'capture');
+    assert.equal(recent[0].source, 'PageModules');
+    assert.equal(recent[0].page, 'products.html');
+    assert.equal(recent[0].count, 1);
+    assert.equal(recent[1].count, 2);
+
+    assert.equal(loggerCalls.length, 2);
+    assert.equal(telemetryCalls.length, 2);
+    assert.equal(telemetryCalls[0].name, 'runtime_error');
+  });
+
   it('clear empties recent list', () => {
     const harness = captureGlobalListeners();
     const Logger = { error: () => {} };

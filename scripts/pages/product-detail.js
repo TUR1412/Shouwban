@@ -19,6 +19,7 @@ export function init(ctx = {}) {
     SharedData,
     StateHub,
     Telemetry,
+    Seo,
     Rewards,
     Cinematic,
     ViewTransitions,
@@ -529,8 +530,21 @@ export function init(ctx = {}) {
           try {
               if (!product || !product.id) return;
 
-              const existing = document.getElementById('breadcrumbs-jsonld');
-              existing?.remove();
+              const upsertJsonLd = (id, data) => {
+                  try {
+                      if (typeof Seo?.upsertJsonLd === 'function') return Seo.upsertJsonLd(id, data);
+                      const existing = document.getElementById(String(id || ''));
+                      existing?.remove();
+                      const script = document.createElement('script');
+                      script.type = 'application/ld+json';
+                      script.id = String(id || '');
+                      script.textContent = JSON.stringify(JSON.parse(JSON.stringify(data ?? {})));
+                      document.head.appendChild(script);
+                      return true;
+                  } catch {
+                      return false;
+                  }
+              };
 
               const baseUrl = (() => {
                   try {
@@ -541,10 +555,32 @@ export function init(ctx = {}) {
                       return '';
                   }
               })();
+              if (!baseUrl) return;
+
+              const canonicalBase = (() => {
+                  try {
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          return Seo.canonicalizeHref(baseUrl, baseUrl) || baseUrl;
+                      }
+                      return baseUrl;
+                  } catch {
+                      return baseUrl;
+                  }
+              })();
 
               const resolveUrl = (relative) => {
+                  const rel = String(relative || '').trim();
+                  if (!rel) return '';
                   try {
-                      const u = new URL(String(relative || ''), baseUrl || window.location.href);
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          const out = Seo.canonicalizeHref(rel, canonicalBase);
+                          if (out) return out;
+                      }
+                  } catch {
+                      // ignore
+                  }
+                  try {
+                      const u = new URL(rel, canonicalBase);
                       u.hash = '';
                       return u.toString();
                   } catch {
@@ -585,13 +621,8 @@ export function init(ctx = {}) {
                   '@type': 'BreadcrumbList',
                   itemListElement: list,
               };
-              const cleaned = JSON.parse(JSON.stringify(data));
 
-              const script = document.createElement('script');
-              script.type = 'application/ld+json';
-              script.id = 'breadcrumbs-jsonld';
-              script.textContent = JSON.stringify(cleaned);
-              document.head.appendChild(script);
+              upsertJsonLd('breadcrumbs-jsonld', data);
           } catch {
               // SEO 增强失败不影响页面主流程
           }
@@ -601,8 +632,21 @@ export function init(ctx = {}) {
           try {
               if (!product || !product.id) return;
 
-              const existing = document.getElementById('product-jsonld');       
-              existing?.remove();
+              const upsertJsonLd = (id, data) => {
+                  try {
+                      if (typeof Seo?.upsertJsonLd === 'function') return Seo.upsertJsonLd(id, data);
+                      const existing = document.getElementById(String(id || ''));
+                      existing?.remove();
+                      const script = document.createElement('script');
+                      script.type = 'application/ld+json';
+                      script.id = String(id || '');
+                      script.textContent = JSON.stringify(JSON.parse(JSON.stringify(data ?? {})));
+                      document.head.appendChild(script);
+                      return true;
+                  } catch {
+                      return false;
+                  }
+              };
   
               const toPlainText = (html) => {
                   const div = document.createElement('div');
@@ -610,27 +654,58 @@ export function init(ctx = {}) {
                   return (div.textContent || '').replace(/\s+/g, ' ').trim();
               };
   
-              const images = Array.isArray(product.images)
-                  ? product.images
-                        .map((i) => i?.large || i?.thumb)
-                        .filter(Boolean)
-                  : [];
-  
-              const url = (() => {
+              const baseUrl = (() => {
                   try {
                       const u = new URL(window.location.href);
                       u.hash = '';
                       return u.toString();
-                  } catch { return ''; }
+                  } catch {
+                      return '';
+                  }
+              })();
+              if (!baseUrl) return;
+
+              const canonicalBase = (() => {
+                  try {
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          return Seo.canonicalizeHref(baseUrl, baseUrl) || baseUrl;
+                      }
+                      return baseUrl;
+                  } catch {
+                      return baseUrl;
+                  }
               })();
 
-              const websiteUrl = (() => {
+              const resolveUrl = (relative) => {
+                  const rel = String(relative || '').trim();
+                  if (!rel) return '';
                   try {
-                      const u = new URL('index.html', url || window.location.href);
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          const out = Seo.canonicalizeHref(rel, canonicalBase);
+                          if (out) return out;
+                      }
+                  } catch {
+                      // ignore
+                  }
+                  try {
+                      const u = new URL(rel, canonicalBase);
                       u.hash = '';
                       return u.toString();
-                  } catch { return ''; }
-              })();
+                  } catch {
+                      return '';
+                  }
+              };
+
+              const images = Array.isArray(product.images)
+                  ? product.images
+                        .map((i) => i?.large || i?.thumb)
+                        .filter(Boolean)
+                        .map((src) => resolveUrl(src))
+                        .filter(Boolean)
+                  : [];
+
+              const url = resolveUrl(canonicalBase);
+              const websiteUrl = resolveUrl('index.html');
               const orgId = websiteUrl ? `${websiteUrl}#organization` : '';
 
               const inventoryInfo = typeof InventoryPulse !== 'undefined' && InventoryPulse.getInfo
@@ -686,15 +761,8 @@ export function init(ctx = {}) {
                       url: url || undefined,
                   },
               };
-  
-              // 移除 undefined 字段（保持 JSON 干净）
-              const cleaned = JSON.parse(JSON.stringify(data));
-  
-              const script = document.createElement('script');
-              script.type = 'application/ld+json';
-              script.id = 'product-jsonld';
-              script.textContent = JSON.stringify(cleaned);
-              document.head.appendChild(script);
+
+              upsertJsonLd('product-jsonld', data);
           } catch {
               // SEO 增强失败不影响页面主流程
           }

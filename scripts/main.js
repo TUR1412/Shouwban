@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.11';
-import { createStorageKit } from './runtime/storage.js?v=20260112.11';
-import { createPerfKit } from './runtime/perf.js?v=20260112.11';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.11';
-import { createToast } from './modules/toast.js?v=20260112.11';
-import { createLogger } from './modules/logger.js?v=20260112.11';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.11';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.11';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.11';
-import { createSeo } from './modules/seo.js?v=20260112.11';
+import { createStateHub } from './runtime/state.js?v=20260112.12';
+import { createStorageKit } from './runtime/storage.js?v=20260112.12';
+import { createPerfKit } from './runtime/perf.js?v=20260112.12';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.12';
+import { createToast } from './modules/toast.js?v=20260112.12';
+import { createLogger } from './modules/logger.js?v=20260112.12';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.12';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.12';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.12';
+import { createSeo } from './modules/seo.js?v=20260112.12';
 
 // ==============================================
 // Utility Functions
@@ -6576,7 +6576,7 @@ const PageModules = (function() {
   function createRuntimeContext() {
     return {
       runtimeVersion,
-      Utils, Icons, Toast, Theme, Accessibility, Header, SharedData, StateHub, Telemetry, Logger, ErrorShield,
+      Utils, Icons, Toast, Theme, Accessibility, Header, SharedData, StateHub, Telemetry, Logger, ErrorShield, Seo,
       Rewards, Cinematic, ViewTransitions, NavigationTransitions, ShippingRegion,
       SmoothScroll, ScrollProgress, BackToTop, ScrollAnimations, ImageFallback,
       LazyLoad, Favorites, Compare, Orders, AddressBook, PriceAlerts, Cart,
@@ -6594,6 +6594,7 @@ const PageModules = (function() {
       mod.init(ctx);
     }).catch((err) => {
       console.warn("PageModules: failed to load/init page module.", err);
+      try { ErrorShield?.capture?.(err, { source: 'PageModules', page: String(page || '') }); } catch { /* ignore */ }
       try { Toast?.show?.("页面功能模块加载失败，可尝试刷新页面", "warning", 2400); } catch { /* ignore */ }
     });
   }

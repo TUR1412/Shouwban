@@ -12,6 +12,17 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.12] - 2026-01-12
+
+### 新增
+- Observability：`ErrorShield` 增量扩展 `capture()` API，用于记录“已被捕获但不会抛出”的异常（进入 Logger/Telemetry 闭环）
+
+### 变更
+- Runtime：PageModules 动态 import 失败会写入 ErrorShield（保留原 Toast 提示，渐进增强不影响主流程）
+- SEO：PDP/PLP 页面级 JSON-LD upsert 优先复用 `Seo.upsertJsonLd()` + URL 规范化逻辑，降低重复实现与不一致风险
+- 测试/文档：扩展 ErrorShield 单测与 SEO 模块文档
+- 版本：统一缓存穿透版本号 bump 到 `20260112.12`
+
 ## [20260112.11] - 2026-01-12
 
 ### 新增

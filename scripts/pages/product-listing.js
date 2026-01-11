@@ -18,6 +18,7 @@ export function init(ctx = {}) {
     SharedData,
     StateHub,
     Telemetry,
+    Seo,
     Rewards,
     Cinematic,
     ViewTransitions,
@@ -984,8 +985,21 @@ export function init(ctx = {}) {
   
       function upsertPlpBreadcrumbJsonLd() {
           try {
-              const existing = document.getElementById('plp-breadcrumbs-jsonld');
-              existing?.remove();
+              const upsertJsonLd = (id, data) => {
+                  try {
+                      if (typeof Seo?.upsertJsonLd === 'function') return Seo.upsertJsonLd(id, data);
+                      const existing = document.getElementById(String(id || ''));
+                      existing?.remove();
+                      const script = document.createElement('script');
+                      script.type = 'application/ld+json';
+                      script.id = String(id || '');
+                      script.textContent = JSON.stringify(JSON.parse(JSON.stringify(data ?? {})));
+                      document.head.appendChild(script);
+                      return true;
+                  } catch {
+                      return false;
+                  }
+              };
 
               const baseUrl = (() => {
                   try {
@@ -998,9 +1012,30 @@ export function init(ctx = {}) {
               })();
               if (!baseUrl) return;
 
-              const resolveUrl = (relative) => {
+              const canonicalBase = (() => {
                   try {
-                      const u = new URL(String(relative || ''), baseUrl);
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          return Seo.canonicalizeHref(baseUrl, baseUrl) || baseUrl;
+                      }
+                      return baseUrl;
+                  } catch {
+                      return baseUrl;
+                  }
+              })();
+
+              const resolveUrl = (relative) => {
+                  const rel = String(relative || '').trim();
+                  if (!rel) return '';
+                  try {
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          const out = Seo.canonicalizeHref(rel, canonicalBase);
+                          if (out) return out;
+                      }
+                  } catch {
+                      // ignore
+                  }
+                  try {
+                      const u = new URL(rel, canonicalBase);
                       u.hash = '';
                       return u.toString();
                   } catch {
@@ -1049,13 +1084,8 @@ export function init(ctx = {}) {
                   '@type': 'BreadcrumbList',
                   itemListElement: list,
               };
-              const cleaned = JSON.parse(JSON.stringify(data));
 
-              const script = document.createElement('script');
-              script.type = 'application/ld+json';
-              script.id = 'plp-breadcrumbs-jsonld';
-              script.textContent = JSON.stringify(cleaned);
-              document.head.appendChild(script);
+              upsertJsonLd('plp-breadcrumbs-jsonld', data);
           } catch {
               // SEO 增强失败不影响页面主流程
           }
@@ -1122,8 +1152,21 @@ export function init(ctx = {}) {
        // --- Render Products Grid --- (Keep existing)
       function upsertItemListJsonLd(productsToRender) {
           try {
-              const existing = document.getElementById('itemlist-jsonld');
-              existing?.remove();
+              const upsertJsonLd = (id, data) => {
+                  try {
+                      if (typeof Seo?.upsertJsonLd === 'function') return Seo.upsertJsonLd(id, data);
+                      const existing = document.getElementById(String(id || ''));
+                      existing?.remove();
+                      const script = document.createElement('script');
+                      script.type = 'application/ld+json';
+                      script.id = String(id || '');
+                      script.textContent = JSON.stringify(JSON.parse(JSON.stringify(data ?? {})));
+                      document.head.appendChild(script);
+                      return true;
+                  } catch {
+                      return false;
+                  }
+              };
 
               const list = Array.isArray(productsToRender) ? productsToRender : [];
               if (list.length === 0) return;
@@ -1137,10 +1180,32 @@ export function init(ctx = {}) {
                       return '';
                   }
               })();
+              if (!baseUrl) return;
+
+              const canonicalBase = (() => {
+                  try {
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          return Seo.canonicalizeHref(baseUrl, baseUrl) || baseUrl;
+                      }
+                      return baseUrl;
+                  } catch {
+                      return baseUrl;
+                  }
+              })();
 
               const resolveUrl = (relative) => {
+                  const rel = String(relative || '').trim();
+                  if (!rel) return '';
                   try {
-                      const u = new URL(String(relative || ''), baseUrl || window.location.href);
+                      if (typeof Seo?.canonicalizeHref === 'function') {
+                          const out = Seo.canonicalizeHref(rel, canonicalBase);
+                          if (out) return out;
+                      }
+                  } catch {
+                      // ignore
+                  }
+                  try {
+                      const u = new URL(rel, canonicalBase);
                       u.hash = '';
                       return u.toString();
                   } catch {
@@ -1166,13 +1231,8 @@ export function init(ctx = {}) {
                   numberOfItems: items.length,
                   itemListElement: items,
               };
-              const cleaned = JSON.parse(JSON.stringify(data));
 
-              const script = document.createElement('script');
-              script.type = 'application/ld+json';
-              script.id = 'itemlist-jsonld';
-              script.textContent = JSON.stringify(cleaned);
-              document.head.appendChild(script);
+              upsertJsonLd('itemlist-jsonld', data);
           } catch {
               // SEO 增强失败不影响页面主流程
           }

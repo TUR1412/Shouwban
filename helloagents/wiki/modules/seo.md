@@ -8,8 +8,8 @@
 ## 关键文件
 - `scripts/modules/seo.js`：SEO 工具模块（Canonical 兜底，支持依赖注入便于测试）
 - `scripts/main.js`：在 `App.init()` 早期调用 `Seo.ensureCanonical()` + `Seo.upsertWebSiteJsonLd()` + `Seo.upsertOrganizationJsonLd()`（全站兜底与站点级结构化数据）
-- `scripts/pages/product-detail.js`：PDP 输出 `Product` + `BreadcrumbList` JSON-LD
-- `scripts/pages/product-listing.js`：PLP 输出 `ItemList` + `BreadcrumbList` JSON-LD（基于当前渲染列表与页面模式）
+- `scripts/pages/product-detail.js`：PDP 输出 `Product` + `BreadcrumbList` JSON-LD（优先复用 `Seo.upsertJsonLd()` + URL 规范化）
+- `scripts/pages/product-listing.js`：PLP 输出 `ItemList` + `BreadcrumbList` JSON-LD（优先复用 `Seo.upsertJsonLd()` + URL 规范化；基于当前渲染列表与页面模式）
 - `sw.js`：PRECACHE_URLS 覆盖 `scripts/modules/seo.js?v=...`，避免离线缺失
 
 ## Canonical 约定
@@ -53,3 +53,4 @@
 - [202601120540_seo-searchaction-breadcrumbs](../../history/2026-01/202601120540_seo-searchaction-breadcrumbs/) - WebSite/SearchAction JSON-LD + PLP BreadcrumbList JSON-LD
 - [202601120556_seo-organization-jsonld](../../history/2026-01/202601120556_seo-organization-jsonld/) - Organization JSON-LD（站点级主体信息）
 - [202601120618_seo-jsonld-entity-linking](../../history/2026-01/202601120618_seo-jsonld-entity-linking/) - JSON-LD 实体关联（Organization/WebSite/Product 统一 @id）
+- [202601120635_runtime-error-capture-jsonld-upsert](../../history/2026-01/202601120635_runtime-error-capture-jsonld-upsert/) - JSON-LD upsert 收敛（页面复用 SEO 模块）

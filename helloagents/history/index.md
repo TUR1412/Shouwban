@@ -26,6 +26,7 @@
 | 202601120540 | seo-searchaction-breadcrumbs | SEO/SearchAction/面包屑 | ✅已完成 | `2026-01/202601120540_seo-searchaction-breadcrumbs/` |
 | 202601120556 | seo-organization-jsonld | SEO/Organization/结构化数据 | ✅已完成 | `2026-01/202601120556_seo-organization-jsonld/` |
 | 202601120618 | seo-jsonld-entity-linking | SEO/JSON-LD/实体关联 | ✅已完成 | `2026-01/202601120618_seo-jsonld-entity-linking/` |
+| 202601120635 | runtime-error-capture-jsonld-upsert | Runtime/SEO/质量守护 | ✅已完成 | `2026-01/202601120635_runtime-error-capture-jsonld-upsert/` |
 
 ## 按月归档
 
@@ -52,3 +53,4 @@
 - [202601120540_seo-searchaction-breadcrumbs](2026-01/202601120540_seo-searchaction-breadcrumbs/) - WebSite/SearchAction JSON-LD（站内搜索）+ PLP BreadcrumbList JSON-LD
 - [202601120556_seo-organization-jsonld](2026-01/202601120556_seo-organization-jsonld/) - Organization JSON-LD（站点级主体信息）
 - [202601120618_seo-jsonld-entity-linking](2026-01/202601120618_seo-jsonld-entity-linking/) - JSON-LD 实体关联（Organization/WebSite/Product 统一 @id）
+- [202601120635_runtime-error-capture-jsonld-upsert](2026-01/202601120635_runtime-error-capture-jsonld-upsert/) - PageModules 错误闭环 + 页面 JSON-LD upsert 收敛
