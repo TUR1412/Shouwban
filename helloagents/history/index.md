@@ -20,6 +20,7 @@
 | 202601120134 | telemetry-module | Runtime/Telemetry/守护 | ✅已完成 | `2026-01/202601120134_telemetry-module/` |
 | 202601120258 | dist-pwa-lighthouse | PWA/CI/Tooling | ✅已完成 | `2026-01/202601120258_dist-pwa-lighthouse/` |
 | 202601120330 | perf-budget-guardrail | Tooling/Perf | ✅已完成 | `2026-01/202601120330_perf-budget-guardrail/` |
+| 202601120341 | seo-canonical-structured-data | SEO/性能 | ✅已完成 | `2026-01/202601120341_seo-canonical-structured-data/` |
 
 ## 按月归档
 
@@ -40,3 +41,4 @@
 - [202601120134_telemetry-module](2026-01/202601120134_telemetry-module/) - Telemetry 抽离为独立模块 + 单测 + PWA 更新提示 Toast 化
 - [202601120258_dist-pwa-lighthouse](2026-01/202601120258_dist-pwa-lighthouse/) - dist 形态 PWA 同构（生成 dist/sw.js）+ Lighthouse CI 回归门禁
 - [202601120330_perf-budget-guardrail](2026-01/202601120330_perf-budget-guardrail/) - dist gzip 体积预算门禁（Performance Budget）+ Lighthouse 串联 budget
+- [202601120341_seo-canonical-structured-data](2026-01/202601120341_seo-canonical-structured-data/) - Canonical 兜底 + PDP Product JSON-LD（库存语义）+ 首页 Hero LCP 提示（渐进增强）

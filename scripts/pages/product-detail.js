@@ -528,8 +528,8 @@ export function init(ctx = {}) {
       function upsertProductJsonLd(product) {
           try {
               if (!product || !product.id) return;
-  
-              const existing = document.getElementById('product-jsonld');
+
+              const existing = document.getElementById('product-jsonld');       
               existing?.remove();
   
               const toPlainText = (html) => {
@@ -547,7 +547,27 @@ export function init(ctx = {}) {
               const url = (() => {
                   try { return new URL(window.location.href).toString(); } catch { return ''; }
               })();
-  
+
+              const inventoryInfo = typeof InventoryPulse !== 'undefined' && InventoryPulse.getInfo
+                  ? InventoryPulse.getInfo(product)
+                  : null;
+              const inventoryStatus = typeof InventoryPulse !== 'undefined' && InventoryPulse.getStatus
+                  ? InventoryPulse.getStatus(inventoryInfo)
+                  : null;
+
+              const availability = (() => {
+                  if (inventoryInfo?.preorder || inventoryStatus?.tone === 'preorder') return 'https://schema.org/PreOrder';
+                  if (inventoryStatus?.tone === 'out') return 'https://schema.org/OutOfStock';
+                  return 'https://schema.org/InStock';
+              })();
+
+              const availabilityStarts = (() => {
+                  if (!inventoryInfo?.eta) return undefined;
+                  const ts = Date.parse(String(inventoryInfo.eta || ''));
+                  if (!Number.isFinite(ts)) return undefined;
+                  return new Date(ts).toISOString();
+              })();
+
               const data = {
                   '@context': 'https://schema.org',
                   '@type': 'Product',
@@ -561,7 +581,8 @@ export function init(ctx = {}) {
                       '@type': 'Offer',
                       priceCurrency: 'CNY',
                       price: typeof product.price === 'number' ? product.price.toFixed(2) : undefined,
-                      availability: 'https://schema.org/InStock',
+                      availability: availability,
+                      availabilityStarts: availabilityStarts,
                       url: url || undefined,
                   },
               };

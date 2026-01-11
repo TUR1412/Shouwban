@@ -21,6 +21,7 @@
 - **性能薄启动（新增）**：非关键模块（诊断/PWA/动效等）延后到 idle 初始化，并预加载 `assets/icons.svg` 降低首屏请求链路。
 - **工具模块懒加载（新增）**：Diagnostics / Command Palette 抽离为独立模块，触发时动态加载，进一步降低首屏 JS 解析成本。
 - **Lighthouse CI（新增）**：对关键页面做性能/可访问性/SEO 回归门禁（CI 自动产出报告，避免性能回退无感发生）。
+- **SEO（新增）**：全站 Canonical 兜底（去 hash、保留 query）+ 商品详情页 Product JSON-LD（InStock/OutOfStock/PreOrder），增强权重聚合与可解释性。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -78,6 +79,7 @@
 - **Thin Startup (NEW)**: defers non-critical modules (diagnostics/PWA/animations) to idle time and preloads `assets/icons.svg` to reduce first-load request chaining.
 - **Lazy Tooling Modules (NEW)**: splits Diagnostics / Command Palette out of `main.js` and dynamically loads them on demand to further reduce first-load JS parsing.
 - **Lighthouse CI (NEW)**: CI regression gate for performance/a11y/SEO on key pages (report as artifact).
+- **SEO (NEW)**: runtime canonical fallback (hash-stripped; query-preserved) + Product JSON-LD on PDP (InStock/OutOfStock/PreOrder availability).
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start

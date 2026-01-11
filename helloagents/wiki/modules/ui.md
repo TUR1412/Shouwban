@@ -57,6 +57,11 @@
 - SVG 图标统一使用 `<svg class="icon"><use ...></use></svg>`，尺寸随 `font-size` 继承
 - Footer 社交按钮使用“按钮化”外观（固定尺寸、边框与 hover 状态）
 
+## SEO / LCP 约定
+- Canonical：运行时兜底补齐 `link[rel="canonical"]`（去 hash、保留 query），减少 URL 变体造成的重复内容噪声。
+- Product JSON-LD：商品详情页会写入 `#product-jsonld`（`availability` 支持 InStock/OutOfStock/PreOrder，并可选输出 `availabilityStarts`）。
+- Hero LCP：首页首屏关键图显式声明 `loading="eager"`、`decoding="async"` 与 `fetchpriority`（渐进增强，不改变布局/视觉）。
+
 ## UI 注入点（运行时）
 - PDP Lightbox：`scripts/main.js` 的 PDP 模块会按需注入 `<dialog class="lightbox-dialog">`，支持点击主图/键盘 Enter 打开大图预览（左右键切换、缩略图选择）
 - PDP 库存面板：`product-detail.html` + `product-detail.js` 动态写入库存状态与预售提示
@@ -84,3 +89,4 @@
 - [202601112345_actionable-toast-undo](../../history/2026-01/202601112345_actionable-toast-undo/) - 可操作 Toast 与购物车撤销交互
 - [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - ErrorShield 错误面板（Glass Dialog）与可观测性 UI 基座
 - [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）与可执行操作入口
+- [202601120341_seo-canonical-structured-data](../../history/2026-01/202601120341_seo-canonical-structured-data/) - SEO（canonical / Product JSON-LD）与首页 Hero LCP 提示（渐进增强）

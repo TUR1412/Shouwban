@@ -12,6 +12,16 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.6] - 2026-01-12
+
+### 新增
+- SEO：运行时新增 Canonical 兜底（去 hash、保留 query），降低重复 URL 噪声
+
+### 变更
+- SEO：商品详情页 Product JSON-LD availability 支持 InStock/OutOfStock/PreOrder，并可选输出 availabilityStarts
+- 性能：首页 Hero 首屏图补齐 loading/fetchpriority/decoding 提示（渐进增强）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.6`
+
 ## [20260112.5] - 2026-01-12
 
 ### 新增
