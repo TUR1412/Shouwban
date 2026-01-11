@@ -18,6 +18,7 @@
 - **可操作 Toast（新增）**：关键操作反馈支持“撤销”（如购物车清空/移除），并提供关闭入口。
 - **可观测性（新增）**：`ErrorShield` 全局错误边界 + `Logger` 本地日志 + `PerfVitals` 性能埋点（默认本地，按需对接 endpoint）。
 - **诊断中心（新增）**：`account.html#diagnostics` 一站式查看日志/错误/性能快照，支持复制摘要、下载日志 JSON、配置 Telemetry endpoint（可选）。
+- **性能薄启动（新增）**：非关键模块（诊断/PWA/动效等）延后到 idle 初始化，并预加载 `assets/icons.svg` 降低首屏请求链路。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -70,6 +71,7 @@
 - **Actionable Toasts (NEW)**: undo for destructive actions (e.g., cart clear/remove) with dismiss support.
 - **Observability (NEW)**: `ErrorShield` (error boundary) + local `Logger` + `PerfVitals` telemetry (local-first; optional endpoint).
 - **Diagnostics Center (NEW)**: `account.html#diagnostics` to inspect logs/errors/perf snapshot, copy a report, download logs JSON, and optionally configure a telemetry endpoint.
+- **Thin Startup (NEW)**: defers non-critical modules (diagnostics/PWA/animations) to idle time and preloads `assets/icons.svg` to reduce first-load request chaining.
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start

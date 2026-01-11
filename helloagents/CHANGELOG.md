@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [20260112.3] - 2026-01-12
+
+### 新增
+- PerfKit：新增 `idle/cancelIdle`（统一封装 `requestIdleCallback` + `setTimeout` fallback），用于薄启动的“非关键模块延后初始化”
+- 性能资源提示：全站 HTML 预加载 `assets/icons.svg`（减少首屏 icon sprite 的请求链路）
+
+### 变更
+- Runtime 启动顺序：将可观测性/动效/PWA/诊断等非关键模块延后到 idle 执行，降低首屏主线程压力
+- 图片解码：Hero/PDP 主图补齐 `decoding="async"`，并对关键图设置 `fetchpriority="high"`（渐进增强）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.3`
+
 ## [20260112.2] - 2026-01-12
 
 ### 新增

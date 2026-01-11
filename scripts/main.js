@@ -1,13 +1,13 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.2';
-import { createStorageKit } from './runtime/storage.js?v=20260112.2';
-import { createPerfKit } from './runtime/perf.js?v=20260112.2';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.2';
-import { createToast } from './modules/toast.js?v=20260112.2';
-import { createLogger } from './modules/logger.js?v=20260112.2';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.2';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.2';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.2';
+import { createStateHub } from './runtime/state.js?v=20260112.3';
+import { createStorageKit } from './runtime/storage.js?v=20260112.3';
+import { createPerfKit } from './runtime/perf.js?v=20260112.3';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.3';
+import { createToast } from './modules/toast.js?v=20260112.3';
+import { createLogger } from './modules/logger.js?v=20260112.3';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.3';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.3';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.3';
 
 // ==============================================
 // Utility Functions
@@ -1769,6 +1769,14 @@ const Prefetch = (function() {
     function schedule(task) {
         const fn = typeof task === 'function' ? task : null;
         if (!fn) return;
+        try {
+            if (typeof Perf !== 'undefined' && Perf && typeof Perf.idle === 'function') {
+                Perf.idle(() => fn(), { timeout: 1200 });
+                return;
+            }
+        } catch {
+            // ignore
+        }
         try {
             if (typeof requestIdleCallback === 'function') {
                 requestIdleCallback(() => fn(), { timeout: 1200 });
@@ -7104,19 +7112,36 @@ const App = {
         ErrorShield.init();
         PerfVitals.init();
 
+        const idle = (fn, timeoutMs) => {
+            const task = typeof fn === 'function' ? fn : null;
+            if (!task) return;
+            const timeout = Math.max(1, Number(timeoutMs) || 1200);
+
+            try {
+                if (typeof Perf !== 'undefined' && Perf && typeof Perf.idle === 'function') {
+                    Perf.idle(() => task(), { timeout });
+                    return;
+                }
+            } catch { /* ignore */ }
+
+            try {
+                const ric = window.requestIdleCallback;
+                if (typeof ric === 'function') {
+                    ric(() => task(), { timeout });
+                    return;
+                }
+            } catch { /* ignore */ }
+
+            setTimeout(() => task(), timeout);
+        };
+
         // 全站基础：尽量保持“薄启动”，重模块按页初始化
         Header.init();
-        Telemetry.init();
         Rewards.init(); // 注入会员入口后再做首屏入场动效
         WatchCenter.init();
-        Cinematic.init();
-        ViewTransitions.init();
-        NavigationTransitions.init();
         Theme.init();
         ShippingRegion.init();
         SmoothScroll.init();
-        ScrollProgress.init();
-        BackToTop.init();
         ScrollAnimations.init();
         ImageFallback.init();
         LazyLoad.init();
@@ -7128,21 +7153,25 @@ const App = {
         Cart.init(); // Init Cart early so others can use its exposed functions
         Promotion.init();
         QuickAdd.init();
-        ServiceWorker.init();
-        PWAInstall.init();
-        CrossTabSync.init();
 
-        // 诊断与命令面板：延后到空闲时，降低首屏主线程压力
-        try {
-            const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
-            idle(() => {
-                try { CommandPalette.init(); } catch { /* ignore */ }
-                try { Diagnostics.init(); } catch { /* ignore */ }
-            });
-        } catch {
+        // 非关键增强：延后到空闲时，降低首屏主线程压力（Open/Closed：增量扩展 init 时序）
+        idle(() => {
+            try { Telemetry.init(); } catch { /* ignore */ }
+            try { Cinematic.init(); } catch { /* ignore */ }
+            try { ViewTransitions.init(); } catch { /* ignore */ }
+            try { NavigationTransitions.init(); } catch { /* ignore */ }
+            try { ScrollProgress.init(); } catch { /* ignore */ }
+            try { BackToTop.init(); } catch { /* ignore */ }
+            try { ServiceWorker.init(); } catch { /* ignore */ }
+            try { PWAInstall.init(); } catch { /* ignore */ }
+            try { CrossTabSync.init(); } catch { /* ignore */ }
+        }, 900);
+
+        // 诊断与命令面板：更晚初始化（避免抢占首屏）
+        idle(() => {
             try { CommandPalette.init(); } catch { /* ignore */ }
             try { Diagnostics.init(); } catch { /* ignore */ }
-        }
+        }, 1500);
 
         // 页面级初始化：模块按需加载（真正代码分割）
         PageModules.initPage(page, pageModulePromise, PageModules.createRuntimeContext());

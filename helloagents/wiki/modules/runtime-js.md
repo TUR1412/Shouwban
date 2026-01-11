@@ -10,7 +10,7 @@
 - `scripts/main.js`：运行时入口（全站基础模块 + `PageModules` loader + `App.init`）
 - `scripts/runtime/state.js`：StateHub 拆分模块（事件中心 + Atom）
 - `scripts/runtime/storage.js`：StorageKit（schema 迁移 / 会员 / 关注 / 订单旅程 / 价格趋势）
-- `scripts/runtime/perf.js`：PerfKit（raf 节流 / memoize / 批量 DOM）
+- `scripts/runtime/perf.js`：PerfKit（raf 节流 / memoize / 批量 DOM / idle 调度）
 - `scripts/pages/*.js`：页面级模块（按需动态加载，实现真正代码分割）
   - `scripts/pages/homepage.js`：`index.html`
   - `scripts/pages/product-listing.js`：`products.html` / `category.html`
@@ -40,6 +40,7 @@
   - 事件中心 + Atom，统一跨模块事件与状态订阅
 - `Perf`（`scripts/runtime/perf.js`）
   - raf 节流、Memoize、批量 DOM 写入（减少 Layout 抖动）
+  - `idle/cancelIdle`：统一封装 `requestIdleCallback` + `setTimeout` fallback，用于“薄启动”延迟初始化非关键模块
 
 ## 业务扩展模块
 由 `scripts/main.js` 聚合并注入页面模块：

@@ -2,6 +2,50 @@
 // - 提供 raf 节流与轻量缓存
 // - 适配无依赖静态站点
 export function createPerfKit() {
+  function idle(cb, { timeout = 1200 } = {}) {
+    const fn = typeof cb === 'function' ? cb : () => {};
+
+    try {
+      const ric = globalThis.requestIdleCallback;
+      if (typeof ric === 'function') {
+        return ric(
+          () => {
+            try { fn(); } catch { /* ignore */ }
+          },
+          { timeout: Math.max(1, Number(timeout) || 1200) },
+        );
+      }
+    } catch {
+      // ignore
+    }
+
+    return setTimeout(() => {
+      try { fn(); } catch { /* ignore */ }
+    }, Math.max(1, Number(timeout) || 1));
+  }
+
+  function cancelIdle(id) {
+    const handle = Number(id) || 0;
+    if (!handle) return false;
+
+    try {
+      const cancel = globalThis.cancelIdleCallback;
+      if (typeof cancel === 'function') {
+        cancel(handle);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      clearTimeout(handle);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function rafThrottle(fn) {
     if (typeof fn !== 'function') return () => {};
     let rafId = 0;
@@ -44,5 +88,12 @@ export function createPerfKit() {
     host.appendChild(frag);
   }
 
-  return Object.freeze({ rafThrottle, memoize, nextFrame, batchAppend });
+  return Object.freeze({
+    idle,
+    cancelIdle,
+    rafThrottle,
+    memoize,
+    nextFrame,
+    batchAppend,
+  });
 }
