@@ -9,4 +9,4 @@
 - [√] PWA：`sw.js` precache 补齐新增模块
 - [√] 工程守护：`scripts/validate.mjs` / `package.json` 覆盖新增模块
 - [√] bump 版本号到 `20260111.3`，并通过 `npm run verify && npm test && npm run test:coverage`
-- [ ] 提交并推送到 `origin/master`
+- [√] 提交并推送到 `origin/master`（commit: `9ff3b28`）
