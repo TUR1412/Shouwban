@@ -116,6 +116,7 @@ export function init(ctx = {}) {
       const diagSaveEndpointBtn = container.querySelector('[data-diag-save-endpoint]');
       const diagClearEndpointBtn = container.querySelector('[data-diag-clear-endpoint]');
       const diagFlushBtn = container.querySelector('[data-diag-flush]');
+      const diagClearTelemetryBtn = container.querySelector('[data-diag-clear-telemetry]');
       const diagTelemetryMeta = container.querySelector('[data-diag-telemetry-meta]');
 
       function clampFontPct(raw) {
@@ -193,6 +194,12 @@ export function init(ctx = {}) {
 
       function resolveTelemetryEndpoint() {
           try {
+              const resolved = Telemetry?.resolveEndpoint?.();
+              if (typeof resolved === 'string') return resolved.trim();
+          } catch {
+              // ignore
+          }
+          try {
               const fromWindow = globalThis.__SHOUWBAN_TELEMETRY__?.endpoint || '';
               const meta = document.querySelector('meta[name="shouwban-telemetry-endpoint"]');
               const fromMeta = meta?.getAttribute?.('content') || '';
@@ -218,6 +225,12 @@ export function init(ctx = {}) {
       }
 
       function readTelemetryQueue() {
+          try {
+              const q = Telemetry?.getQueue?.();
+              if (Array.isArray(q)) return q;
+          } catch {
+              // ignore
+          }
           const list = Utils.readStorageJSON('sbTelemetryQueue', []);
           return Array.isArray(list) ? list : [];
       }
@@ -886,6 +899,28 @@ export function init(ctx = {}) {
                   try { diagFlushBtn.disabled = false; } catch { /* ignore */ }
                   scheduleRenderDiagnostics();
               }
+          });
+
+          diagClearTelemetryBtn?.addEventListener?.('click', () => {
+              const queue = readTelemetryQueue();
+              const count = Array.isArray(queue) ? queue.length : 0;
+              if (count <= 0) {
+                  Toast?.show?.('Telemetry 队列为空', 'info', 1400);
+                  return;
+              }
+              const ok = window.confirm(`确定清空 Telemetry 队列吗？（${count} 条）`);
+              if (!ok) return;
+              try {
+                  if (typeof Telemetry?.clearQueue === 'function') {
+                      Telemetry.clearQueue();
+                  } else {
+                      localStorage.removeItem('sbTelemetryQueue');
+                  }
+              } catch {
+                  // ignore
+              }
+              Toast?.show?.('Telemetry 队列已清空', 'success', 1600);
+              scheduleRenderDiagnostics();
           });
 
           a11yReduceMotion?.addEventListener?.('change', () => {

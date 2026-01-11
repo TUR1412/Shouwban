@@ -142,7 +142,8 @@
 
 默认策略：**仅本地队列，不上传**。如配置 endpoint 才会自动上报（用于对接真实后端时的可观察性）。
 
-- 模块：`scripts/main.js` → `Telemetry`
+- 模块：`scripts/modules/telemetry.js`（由 `scripts/main.js` 聚合为 `Telemetry` 实例并注入 `RuntimeContext`）
+- API：`init / track / flush / hashQuery / getQueue / clearQueue / resolveEndpoint`
 - 隐私策略：
   - 对用户输入仅记录 `qHash/qLen`（hash + 长度），避免保存原文
 - 可选 endpoint 配置：
@@ -206,3 +207,4 @@
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（A11y）+ Motion 动效降级 + CrossTabSync 同步
 - [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - Logger/ErrorShield/PerfVitals 可观测性基座（本地日志/错误边界/性能埋点）
 - [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 诊断中心（`account.html#diagnostics`）+ Command Palette 快捷入口
+- [202601120134_telemetry-module](../../history/2026-01/202601120134_telemetry-module/) - Telemetry 模块化（独立可测）+ 更新提示 Toast 化

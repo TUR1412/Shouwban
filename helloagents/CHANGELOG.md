@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [20260112.2] - 2026-01-12
+
+### 新增
+- Telemetry：抽离为 `scripts/modules/telemetry.js`（`createTelemetry`），并新增 `tests/telemetry.test.mjs`
+- 诊断中心：Telemetry 面板新增“清空队列”，并优先使用 Telemetry API（`getQueue/resolveEndpoint/clearQueue`）
+
+### 变更
+- PWA 更新体验：发现新版本 SW 后通过 Toast 提示“刷新”再启用更新（渐进增强；兜底保留自动更新）
+- 工程守护：`sw.js` precache、`scripts/validate.mjs`、`npm run check` 覆盖 Telemetry 模块
+- 版本：统一缓存穿透版本号 bump 到 `20260112.2`
+
 ## [20260112.1] - 2026-01-12
 
 ### 新增

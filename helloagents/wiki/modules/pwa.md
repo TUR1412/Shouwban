@@ -11,6 +11,7 @@
 - **HTML 导航：** network-first，失败回退 `offline.html`
 - **静态资源：** stale-while-revalidate（先返回缓存，后台更新）
 - **版本切换：** `CACHE_NAME = shouwban-YYYYMMDD.N`，激活时清理旧 cache
+- **更新提示（渐进增强）：** 当发现新版本 SW 安装完成后，通过 Toast 提示用户“刷新”以启用最新资源；点击后发送 `SKIP_WAITING` 并在 `controllerchange` 时 reload
 
 ## 注意事项
 - 更新核心资源后请 bump 版本号（建议 `npm run bump:version -- YYYYMMDD.N`）

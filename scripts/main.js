@@ -1,12 +1,13 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.1';
-import { createStorageKit } from './runtime/storage.js?v=20260112.1';
-import { createPerfKit } from './runtime/perf.js?v=20260112.1';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.1';
-import { createToast } from './modules/toast.js?v=20260112.1';
-import { createLogger } from './modules/logger.js?v=20260112.1';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.1';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.1';
+import { createStateHub } from './runtime/state.js?v=20260112.2';
+import { createStorageKit } from './runtime/storage.js?v=20260112.2';
+import { createPerfKit } from './runtime/perf.js?v=20260112.2';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.2';
+import { createToast } from './modules/toast.js?v=20260112.2';
+import { createLogger } from './modules/logger.js?v=20260112.2';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.2';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.2';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.2';
 
 // ==============================================
 // Utility Functions
@@ -1839,165 +1840,7 @@ const Prefetch = (function() {
 // - 默认仅本地队列，不上传（可配置 endpoint 后自动上报）
 // - 避免 PII：对用户输入做 hash + 长度统计，不存原文
 // ==============================================
-const Telemetry = (function() {
-    const queueKey = 'sbTelemetryQueue';
-    const endpointKey = 'sbTelemetryEndpoint';
-    const maxQueue = 240;
-
-    function fnv1a32(str) {
-        const s = String(str || '');
-        let hash = 0x811c9dc5;
-        for (let i = 0; i < s.length; i += 1) {
-            hash ^= s.charCodeAt(i);
-            // hash *= 16777619 (via shifts)
-            hash = (hash + (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) >>> 0;
-        }
-        return hash >>> 0;
-    }
-
-    function getSessionId() {
-        const key = 'sbTelemetrySessionId';
-        try {
-            const cached = sessionStorage.getItem(key);
-            if (cached) return cached;
-        } catch {
-            // ignore
-        }
-        const id = Utils.generateId('T');
-        try { sessionStorage.setItem(key, id); } catch { /* ignore */ }
-        return id;
-    }
-
-    function readQueue() {
-        const list = Utils.readStorageJSON(queueKey, []);
-        return Array.isArray(list) ? list : [];
-    }
-
-    function writeQueue(list) {
-        const safe = Array.isArray(list) ? list : [];
-        Utils.writeStorageJSON(queueKey, safe.slice(-maxQueue));
-    }
-
-    function resolveEndpoint() {
-        try {
-            const meta = document.querySelector('meta[name="shouwban-telemetry-endpoint"]');
-            const fromMeta = meta?.getAttribute?.('content') || '';
-            const fromStorage = localStorage.getItem(endpointKey) || '';
-            const fromWindow = globalThis.__SHOUWBAN_TELEMETRY__?.endpoint || '';
-            const raw = String(fromWindow || fromMeta || fromStorage || '').trim();
-            return raw;
-        } catch {
-            return '';
-        }
-    }
-
-    function baseContext() {
-        return {
-            ts: Date.now(),
-            page: Utils.getPageName(),
-            href: (() => { try { return window.location.href; } catch { return ''; } })(),
-            ref: String(document.referrer || ''),
-            sid: getSessionId(),
-            theme: (() => {
-                try { return String(document.documentElement?.dataset?.theme || ''); } catch { return ''; }
-            })(),
-        };
-    }
-
-    function track(name, payload = {}, options = {}) {
-        const eventName = String(name || '').trim();
-        if (!eventName) return false;
-
-        const data = payload && typeof payload === 'object' ? payload : {};
-        const evt = {
-            id: Utils.generateId('E'),
-            name: eventName,
-            ...baseContext(),
-            payload: data,
-        };
-
-        const queue = readQueue();
-        queue.push(evt);
-        writeQueue(queue);
-
-        if (options.flush === true) {
-            flush();
-        }
-        return true;
-    }
-
-    async function flush() {
-        const endpoint = resolveEndpoint();
-        if (!endpoint) return { ok: false, reason: 'no_endpoint' };
-
-        const events = readQueue();
-        if (events.length === 0) return { ok: true, sent: 0 };
-
-        const res = await Http.postJSON(
-            endpoint,
-            { sentAt: Date.now(), events },
-            {},
-            { retries: 2, baseDelayMs: 280, maxDelayMs: 2200, timeoutMs: 9000 },
-        );
-
-        if (res.ok) {
-            writeQueue([]);
-            return { ok: true, sent: events.length };
-        }
-        return { ok: false, status: res.status || 0 };
-    }
-
-    function trackPageView() {
-        track('page_view', { title: String(document.title || '') });
-    }
-
-    function attachGlobalListeners() {
-        // 核心状态变化（不存具体数据，只存计数）
-        window.addEventListener('cart:changed', () => {
-            try {
-                const lines = Utils.readStorageJSON('cart', []);
-                const count = Array.isArray(lines)
-                    ? lines.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0)
-                    : 0;
-                track('cart_changed', { count: Math.max(0, count) });
-            } catch {
-                track('cart_changed', { count: 0 });
-            }
-        });
-
-        window.addEventListener('favorites:changed', () => {
-            const ids = Utils.normalizeStringArray(Utils.readStorageJSON('favorites', []));
-            track('favorites_changed', { count: ids.length });
-        });
-
-        window.addEventListener('compare:changed', () => {
-            const ids = Utils.normalizeStringArray(Utils.readStorageJSON('compare', []));
-            track('compare_changed', { count: ids.length });
-        });
-
-        // 页面生命周期：尽可能 flush
-        const flushSoon = () => { flush(); };
-        window.addEventListener('pagehide', flushSoon);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') flushSoon();
-        });
-    }
-
-    function hashQuery(query) {
-        const q = String(query || '').trim();
-        return {
-            qLen: q.length,
-            qHash: q ? fnv1a32(q) : 0,
-        };
-    }
-
-    function init() {
-        trackPageView();
-        attachGlobalListeners();
-    }
-
-    return { init, track, flush, hashQuery };
-})();
+const Telemetry = createTelemetry({ Utils, Http });
 
 // ==============================================
 // Perf Vitals (Performance Telemetry)
@@ -4923,30 +4766,54 @@ const ServiceWorker = (function() {
         if (!canRegister()) return;
         try {
             const registration = await navigator.serviceWorker.register('sw.js');
+            // 更新策略（渐进增强）：提示用户刷新，避免强制 reload 造成状态丢失
+            const hadController = Boolean(navigator.serviceWorker.controller);
+            let shouldReload = false;
+            let didPrompt = false;
 
-            // 自动更新：发现新 SW 后跳过等待并刷新（仅在“更新”场景触发）
-            let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (refreshing) return;
-                refreshing = true;
+                if (!hadController) return; // 首次安装：不自动刷新
+                if (!shouldReload) return;  // 未确认更新：不刷新
                 window.location.reload();
             });
 
-            const trySkipWaiting = (worker) => {
+            const promptUpdate = (worker) => {
                 if (!worker) return;
-                if (!navigator.serviceWorker.controller) return; // 首次安装不刷新
+                if (!hadController) return;
+                if (didPrompt) return;
+                didPrompt = true;
+
+                const runUpdate = () => {
+                    try {
+                        shouldReload = true;
+                        worker.postMessage({ type: 'SKIP_WAITING' });
+                    } catch {
+                        // ignore
+                    }
+                };
+
                 try {
                     if (typeof Toast !== 'undefined' && Toast.show) {
-                        Toast.show('发现新版本，正在更新…', 'info', 1600);
+                        Toast.show({
+                            title: '发现新版本',
+                            message: '点击刷新以启用最新资源与离线缓存。',
+                            type: 'info',
+                            durationMs: 7000,
+                            actionLabel: '刷新',
+                            onAction: () => runUpdate(),
+                        });
+                        return;
                     }
-                    worker.postMessage({ type: 'SKIP_WAITING' });
                 } catch {
                     // ignore
                 }
+
+                // Fallback：无 Toast UI 时，保持旧行为（自动更新）。
+                runUpdate();
             };
 
-            // 如果已经处于 waiting，立即触发
-            if (registration.waiting) trySkipWaiting(registration.waiting);
+            // 如果已经处于 waiting，提示用户更新
+            if (registration.waiting) promptUpdate(registration.waiting);
 
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
@@ -4954,7 +4821,7 @@ const ServiceWorker = (function() {
 
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed') {
-                        trySkipWaiting(newWorker);
+                        promptUpdate(newWorker);
                     }
                 });
             });
