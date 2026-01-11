@@ -1,4 +1,7 @@
 // Main JavaScript for the figurine e-commerce website
+import { createStateHub } from './runtime/state.js?v=20260111.1';
+import { createStorageKit } from './runtime/storage.js?v=20260111.1';
+import { createPerfKit } from './runtime/perf.js?v=20260111.1';
 
 // ==============================================
 // Utility Functions
@@ -225,106 +228,14 @@ const Utils = {
 };
 
 // ==============================================
-// State Hub (Event + Atom)
-// - 统一交互组件状态事件（不替换现有 window CustomEvent，保持兼容）
-// - 提供轻量 atom：读写本地持久化 + 订阅变更
+// Runtime Kits（State/Storage/Perf）
 // ==============================================
-const StateHub = (function() {
-    const listeners = new Map();
-
-    function normalizeType(type) {
-        return String(type || '').trim();
-    }
-
-    function on(type, handler) {
-        const name = normalizeType(type);
-        if (!name || typeof handler !== 'function') return () => {};
-        const set = listeners.get(name) || new Set();
-        set.add(handler);
-        listeners.set(name, set);
-        return () => off(name, handler);
-    }
-
-    function off(type, handler) {
-        const name = normalizeType(type);
-        const set = listeners.get(name);
-        if (!set || set.size === 0) return false;
-        set.delete(handler);
-        if (set.size === 0) listeners.delete(name);
-        return true;
-    }
-
-    function emit(type, detail) {
-        const name = normalizeType(type);
-        if (!name) return 0;
-        const set = listeners.get(name);
-        if (!set || set.size === 0) return 0;
-
-        let called = 0;
-        set.forEach((fn) => {
-            try {
-                fn(detail);
-                called += 1;
-            } catch {
-                // ignore
-            }
-        });
-        return called;
-    }
-
-    function atom(storageKey, fallbackValue, { scope } = {}) {
-        const key = String(storageKey || '').trim();
-        const changeScope = String(scope || key).trim();
-
-        function get() {
-            return Utils.readStorageJSON(key, fallbackValue);
-        }
-
-        function set(value, options = {}) {
-            const ok = Utils.writeStorageJSON(key, value);
-            if (!ok) return { ok: false };
-            if (!options.silent) Utils.dispatchChanged(changeScope);
-            return { ok: true };
-        }
-
-        function update(updater, options = {}) {
-            const fn = typeof updater === 'function' ? updater : (v) => v;
-            const next = fn(get());
-            return set(next, options);
-        }
-
-        function subscribe(handler) {
-            if (typeof handler !== 'function') return () => {};
-            const eventName = `${changeScope}:changed`;
-            const wrapped = () => {
-                try { handler(get()); } catch { /* ignore */ }
-            };
-            try {
-                window.addEventListener(eventName, wrapped);
-            } catch {
-                // ignore
-            }
-            // Immediate fire for “state-driven UI”
-            wrapped();
-            return () => {
-                try { window.removeEventListener(eventName, wrapped); } catch { /* ignore */ }
-            };
-        }
-
-        return Object.freeze({ key, scope: changeScope, get, set, update, subscribe });
-    }
-
-    return Object.freeze({ on, off, emit, atom });
-})();
-
-// 将 window 事件与 StateHub 事件桥接（保持现有代码不变，同时让新模块可统一订阅）
-(function bridgeDispatchToStateHub() {
-    const originalDispatch = Utils.dispatch;
-    Utils.dispatch = (type, detail) => {
-        const ok = originalDispatch(type, detail);
-        try { StateHub.emit(type, detail); } catch { /* ignore */ }
-        return ok;
-    };
+const Perf = createPerfKit();
+const StorageKit = createStorageKit(Utils);
+const StateHub = (() => {
+    const { StateHub: hub, enhanceDispatch } = createStateHub(Utils);
+    Utils.dispatch = enhanceDispatch(Utils.dispatch);
+    return hub;
 })();
 
 // ==============================================
@@ -603,7 +514,7 @@ const Pricing = (function() {
         return regions.find((r) => r.value === key) || regions[0];
     }
 
-    function calculateShipping({ subtotal = 0, discount = 0, region = 'cn-east', promotion = null } = {}) {
+    function calculateShipping({ subtotal = 0, discount = 0, region = 'cn-east', promotion = null, membership = null } = {}) {
         const s = roundMoney(subtotal);
         const d = roundMoney(discount);
         const merch = Math.max(0, s - d);
@@ -615,8 +526,16 @@ const Pricing = (function() {
         // Empty cart should not charge shipping
         if (merch <= 0) return 0;
 
+        const member = membership && typeof membership === 'object' ? membership : null;
+        if (member && member.freeShipping === true) return 0;
+        const memberFreeOver = Number(member?.freeOver);
+        const freeOverDelta = Number(member?.freeOverDelta) || 0;
+        const freeOver = Number.isFinite(memberFreeOver)
+            ? Math.max(0, memberFreeOver)
+            : Math.max(0, r.freeOver - freeOverDelta);
+
         // Threshold-based free shipping
-        if (merch >= r.freeOver) return 0;
+        if (merch >= freeOver) return 0;
 
         return roundMoney(r.baseShipping);
     }
@@ -3896,6 +3815,16 @@ const Orders = (function() {
         const subtotal = calcSubtotal(safeItems);
         const promo = Promotion.get();
         const discount = Promotion.calculateDiscount(subtotal, promo);
+        const bundleInfo = typeof BundleDeals !== 'undefined' && BundleDeals.calculateDiscount
+            ? BundleDeals.calculateDiscount(safeItems)
+            : { discount: 0, bundles: [] };
+        const bundleDiscount = Number(bundleInfo?.discount) || 0;
+        const memberBenefits = typeof Rewards !== 'undefined' && Rewards.getTierBenefits
+            ? Rewards.getTierBenefits(Rewards.getPoints?.() || 0)
+            : null;
+        const memberDiscount = typeof Rewards !== 'undefined' && Rewards.calcTierDiscount
+            ? Rewards.calcTierDiscount(Math.max(0, subtotal - discount - bundleDiscount))
+            : 0;
 
         const pointsUsedRaw = Number.parseInt(String(rewards?.pointsUsed ?? ''), 10);
         const pointsUsed = Number.isFinite(pointsUsedRaw) && pointsUsedRaw > 0 ? Math.min(9999999, pointsUsedRaw) : 0;
@@ -3903,8 +3832,14 @@ const Orders = (function() {
         const rewardsDiscount = Number.isFinite(rewardsDiscountRaw) && rewardsDiscountRaw > 0 ? Pricing.roundMoney(rewardsDiscountRaw) : 0;
 
         const shipRegion = Pricing.getRegion(region || ShippingRegion.get()).value;
-        const shipping = Pricing.calculateShipping({ subtotal, discount: discount + rewardsDiscount, region: shipRegion, promotion: promo });
-        const total = Pricing.roundMoney(Math.max(0, subtotal - discount - rewardsDiscount) + shipping);
+        const shipping = Pricing.calculateShipping({
+            subtotal,
+            discount: discount + rewardsDiscount + bundleDiscount + memberDiscount,
+            region: shipRegion,
+            promotion: promo,
+            membership: memberBenefits,
+        });
+        const total = Pricing.roundMoney(Math.max(0, subtotal - discount - rewardsDiscount - bundleDiscount - memberDiscount) + shipping);
 
         const order = {
             id: Utils.generateId('ORD-'),
@@ -3913,7 +3848,11 @@ const Orders = (function() {
             paymentMethod: String(paymentMethod || '').trim(),
             region: shipRegion,
             promotion: promo ? { code: promo.code, type: promo.type, value: promo.value, label: promo.label } : null,
-            pricing: { subtotal, discount, rewardsDiscount, pointsUsed, shipping, total, currency: 'CNY' },
+            pricing: { subtotal, discount, bundleDiscount, memberDiscount, rewardsDiscount, pointsUsed, shipping, total, currency: 'CNY' },
+            membership: memberBenefits
+                ? { tier: memberBenefits.id, label: memberBenefits.label, discountPercent: memberBenefits.discountPercent }
+                : null,
+            bundle: bundleInfo?.bundles || [],
             shippingAddress: normalizeAddress(shippingAddress),
             items: safeItems,
         };
@@ -3921,6 +3860,7 @@ const Orders = (function() {
         const next = [order, ...getAll()].slice(0, maxOrders);
         saveAll(next);
         Utils.writeStorageJSON('lastOrderId', order.id);
+        try { OrderJourney?.seed?.(order); } catch { /* 忽略订单旅程异常 */ }
         return order;
     }
 
@@ -3958,11 +3898,119 @@ const Orders = (function() {
 })();
 
 // ==============================================
+// 订单旅程（时间轴 + 售后）
+// ==============================================
+const OrderJourney = (function() {
+    const steps = [
+        { key: 'placed', label: '已下单', offsetHours: 0 },
+        { key: 'paid', label: '已支付', offsetHours: 0.4 },
+        { key: 'packed', label: '已配货', offsetHours: 6 },
+        { key: 'shipped', label: '已发货', offsetHours: 20 },
+        { key: 'delivered', label: '已签收', offsetHours: 72 },
+    ];
+
+    function buildTimeline(createdAt) {
+        const base = Number(Date.parse(createdAt)) || Date.now();
+        return steps.map((step) => ({
+            key: step.key,
+            label: step.label,
+            ts: new Date(base + step.offsetHours * 3600 * 1000).toISOString(),
+        }));
+    }
+
+    function getMap() {
+        return StorageKit.getOrderTimeline();
+    }
+
+    function saveMap(map) {
+        return StorageKit.setOrderTimeline(map);
+    }
+
+    function seed(order) {
+        const id = String(order?.id || '').trim();
+        if (!id) return null;
+        const map = getMap();
+        if (!map[id]) {
+            map[id] = {
+                orderId: id,
+                createdAt: order?.createdAt || new Date().toISOString(),
+                timeline: buildTimeline(order?.createdAt),
+                afterSales: [],
+            };
+            saveMap(map);
+        }
+        return map[id];
+    }
+
+    function get(orderId) {
+        const id = String(orderId || '').trim();
+        if (!id) return null;
+        const map = getMap();
+        return map[id] || null;
+    }
+
+    function getProgress(orderId) {
+        const record = get(orderId);
+        const list = Array.isArray(record?.timeline) ? record.timeline : [];
+        const now = Date.now();
+        return list.map((item) => {
+            const ts = Date.parse(item.ts || '');
+            const done = Number.isFinite(ts) ? now >= ts : false;
+            return { ...item, done };
+        });
+    }
+
+    function addAfterSales(orderId, payload) {
+        const id = String(orderId || '').trim();
+        if (!id) return null;
+        const map = getMap();
+        const record = map[id] || { orderId: id, timeline: buildTimeline(new Date().toISOString()), afterSales: [] };
+        const list = Array.isArray(record.afterSales) ? record.afterSales : [];
+        const reason = String(payload?.reason || '').trim().slice(0, 120);
+        const type = String(payload?.type || '售后申请');
+        list.unshift({ id: Utils.generateId('AS-'), type, reason, createdAt: new Date().toISOString() });
+        record.afterSales = list.slice(0, 6);
+        map[id] = record;
+        saveMap(map);
+        Utils.dispatchChanged('orderJourney');
+        return record;
+    }
+
+    return { seed, get, getProgress, addAfterSales };
+})();
+
+// ==============================================
 // Rewards / Loyalty Points (localStorage)
 // - 目标：提升复购与转化（积分抵扣 + 会员权益）
 // ==============================================
 const Rewards = (function() {
     const storageKey = 'rewards';
+    const tiers = [
+        {
+            id: 'rookie',
+            label: '启航',
+            minPoints: 0,
+            discountPercent: 0,
+            freeOverDelta: 0,
+            perks: ['基础积分', '新品提醒'],
+        },
+        {
+            id: 'spark',
+            label: '星耀',
+            minPoints: 1200,
+            discountPercent: 2,
+            freeOverDelta: 100,
+            perks: ['积分加速', '会员专享折扣', '优先预售'],
+        },
+        {
+            id: 'nova',
+            label: '极光',
+            minPoints: 5000,
+            discountPercent: 5,
+            freeOverDelta: 180,
+            perks: ['专属折扣', '优先预售', '专属客服'],
+        },
+    ];
 
     function normalizePoints(value) {
         const n = Number.parseInt(String(value ?? ''), 10);
@@ -3980,6 +4028,16 @@ const Rewards = (function() {
         const next = { points: normalizePoints(state?.points) };
         Utils.writeStorageJSON(storageKey, next);
         updateHeaderBadge(next.points);
+        try {
+            const tier = resolveTier(next.points);
+            StorageKit?.setMembership?.({
+                tier: tier.id,
+                points: next.points,
+                updatedAt: new Date().toISOString(),
+            });
+        } catch {
+            // 忽略会员同步异常
+        }
         if (!options.silent) Utils.dispatchChanged('rewards');
         return next;
     }
@@ -4030,6 +4088,24 @@ const Rewards = (function() {
         return getState().points;
     }
 
+    function resolveTier(points) {
+        const p = normalizePoints(points);
+        const sorted = tiers.slice().sort((a, b) => b.minPoints - a.minPoints);
+        return sorted.find((t) => p >= t.minPoints) || tiers[0];
+    }
+
+    function getTier() {
+        return resolveTier(getPoints());
+    }
+
+    function getTierBenefits(points) {
+        const tier = resolveTier(points);
+        return {
+            ...tier,
+            freeOverDelta: Number(tier.freeOverDelta) || 0,
+        };
+    }
+
     function setPoints(points, options = {}) {
         return saveState({ points }, options).points;
     }
@@ -4058,6 +4134,15 @@ const Rewards = (function() {
         return normalizePoints(Math.floor(n));
     }
 
+    function calcTierDiscount(merchTotal, pointsOverride) {
+        const merch = Pricing.roundMoney(merchTotal);
+        if (merch <= 0) return 0;
+        const tier = getTierBenefits(typeof pointsOverride === 'number' ? pointsOverride : getPoints());
+        const pct = Number(tier.discountPercent) || 0;
+        if (pct <= 0) return 0;
+        return Pricing.roundMoney(Math.max(0, (merch * pct) / 100));
+    }
+
     function init() {
         ensureHeaderEntry();
         updateHeaderBadge(getState().points);
@@ -4072,6 +4157,9 @@ const Rewards = (function() {
         consumePoints,
         calcDiscountByPoints,
         calcEarnedPoints,
+        calcTierDiscount,
+        getTier,
+        getTierBenefits,
         updateHeaderBadge,
     };
 })();
@@ -4520,6 +4608,99 @@ const PriceAlerts = (function() {
 })();
 
 // ==============================================
+// 关注中心（到货/降价/趋势）
+// ==============================================
+const WatchCenter = (function() {
+    const storageKey = 'sbWatchCenter';
+
+    function normalizeState(raw) {
+        const obj = raw && typeof raw === 'object' ? raw : {};
+        return {
+            restockAlerts: Utils.normalizeStringArray(obj.restockAlerts || []),
+            priceAlerts: Utils.normalizeStringArray(obj.priceAlerts || []),
+        };
+    }
+
+    function getState() {
+        return normalizeState(Utils.readStorageJSON(storageKey, {}));
+    }
+
+    function saveState(state) {
+        const next = normalizeState(state);
+        Utils.writeStorageJSON(storageKey, next);
+        Utils.dispatchChanged('watchcenter');
+        return next;
+    }
+
+    function isRestockWatching(productId) {
+        const id = String(productId || '').trim();
+        if (!id) return false;
+        return getState().restockAlerts.includes(id);
+    }
+
+    function toggleRestock(productId) {
+        const id = String(productId || '').trim();
+        if (!id) return null;
+        const state = getState();
+        const exists = state.restockAlerts.includes(id);
+        const next = exists
+            ? state.restockAlerts.filter((x) => x !== id)
+            : [id, ...state.restockAlerts];
+        saveState({ ...state, restockAlerts: next });
+        return !exists;
+    }
+
+    function getTrend(productId) {
+        const id = String(productId || '').trim();
+        if (!id) return { delta: 0, direction: 'flat' };
+        const history = StorageKit.getPriceHistory()[id] || [];
+        if (history.length < 2) return { delta: 0, direction: 'flat' };
+        const start = Number(history[0]?.price) || 0;
+        const end = Number(history[history.length - 1]?.price) || 0;
+        const delta = Pricing.roundMoney(end - start);
+        const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+        return { delta, direction };
+    }
+
+    function getUnifiedList() {
+        const favIds = typeof Favorites !== 'undefined' && Favorites.getIds
+            ? Favorites.getIds()
+            : Utils.normalizeStringArray(Utils.readStorageJSON('favorites', []));
+        const priceAlertIds = (PriceAlerts?.getAll?.() || []).map((a) => a.productId);
+        const restockIds = getState().restockAlerts;
+        const allIds = Array.from(new Set([...favIds, ...priceAlertIds, ...restockIds]));
+
+        return allIds
+            .map((id) => {
+                const product = SharedData?.getProductById?.(id);
+                if (!product) return null;
+                const trend = getTrend(id);
+                return {
+                    id,
+                    product,
+                    isFavorite: favIds.includes(id),
+                    hasPriceAlert: priceAlertIds.includes(id),
+                    hasRestock: restockIds.includes(id),
+                    trend,
+                };
+            })
+            .filter(Boolean);
+    }
+
+    function init() {
+        try {
+            window.addEventListener('pricealerts:changed', () => Utils.dispatchChanged('watchcenter'));
+            window.addEventListener('favorites:changed', () => Utils.dispatchChanged('watchcenter'));
+            window.addEventListener('pricehistory:changed', () => Utils.dispatchChanged('watchcenter'));
+        } catch {
+            // 忽略监听异常
+        }
+    }
+
+    return { init, getState, isRestockWatching, toggleRestock, getUnifiedList, getTrend };
+})();
+
+// ==============================================
 // Data Portability / Backup (localStorage)
 // - 导出/导入/重置：帮助用户迁移本地模拟数据
 // - 仅操作本地 localStorage，不进行网络上传
@@ -4547,10 +4728,16 @@ const DataPortability = (function() {
         // Membership
         'rewards',
         'useRewardsPoints',
+        'sbMembership',
 
         // Address / alerts
         'addressBook',
         'priceAlerts',
+        'sbWatchCenter',
+        'sbPriceHistory',
+        'sbBundleCart',
+        'sbOrderTimeline',
+        'sbInventoryOverrides',
 
         // Listing preferences
         'plpSort',
@@ -5103,6 +5290,16 @@ const SharedData = (function() {
         const dateAdded = product.dateAdded
             ? product.dateAdded
             : new Date(2024, 0, 1 + index * 18).toISOString().slice(0, 10);
+        const rawInventory = product.inventory && typeof product.inventory === 'object' ? product.inventory : null;
+        const baseStock = Math.max(0, 4 + (index * 3) % 12);
+        const preorder = status === '预售' || Boolean(rawInventory?.preorder);
+        const stock = Number.isFinite(Number(rawInventory?.stock))
+            ? Math.max(0, Math.floor(Number(rawInventory.stock)))
+            : (preorder ? 0 : baseStock);
+        const eta = typeof rawInventory?.eta === 'string'
+            ? rawInventory.eta
+            : (preorder ? '2026/04' : '');
+        const inventory = { stock, preorder, eta };
 
         return {
             ...product,
@@ -5111,7 +5308,8 @@ const SharedData = (function() {
             rarity,
             status,
             tags,
-            dateAdded
+            dateAdded,
+            inventory,
         };
     });
 
@@ -5173,6 +5371,280 @@ const SharedData = (function() {
 })();
 
 // ==============================================
+// Inventory Pulse（库存/预售状态）
+// ==============================================
+const InventoryPulse = (function() {
+    const lowStockThreshold = 3;
+
+    function normalize(raw) {
+        const helper = globalThis.ShouwbanCore?.normalizeInventory;
+        if (typeof helper === 'function') return helper(raw);
+        const obj = raw && typeof raw === 'object' ? raw : {};
+        const stock = Math.max(0, Math.floor(Number(obj.stock) || 0));
+        const preorder = Boolean(obj.preorder);
+        const eta = typeof obj.eta === 'string' ? obj.eta.trim() : '';
+        return { stock, preorder, eta };
+    }
+
+    function getOverrides() {
+        const raw = Utils.readStorageJSON('sbInventoryOverrides', {});
+        return raw && typeof raw === 'object' ? raw : {};
+    }
+
+    function getInfo(productOrId) {
+        const id = typeof productOrId === 'string' ? productOrId : String(productOrId?.id || '');
+        const product = typeof productOrId === 'object'
+            ? productOrId
+            : (SharedData?.getProductById?.(id) || null);
+        const base = normalize(product?.inventory);
+        const overrides = getOverrides();
+        const override = overrides && typeof overrides === 'object' ? overrides[id] : null;
+        if (!override) return base;
+        return { ...base, ...normalize(override) };
+    }
+
+    function getStatus(info) {
+        const helper = globalThis.ShouwbanCore?.getInventoryStatus;
+        if (typeof helper === 'function') {
+            const base = helper(info, { lowStockThreshold });
+            const data = normalize(info);
+            if (base.tone === 'out') return { ...base, label: '暂时缺货' };
+            if (base.tone === 'low') return { ...base, label: `库存紧张 · 仅剩 ${data.stock} 件` };
+            if (base.tone === 'in') return { ...base, label: '现货充足' };
+            return base;
+        }
+        const data = normalize(info);
+        if (data.preorder) return { label: '预售', tone: 'preorder' };
+        if (data.stock <= 0) return { label: '暂时缺货', tone: 'out' };
+        if (data.stock <= lowStockThreshold) return { label: `库存紧张 · 仅剩 ${data.stock} 件`, tone: 'low' };
+        return { label: '现货充足', tone: 'in' };
+    }
+
+    function canAdd(productOrId, quantity, currentQty = 0) {
+        const info = getInfo(productOrId);
+        const qty = Math.max(1, Math.floor(Number(quantity) || 1));
+        const current = Math.max(0, Math.floor(Number(currentQty) || 0));
+        if (info.preorder) {
+            return { ok: true, available: info.stock || 99, preorder: true };
+        }
+        if (info.stock <= 0) return { ok: false, available: 0, reason: '暂时缺货' };
+        if (qty + current > info.stock) {
+            return { ok: false, available: info.stock, reason: `库存仅剩 ${info.stock} 件` };
+        }
+        return { ok: true, available: info.stock };
+    }
+
+    return { getInfo, getStatus, canAdd, lowStockThreshold };
+})();
+
+// ==============================================
+// Bundle Deals（组合购/套装优惠）
+// ==============================================
+const BundleDeals = (function() {
+    const bundles = [
+        {
+            id: 'BND-STARTER',
+            title: '入坑双人组',
+            subtitle: '热门角色搭配，立减 8%',
+            items: ['P001', 'P003'],
+            discountType: 'percent',
+            discountValue: 8,
+        },
+        {
+            id: 'BND-TRAVEL',
+            title: '旅行搭档套装',
+            subtitle: '冒险主题组合，立减 ¥60',
+            items: ['P002', 'P004'],
+            discountType: 'fixed',
+            discountValue: 60,
+        },
+        {
+            id: 'BND-COLLECTOR',
+            title: '收藏家三件套',
+            subtitle: '限时组合，立减 10%',
+            items: ['P006', 'P007', 'P009'],
+            discountType: 'percent',
+            discountValue: 10,
+        },
+    ];
+
+    function getAll() {
+        return bundles.slice();
+    }
+
+    function getById(id) {
+        const key = String(id || '').trim();
+        return bundles.find((b) => b.id === key) || null;
+    }
+
+    function getBundlesForProduct(productId) {
+        const id = String(productId || '').trim();
+        if (!id) return [];
+        return bundles.filter((b) => Array.isArray(b.items) && b.items.includes(id));
+    }
+
+    function getBundleCart() {
+        return StorageKit.getBundleCart();
+    }
+
+    function setBundleCart(list) {
+        return StorageKit.setBundleCart(list);
+    }
+
+    function syncWithCart(cart) {
+        const list = Array.isArray(cart) ? cart : [];
+        const ids = new Set(list.map((item) => item.id));
+        const current = getBundleCart();
+        const next = current.filter((entry) => ids.has(entry.productId));
+        if (next.length !== current.length) setBundleCart(next);
+        return next;
+    }
+
+    function getBundleIdForProduct(productId) {
+        const id = String(productId || '').trim();
+        if (!id) return '';
+        const current = getBundleCart();
+        const hit = current.find((entry) => entry.productId === id);
+        return hit ? hit.bundleId : '';
+    }
+
+    function addBundle(bundleId) {
+        const bundle = getById(bundleId);
+        if (!bundle) return { ok: false, reason: '未找到套装' };
+        const items = Array.isArray(bundle.items) ? bundle.items : [];
+        const added = [];
+        items.forEach((id) => {
+            const product = SharedData?.getProductById?.(id);
+            if (product && Cart?.addItem) {
+                Cart.addItem(product, 1);
+                added.push(id);
+            }
+        });
+        if (added.length === 0) return { ok: false, reason: '套装商品不可用' };
+
+        const now = new Date().toISOString();
+        const current = getBundleCart().filter((entry) => entry.bundleId !== bundleId);
+        const next = [
+            ...current,
+            ...added.map((productId) => ({ bundleId, productId, ts: now })),
+        ];
+        setBundleCart(next);
+        return { ok: true, added, bundle };
+    }
+
+    function removeBundle(bundleId) {
+        const key = String(bundleId || '').trim();
+        if (!key) return { ok: false };
+        const current = getBundleCart();
+        const toRemove = current.filter((entry) => entry.bundleId === key).map((entry) => entry.productId);
+        const next = current.filter((entry) => entry.bundleId !== key);
+        setBundleCart(next);
+        if (toRemove.length > 0 && Cart?.getCart && Cart?.setCart) {
+            const cart = Cart.getCart();
+            const filtered = cart.filter((item) => !toRemove.includes(item.id));
+            Cart.setCart(filtered);
+        }
+        return { ok: true, removed: toRemove };
+    }
+
+    function calculateDiscount(cartItems) {
+        const cart = Array.isArray(cartItems) ? cartItems : [];
+        if (cart.length === 0) return { discount: 0, bundles: [] };
+
+        const map = new Map(cart.map((item) => [String(item.id || ''), item]));
+        let totalDiscount = 0;
+        const applied = [];
+
+        bundles.forEach((bundle) => {
+            const items = Array.isArray(bundle.items) ? bundle.items : [];
+            if (!items.length) return;
+            const ok = items.every((id) => map.has(id));
+            if (!ok) return;
+
+            const sum = items.reduce((acc, id) => acc + (Number(map.get(id)?.price) || 0), 0);
+            if (sum <= 0) return;
+
+            let discount = 0;
+            if (bundle.discountType === 'percent') {
+                discount = (sum * Number(bundle.discountValue || 0)) / 100;
+            } else if (bundle.discountType === 'fixed') {
+                discount = Number(bundle.discountValue || 0);
+            }
+            discount = Pricing.roundMoney(Math.max(0, Math.min(sum, discount)));
+            if (discount > 0) {
+                totalDiscount += discount;
+                applied.push({ id: bundle.id, title: bundle.title, discount });
+            }
+        });
+
+        return { discount: Pricing.roundMoney(totalDiscount), bundles: applied };
+    }
+
+    return {
+        getAll,
+        getById,
+        getBundlesForProduct,
+        addBundle,
+        removeBundle,
+        calculateDiscount,
+        getBundleIdForProduct,
+        syncWithCart,
+    };
+})();
+
+// ==============================================
+// Smart Curation（智能策展）
+// ==============================================
+const SmartCuration = (function() {
+    function getProfile(seedId) {
+        const recent = Utils.normalizeStringArray(Utils.readStorageJSON('recentlyViewed', []));
+        const favorites = Utils.normalizeStringArray(Utils.readStorageJSON('favorites', []));
+        const seedProduct = seedId ? SharedData?.getProductById?.(seedId) : null;
+        const seedCategory = seedProduct?.category?.key || '';
+
+        const categoryCounts = new Map();
+        [...recent, ...favorites].forEach((id) => {
+            const product = SharedData?.getProductById?.(id);
+            const key = product?.category?.key;
+            if (!key) return;
+            categoryCounts.set(key, (categoryCounts.get(key) || 0) + 1);
+        });
+
+        const topCategories = Array.from(categoryCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map((entry) => entry[0])
+            .slice(0, 2);
+
+        return { recent, favorites, seedId, seedCategory, topCategories };
+    }
+
+    function scoreProduct(product, profile) {
+        let score = 0;
+        if (profile.seedCategory && product?.category?.key === profile.seedCategory) score += 50;
+        if (profile.topCategories?.includes?.(product?.category?.key)) score += 30;
+        if (product?.tags?.includes?.('hot')) score += 12;
+        if (product?.tags?.includes?.('limited')) score += 10;
+        if (product?.tags?.includes?.('preorder')) score += 6;
+        score += Math.round((Number(product?.rating) || 0) * 4);
+        return score;
+    }
+
+    function getRecommendations({ seedId = '', limit = 6 } = {}) {
+        const all = SharedData?.getAllProducts?.() || [];
+        const profile = getProfile(seedId);
+        const list = all
+            .filter((p) => String(p?.id || '') !== String(profile.seedId || ''))
+            .map((p) => ({ product: p, score: scoreProduct(p, profile) }))
+            .sort((a, b) => b.score - a.score)
+            .map((entry) => entry.product)
+            .filter(Boolean);
+        return list.slice(0, Math.max(1, Number(limit) || 6));
+    }
+
+    return { getRecommendations };
+})();
+
+// ==============================================
 // Cart Module (Modified to use Cart.updateHeaderCartCount internally)
 // ==============================================
 const Cart = (function() {
@@ -5182,12 +5654,20 @@ const Cart = (function() {
     const cartSummaryContainer = cartContainer?.querySelector('.cart-summary');
     const emptyCartMessage = cartContainer?.querySelector('.empty-cart-message');
     const checkoutButton = cartSummaryContainer?.querySelector('.checkout-button');
+    const bundleSummary = cartSummaryContainer?.querySelector('[data-bundle-summary]');
+    const bundleList = cartSummaryContainer?.querySelector('[data-bundle-list]');
+    const bundleDiscountRow = cartSummaryContainer?.querySelector('[data-summary-bundle-row]');
+    const bundleDiscountEl = cartSummaryContainer?.querySelector('.summary-bundle');
+    const memberDiscountRow = cartSummaryContainer?.querySelector('[data-summary-member-row]');
+    const memberDiscountEl = cartSummaryContainer?.querySelector('.summary-member');
+    const memberBadge = cartSummaryContainer?.querySelector('[data-member-tier]');
     let clearCartButton = cartSummaryContainer?.querySelector('.cart-clear-button') || null;
     const recommendationContainer = cartContainer?.querySelector('[data-cart-recommendations]');
     const recommendationsGrid = recommendationContainer?.querySelector('.recommendations-grid');
     let dragBound = false;
     let draggingItem = null;
     let cartItemDelegationBound = false;
+    let bundleActionBound = false;
 
     function clampQuantity(raw) {
         return globalThis.ShouwbanCore.clampQuantity(raw);
@@ -5255,6 +5735,7 @@ const Cart = (function() {
     function saveCart(cart) {
         const normalized = normalizeCartItems(cart);
         Utils.writeStorageJSON('cart', normalized);
+        BundleDeals?.syncWithCart?.(normalized);
         _updateHeaderCartCount(normalized); // Use internal function
         Utils.dispatchChanged('cart');
     }
@@ -5270,6 +5751,16 @@ const Cart = (function() {
         const safeName = Utils.escapeHtml(item?.name || '[手办名称]');
         const safeSeries = Utils.escapeHtml(item?.series || '[系列/来源占位]');
         const safeImage = Utils.escapeHtml(item?.image || 'assets/images/figurine-1.svg');
+        const bundleId = BundleDeals?.getBundleIdForProduct?.(rawId) || '';
+        const inventoryInfo = InventoryPulse?.getInfo?.(rawId);
+        const inventoryStatus = InventoryPulse?.getStatus?.(inventoryInfo);
+        const bundleBadge = bundleId
+            ? `<span class="badge badge-bundle" data-bundle-id="${Utils.escapeHtml(bundleId)}">套装</span>`
+            : '';
+        const inventoryBadge = inventoryStatus?.label
+            ? `<span class="badge badge-inventory badge-inventory--${Utils.escapeHtml(inventoryStatus.tone || 'in')}">${Utils.escapeHtml(inventoryStatus.label)}</span>`
+            : '';
+        const badgesHtml = [bundleBadge, inventoryBadge].filter(Boolean).join('');
 
         const price = typeof item?.price === 'number' ? item.price : Number(item?.price) || 0;
         const q = Number.parseInt(item?.quantity, 10);
@@ -5286,7 +5777,9 @@ const Cart = (function() {
                 </div>
                 <div class="cart-item__info">
                     <h4 class="cart-item__title"><a href="${detailHref}">${safeName}</a></h4>
-                    <p class="cart-item__series">${safeSeries}</p> 
+                    <p class="cart-item__series">${safeSeries}</p>
+                    ${badgesHtml ? `<div class="cart-item__badges">${badgesHtml}</div>` : ''}
+                    ${bundleId ? `<button type="button" class="cta-button-secondary cart-item__bundle-remove" data-bundle-remove="${Utils.escapeHtml(bundleId)}">移除套装</button>` : ''}
                     <span class="cart-item__price">¥${price.toFixed(2)}</span>
                 </div>
                 <div class="cart-item__quantity quantity-selector">
@@ -5404,24 +5897,31 @@ const Cart = (function() {
         const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
             ? Promotion.calculateDiscount(subtotal, promo)
             : 0;
-
-        const availablePoints = typeof Rewards !== 'undefined' && Rewards.getPoints ? Rewards.getPoints() : 0;
-        if (rewardsAvailableEl) rewardsAvailableEl.textContent = `可用 ${availablePoints} 积分`;
-
-        const usePoints = rewardsToggle
-            ? Boolean(rewardsToggle.checked)
-            : Boolean(Utils.readStorageJSON(usePointsKey, false));
-        const maxMerch = Math.max(0, Pricing.roundMoney(subtotal - discount));
-        const maxPoints = Math.floor(maxMerch * 100);
-        const pointsUsed = usePoints ? Math.min(maxPoints, Number(availablePoints) || 0) : 0;
-        const rewardsDiscount = typeof Rewards !== 'undefined' && Rewards.calcDiscountByPoints
-            ? Rewards.calcDiscountByPoints(pointsUsed)
+        const bundleInfo = typeof BundleDeals !== 'undefined' && BundleDeals.calculateDiscount
+            ? BundleDeals.calculateDiscount(cart)
+            : { discount: 0, bundles: [] };
+        const bundleDiscount = Number(bundleInfo?.discount) || 0;
+        const memberBenefits = typeof Rewards !== 'undefined' && Rewards.getTierBenefits
+            ? Rewards.getTierBenefits(Rewards.getPoints?.() || 0)
+            : null;
+        const memberDiscount = typeof Rewards !== 'undefined' && Rewards.calcTierDiscount
+            ? Rewards.calcTierDiscount(Math.max(0, subtotal - discount - bundleDiscount))
             : 0;
         const region = typeof ShippingRegion !== 'undefined' && ShippingRegion.get ? ShippingRegion.get() : 'cn-east';
         const shippingCost = typeof Pricing !== 'undefined' && Pricing.calculateShipping
-            ? Pricing.calculateShipping({ subtotal, discount: discount + rewardsDiscount, region, promotion: promo })
+            ? Pricing.calculateShipping({
+                subtotal,
+                discount: discount + bundleDiscount + memberDiscount,
+                region,
+                promotion: promo,
+                membership: memberBenefits,
+            })
             : 0;
-        const total = Math.max(0, Pricing.roundMoney(subtotal - discount - rewardsDiscount) + Pricing.roundMoney(shippingCost));
+        const total = Math.max(
+            0,
+            Pricing.roundMoney(subtotal - discount - bundleDiscount - memberDiscount)
+                + Pricing.roundMoney(shippingCost),
+        );
 
         UXMotion.tweenMoney(subtotalElement, subtotal);
         UXMotion.tweenMoney(shippingElement, shippingCost);
@@ -5431,6 +5931,43 @@ const Cart = (function() {
             const show = discount > 0;
             discountRow.style.display = show ? 'flex' : 'none';
             UXMotion.tweenMoney(discountElement, discount, { prefix: '- ' });
+        }
+
+        if (bundleDiscountEl && bundleDiscountRow) {
+            const show = bundleDiscount > 0;
+            bundleDiscountRow.style.display = show ? 'flex' : 'none';
+            UXMotion.tweenMoney(bundleDiscountEl, bundleDiscount, { prefix: '- ' });
+        }
+
+        if (memberDiscountEl && memberDiscountRow) {
+            const show = memberDiscount > 0;
+            memberDiscountRow.style.display = show ? 'flex' : 'none';
+            UXMotion.tweenMoney(memberDiscountEl, memberDiscount, { prefix: '- ' });
+        }
+
+        if (bundleSummary && bundleList) {
+            if (bundleInfo?.bundles?.length) {
+                bundleSummary.style.display = 'block';
+                bundleList.innerHTML = bundleInfo.bundles.map((b) => `
+                    <div class="bundle-row">
+                        <div class="bundle-row__title">${Utils.escapeHtml(b.title || '套装优惠')}</div>
+                        <div class="bundle-row__actions">
+                            <span class="bundle-row__price">- ${Utils.escapeHtml(Pricing.formatCny(b.discount || 0))}</span>
+                            <button type="button" class="cta-button-secondary bundle-row__remove" data-bundle-remove="${Utils.escapeHtml(b.id || '')}">移除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                bundleSummary.style.display = 'none';
+                bundleList.innerHTML = '';
+            }
+        }
+
+        if (memberBadge) {
+            const tier = Rewards?.getTier?.();
+            if (tier) {
+                memberBadge.textContent = `${tier.label} 会员`;
+            }
         }
 
         if (checkoutButton) {
@@ -5501,8 +6038,17 @@ const Cart = (function() {
         const itemIndex = cart.findIndex((item) => item.id === productId);
         if (itemIndex < 0) return;
 
-        const safeQuantity = clampQuantity(newQuantity);
+        let safeQuantity = clampQuantity(newQuantity);
         const prevQuantity = Number(cart[itemIndex]?.quantity) || 1;
+        const product = SharedData?.getProductById?.(productId);
+        const stockCheck = InventoryPulse?.canAdd?.(product || productId, safeQuantity, 0);
+        if (stockCheck && stockCheck.ok === false && !stockCheck.preorder) {
+            const available = Math.max(1, Math.min(safeQuantity, Number(stockCheck.available) || 1));
+            safeQuantity = available;
+            if (typeof Toast !== 'undefined' && Toast.show) {
+                Toast.show(stockCheck.reason || '库存不足，已调整数量', 'info', 1800);
+            }
+        }
         if (prevQuantity === safeQuantity && !rerender) {
             syncItemQuantityButtons(itemElement, safeQuantity);
             updateItemSubtotal(itemElement, cart[itemIndex]);
@@ -5560,6 +6106,18 @@ const Cart = (function() {
         cartItemsContainer.addEventListener('click', (event) => {
             const target = event?.target;
 
+            const bundleRemoveBtn = target?.closest?.('[data-bundle-remove]');
+            if (bundleRemoveBtn) {
+                const bundleId = bundleRemoveBtn.dataset.bundleRemove || bundleRemoveBtn.getAttribute('data-bundle-remove');
+                if (bundleId) {
+                    BundleDeals?.removeBundle?.(bundleId);
+                    if (typeof Toast !== 'undefined' && Toast.show) {
+                        Toast.show('已移除套装商品', 'info', 1600);
+                    }
+                }
+                return;
+            }
+
             const minusBtn = target?.closest?.('.quantity-selector__button.minus');
             const plusBtn = target?.closest?.('.quantity-selector__button.plus');
             const removeBtn = target?.closest?.('.remove-btn');
@@ -5599,6 +6157,21 @@ const Cart = (function() {
             input.value = String(next);
             handleQuantityChange(productId, next, { rerender: false, itemElement });
         });
+
+        if (cartSummaryContainer && !bundleActionBound) {
+            bundleActionBound = true;
+            cartSummaryContainer.addEventListener('click', (event) => {
+                const target = event?.target;
+                const btn = target?.closest?.('[data-bundle-remove]');
+                if (!btn) return;
+                const bundleId = btn.dataset.bundleRemove || btn.getAttribute('data-bundle-remove');
+                if (!bundleId) return;
+                BundleDeals?.removeBundle?.(bundleId);
+                if (typeof Toast !== 'undefined' && Toast.show) {
+                    Toast.show('已移除套装商品', 'info', 1600);
+                }
+            });
+        }
     }
 
     function getDragAfterElement(container, y) {
@@ -5685,9 +6258,21 @@ const Cart = (function() {
 
     function addItem(product, quantity = 1) {
         if (!product || !product.id) return { added: 0 };
-        const safeQty = Math.min(99, Math.max(1, Number(quantity) || 1));
+        let safeQty = Math.min(99, Math.max(1, Number(quantity) || 1));
         const cart = getCart();
         const existing = cart.find((item) => item.id === product.id);
+        const existingQty = existing ? Number(existing.quantity) || 0 : 0;
+        const stockCheck = InventoryPulse?.canAdd?.(product, safeQty, existingQty);
+        if (stockCheck && stockCheck.ok === false && !stockCheck.preorder) {
+            const available = Math.max(0, Number(stockCheck.available) || 0);
+            const allowed = Math.max(0, available - existingQty);
+            if (allowed <= 0) {
+                Toast?.show?.(stockCheck.reason || '暂时缺货', 'info', 1800);
+                return { added: 0 };
+            }
+            safeQty = Math.min(safeQty, allowed);
+            Toast?.show?.(stockCheck.reason || '库存不足，已调整数量', 'info', 1800);
+        }
         if (existing) {
             existing.quantity = Math.min(99, existing.quantity + safeQty);
         } else {
@@ -6608,6 +7193,7 @@ const PageModules = (function() {
       LazyLoad, Favorites, Compare, Orders, AddressBook, PriceAlerts, Cart,
       Promotion, QuickAdd, ServiceWorker, PWAInstall, CrossTabSync, Prefetch,
       Http, Skeleton, VirtualScroll, DataPortability, Pricing, UXMotion, Celebration,
+      StorageKit, Perf, InventoryPulse, BundleDeals, WatchCenter, OrderJourney, SmartCuration,
     };
   }
 
@@ -6634,10 +7220,13 @@ const App = {
         const page = Utils.getPageName();
         const pageModulePromise = PageModules.importPageModule(page);
 
+        StorageKit.ensureSchema();
+
         // 全站基础：尽量保持“薄启动”，重模块按页初始化
         Header.init();
         Telemetry.init();
         Rewards.init(); // 注入会员入口后再做首屏入场动效
+        WatchCenter.init();
         Cinematic.init();
         ViewTransitions.init();
         NavigationTransitions.init();

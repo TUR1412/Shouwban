@@ -8,6 +8,9 @@
 
 ## 关键文件
 - `scripts/main.js`：运行时入口（全站基础模块 + `PageModules` loader + `App.init`）
+- `scripts/runtime/state.js`：StateHub 拆分模块（事件中心 + Atom）
+- `scripts/runtime/storage.js`：StorageKit（schema 迁移 / 会员 / 关注 / 订单旅程 / 价格趋势）
+- `scripts/runtime/perf.js`：PerfKit（raf 节流 / memoize / 批量 DOM）
 - `scripts/pages/*.js`：页面级模块（按需动态加载，实现真正代码分割）
   - `scripts/pages/homepage.js`：`index.html`
   - `scripts/pages/product-listing.js`：`products.html` / `category.html`
@@ -21,6 +24,25 @@
   - `scripts/pages/offline.js`：`offline.html`
 - `scripts/core.js`：可测试的纯函数集合（金额、数量、折扣等）
 - `scripts/motion.js`：Motion-lite（WAAPI）
+
+## Runtime Kit（拆分模块）
+目的：降低 `scripts/main.js` 体积，将“状态 / 存储 / 性能”职责拆分为可独立维护的运行时单元。
+
+- `StorageKit`（`scripts/runtime/storage.js`）
+  - Schema 迁移 + 初始化（会员 / 关注 / 订单旅程 / 价格趋势）
+  - 本地结构化存储读写与变更广播
+- `StateHub`（`scripts/runtime/state.js`）
+  - 事件中心 + Atom，统一跨模块事件与状态订阅
+- `Perf`（`scripts/runtime/perf.js`）
+  - raf 节流、Memoize、批量 DOM 写入（减少 Layout 抖动）
+
+## 业务扩展模块
+由 `scripts/main.js` 聚合并注入页面模块：
+- `InventoryPulse`：库存/预售状态计算
+- `BundleDeals`：套装组合与折扣策略
+- `WatchCenter`：收藏/降价/到货提醒统一聚合
+- `OrderJourney`：订单时间轴与售后记录
+- `SmartCuration`：基于偏好的人群策展推荐
 
 ## 关键约定
 - HTML 中的运行时脚本统一使用 `type="module"`（确保可被 Vite 构建链路处理）
@@ -158,3 +180,4 @@
 
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - StateHub/Prefetch/Telemetry/Http/Skeleton/NavigationTransitions 与多级筛选引擎
+- [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Runtime 拆分与会员/关注/套装/订单旅程/策展模块

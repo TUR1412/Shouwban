@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="塑梦潮玩 - 会员中心（本地功能示例）。管理积分、常用地址与降价提醒。">
+    <meta name="description" content="塑梦潮玩 - 会员中心（本地功能示例）。管理积分、常用地址与关注中心。">
     <meta name="robots" content="noindex,follow">
     <meta name="theme-color" content="#1F6FEB">
     <meta name="color-scheme" content="light dark">
     <meta property="og:title" content="会员中心 - 塑梦潮玩">
-    <meta property="og:description" content="积分/地址簿/降价提醒均保存在本机浏览器中（示例站点）。">
+    <meta property="og:description" content="积分/地址簿/关注中心均保存在本机浏览器中（示例站点）。">
     <meta property="og:type" content="website">
     <meta property="og:image" content="assets/images/hero-placeholder.svg">
     <meta property="og:locale" content="zh_CN">
@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260101.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260101.1">
+    <link rel="stylesheet" href="styles/main.css?v=20260111.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260111.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -142,6 +142,18 @@
                     </div>
                 </article>
 
+                <article class="account-card account-card--wide fade-in-up" data-account-tier>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-shield" xlink:href="assets/icons.svg#icon-shield"></use></svg> 会员等级</h2>
+                        <span class="tier-badge" data-tier-badge>启航</span>
+                    </div>
+                    <div class="tier-panel">
+                        <div class="tier-panel__points text-muted">当前积分</div>
+                        <div class="tier-panel__value" data-tier-points>0</div>
+                        <div class="tier-panel__perks" data-tier-perks></div>
+                    </div>
+                </article>
+
                 <article class="account-card account-card--tall fade-in-up" data-account-addresses>
                     <div class="account-card__head">
                         <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-map-pin" xlink:href="assets/icons.svg#icon-map-pin"></use></svg> 常用地址簿</h2>
@@ -193,17 +205,17 @@
                     </div>
                 </article>
 
-                <article class="account-card fade-in-up" data-account-alerts>
+                <article class="account-card fade-in-up" data-account-watch>
                     <div class="account-card__head">
-                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bell" xlink:href="assets/icons.svg#icon-bell"></use></svg> 降价提醒中心</h2>
+                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-bell" xlink:href="assets/icons.svg#icon-bell"></use></svg> 关注中心</h2>
                         <a class="cta-button-secondary" href="products.html">去逛逛</a>
                     </div>
 
-                    <div class="account-alerts">
-                        <div class="account-empty text-muted" data-alert-empty style="display:none;">
-                            还没有任何降价提醒。去商品列表点击“降价提醒”即可添加。
+                    <div class="watch-center">
+                        <div class="account-empty text-muted" data-watch-empty style="display:none;">
+                            还没有关注任何商品。收藏/降价/到货提醒会自动汇总在这里。
                         </div>
-                        <div class="account-alerts__list" data-alert-list></div>
+                        <div class="watch-center__list" data-watch-list></div>
                     </div>
                 </article>
 
@@ -270,8 +282,9 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260101.1"></script>
-    <script type="module" src="scripts/core.js?v=20260101.1"></script>
-    <script type="module" src="scripts/main.js?v=20260101.1"></script>
+    <script type="module" src="scripts/motion.js?v=20260111.1"></script>
+    <script type="module" src="scripts/core.js?v=20260111.1"></script>
+    <script type="module" src="scripts/main.js?v=20260111.1"></script>
 </body>
 </html>
+

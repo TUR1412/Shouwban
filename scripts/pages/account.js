@@ -34,6 +34,7 @@ export function init(ctx = {}) {
     Orders,
     AddressBook,
     PriceAlerts,
+    WatchCenter,
     Cart,
     Promotion,
     QuickAdd,
@@ -58,25 +59,28 @@ export function init(ctx = {}) {
   
       const pointsEl = container.querySelector('[data-rewards-points]');
       const rewardsResetBtn = container.querySelector('[data-rewards-reset]');
-  
+      const tierBadge = container.querySelector('[data-tier-badge]');
+      const tierPoints = container.querySelector('[data-tier-points]');
+      const tierPerks = container.querySelector('[data-tier-perks]');
+
       const addressList = container.querySelector('[data-address-list]');
       const addressEmpty = container.querySelector('[data-address-empty]');
       const addressFormDetails = container.querySelector('[data-address-form]');
       const addressForm = container.querySelector('[data-address-form-body]');
       const addressOpenFormBtn = container.querySelector('[data-address-open-form]');
       const addressCancelBtn = container.querySelector('[data-address-cancel]');
-  
-      const alertsList = container.querySelector('[data-alert-list]');
-      const alertsEmpty = container.querySelector('[data-alert-empty]');
-  
+
+      const watchList = container.querySelector('[data-watch-list]');
+      const watchEmpty = container.querySelector('[data-watch-empty]');
+
       const dataExportBtn = container.querySelector('[data-data-export]');
       const dataImportBtn = container.querySelector('[data-data-import]');
       const dataFileInput = container.querySelector('[data-data-file]');
       const dataResetBtn = container.querySelector('[data-data-reset]');
-  
+
       let didEnterCards = false;
       let didEnterAddresses = false;
-      let didEnterAlerts = false;
+      let didEnterWatch = false;
   
       function formatRegionLabel(region) {
           try {
@@ -100,6 +104,20 @@ export function init(ctx = {}) {
               pointsEl.dataset.prevPoints = String(points);
           } catch {
               // ignore
+          }
+      }
+
+      function renderTier() {
+          if (!tierBadge && !tierPoints && !tierPerks) return;
+          const tier = Rewards?.getTier?.();
+          const points = Rewards?.getPoints?.() || 0;
+          if (tierBadge) tierBadge.textContent = tier ? `${tier.label} 会员` : '会员';
+          if (tierPoints) tierPoints.textContent = String(points);
+          if (tierPerks) {
+              const perks = Array.isArray(tier?.perks) ? tier.perks : [];
+              tierPerks.innerHTML = perks.length
+                  ? perks.map((perk) => `<span class="tier-perk">${Utils.escapeHtml(perk)}</span>`).join('')
+                  : '<span class="tier-perk">基础权益</span>';
           }
       }
   
@@ -167,59 +185,71 @@ export function init(ctx = {}) {
           }
       }
   
-      function renderAlerts() {
-          if (!alertsList || !alertsEmpty) return;
-          const list = PriceAlerts?.getAll?.() || [];
-          alertsList.innerHTML = '';
-  
+      function renderWatchCenter() {
+          if (!watchList || !watchEmpty) return;
+          const list = WatchCenter?.getUnifiedList?.() || [];
+          watchList.innerHTML = '';
+
           if (!list.length) {
-              alertsEmpty.style.display = 'block';
+              watchEmpty.style.display = 'block';
               return;
           }
-          alertsEmpty.style.display = 'none';
-  
-          list.forEach((a) => {
-              const product = SharedData?.getProductById?.(a.productId);
-              const name = String(product?.name || a.productId);
-              const currentPrice = typeof product?.price === 'number' ? product.price : Number(product?.price) || 0;
-              const reached = Number.isFinite(currentPrice) && currentPrice <= a.targetPrice;
-  
+          watchEmpty.style.display = 'none';
+
+          list.forEach((entry) => {
+              const product = entry.product;
+              const name = String(product?.name || entry.id);
+              const price = typeof product?.price === 'number' ? product.price : Number(product?.price) || 0;
+              const trend = entry.trend || { delta: 0, direction: 'flat' };
+              const trendLabel = trend.direction === 'up'
+                  ? `趋势 +${Pricing.formatCny(Math.abs(trend.delta))}`
+                  : trend.direction === 'down'
+                      ? `趋势 -${Pricing.formatCny(Math.abs(trend.delta))}`
+                      : '趋势稳定';
+
               const row = document.createElement('div');
-              row.className = `alert-row ${reached ? 'is-reached' : ''}`;
-              row.dataset.productId = a.productId;
-  
+              row.className = 'watch-row';
+              row.dataset.productId = entry.id;
+
               const left = document.createElement('div');
-              left.className = 'alert-row__left';
+              left.className = 'watch-row__left';
               left.innerHTML = `
-                  <div class="alert-row__name">${Utils.escapeHtml(name)}</div>
-                  <div class="alert-row__meta text-muted">
-                      目标价：${Utils.escapeHtml(Pricing.formatCny(a.targetPrice))}
-                      · 当前价：${Utils.escapeHtml(Pricing.formatCny(currentPrice))}
+                  <div class="watch-row__name">${Utils.escapeHtml(name)}</div>
+                  <div class="watch-row__meta text-muted">
+                      当前价：${Utils.escapeHtml(Pricing.formatCny(price))}
+                      · ${Utils.escapeHtml(trendLabel)}
+                  </div>
+                  <div class="watch-row__tags">
+                      ${entry.isFavorite ? '<span class="tag">收藏</span>' : ''}
+                      ${entry.hasPriceAlert ? '<span class="tag">降价提醒</span>' : ''}
+                      ${entry.hasRestock ? '<span class="tag">到货提醒</span>' : ''}
                   </div>
               `;
-  
+
               const right = document.createElement('div');
-              right.className = 'alert-row__right';
+              right.className = 'watch-row__right';
+              const detailHref = `product-detail.html?id=${encodeURIComponent(entry.id)}`;
               right.innerHTML = `
-                  <button type="button" class="cta-button-secondary alert-action" data-alert-edit>编辑</button>
-                  <button type="button" class="cta-button-secondary alert-action" data-alert-toggle>${a.enabled ? '停用' : '启用'}</button>
-                  <button type="button" class="cta-button-secondary alert-action" data-alert-remove>删除</button>
+                  <a class="cta-button-secondary" href="${detailHref}">查看</a>
+                  ${entry.hasPriceAlert ? '<button type="button" class="cta-button-secondary" data-alert-edit>编辑降价</button>' : ''}
+                  <button type="button" class="cta-button-secondary" data-restock-toggle>${entry.hasRestock ? '关闭到货' : '到货提醒'}</button>
+                  <button type="button" class="cta-button-secondary" data-watch-remove>取消关注</button>
               `;
-  
+
               row.appendChild(left);
               row.appendChild(right);
-              alertsList.appendChild(row);
+              watchList.appendChild(row);
           });
-  
-          if (!didEnterAlerts && typeof Cinematic !== 'undefined') {
-              const entered = Cinematic.staggerEnter?.(alertsList.querySelectorAll('.alert-row'), {
+
+          if (!didEnterWatch && typeof Cinematic !== 'undefined') {
+              const entered = Cinematic.staggerEnter?.(watchList.querySelectorAll('.watch-row'), {
                   y: 10,
                   blur: 10,
                   duration: 0.32,
                   stagger: 0.035,
                   maxStaggerItems: 10,
               });
-              if (entered) didEnterAlerts = true;
+              if (entered) didEnterWatch = true;
           }
       }
   
@@ -306,7 +336,7 @@ export function init(ctx = {}) {
   
           container.addEventListener('click', (event) => {
               const addrCard = event.target?.closest?.('.address-card[data-address-id]');
-              const pid = event.target?.closest?.('.alert-row[data-product-id]')?.dataset?.productId;
+              const pid = event.target?.closest?.('.watch-row[data-product-id]')?.dataset?.productId;
   
               const setDefaultBtn = event.target?.closest?.('[data-address-default]');
               if (setDefaultBtn && addrCard) {
@@ -339,29 +369,35 @@ export function init(ctx = {}) {
                   PriceAlerts?.openDialog?.(pid);
                   return;
               }
-  
-              const alertToggle = event.target?.closest?.('[data-alert-toggle]');
-              if (alertToggle && pid) {
-                  const current = PriceAlerts?.getByProductId?.(pid);
-                  if (!current) return;
-                  PriceAlerts?.update?.(pid, { enabled: !current.enabled });
-                  Toast?.show?.(!current.enabled ? '提醒已启用' : '提醒已停用', 'success', 1400);
+
+              const restockToggle = event.target?.closest?.('[data-restock-toggle]');
+              if (restockToggle && pid) {
+                  const active = WatchCenter?.toggleRestock?.(pid);
+                  Toast?.show?.(active ? '已开启到货提醒' : '已关闭到货提醒', 'success', 1400);
                   return;
               }
-  
-              const alertRemove = event.target?.closest?.('[data-alert-remove]');
-              if (alertRemove && pid) {
-                  const ok = window.confirm('确定删除该降价提醒吗？');
+
+              const watchRemove = event.target?.closest?.('[data-watch-remove]');
+              if (watchRemove && pid) {
+                  const ok = window.confirm('确定取消关注该商品吗？');
                   if (!ok) return;
-                  PriceAlerts?.remove?.(pid);
-                  Toast?.show?.('已删除降价提醒', 'success', 1400);
+                  try { Favorites?.remove?.(pid); } catch { /* ignore */ }
+                  try { PriceAlerts?.remove?.(pid); } catch { /* ignore */ }
+                  try {
+                      if (WatchCenter?.isRestockWatching?.(pid)) WatchCenter.toggleRestock(pid);
+                  } catch { /* ignore */ }
+                  Toast?.show?.('已取消关注', 'success', 1400);
               }
           });
-  
+
           try {
-              window.addEventListener('rewards:changed', renderRewards);
+              window.addEventListener('rewards:changed', () => {
+                  renderRewards();
+                  renderTier();
+              });
               window.addEventListener('addressbook:changed', renderAddresses);
-              window.addEventListener('pricealerts:changed', renderAlerts);
+              window.addEventListener('watchcenter:changed', renderWatchCenter);
+              window.addEventListener('membership:changed', renderTier);
           } catch {
               // ignore
           }
@@ -369,8 +405,9 @@ export function init(ctx = {}) {
   
       function init() {
           renderRewards();
+          renderTier();
           renderAddresses();
-          renderAlerts();
+          renderWatchCenter();
           bind();
           if (!didEnterCards && typeof Cinematic !== 'undefined') {
               const entered = Cinematic.staggerEnter?.(container.querySelectorAll('.account-card'), {

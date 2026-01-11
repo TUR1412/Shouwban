@@ -34,6 +34,7 @@ export function init(ctx = {}) {
     Orders,
     AddressBook,
     PriceAlerts,
+    BundleDeals,
     Cart,
     Promotion,
     QuickAdd,
@@ -71,6 +72,12 @@ export function init(ctx = {}) {
       const rewardsAvailableEl = checkoutContainer.querySelector('[data-rewards-available]');
       const rewardsDiscountEl = checkoutContainer.querySelector('.order-summary .summary-rewards-discount');
       const rewardsDiscountRow = checkoutContainer.querySelector('.order-summary [data-summary-rewards-row]');
+      const bundleDiscountEl = checkoutContainer.querySelector('.order-summary .summary-bundle');
+      const bundleDiscountRow = checkoutContainer.querySelector('.order-summary [data-summary-bundle-row]');
+      const memberDiscountEl = checkoutContainer.querySelector('.order-summary .summary-member');
+      const memberDiscountRow = checkoutContainer.querySelector('.order-summary [data-summary-member-row]');
+      const memberBadge = checkoutContainer.querySelector('[data-member-tier]');
+      const memberPerks = checkoutContainer.querySelector('[data-member-perks]');
   
       const draftKey = 'checkoutDraft';
       const usePointsKey = 'checkoutUsePoints';
@@ -283,6 +290,14 @@ export function init(ctx = {}) {
                   rewardsDiscountRow.style.display = 'none';
                   UXMotion.tweenMoney(rewardsDiscountEl, 0, { prefix: '- ' });
               }
+              if (bundleDiscountEl && bundleDiscountRow) {
+                  bundleDiscountRow.style.display = 'none';
+                  UXMotion.tweenMoney(bundleDiscountEl, 0, { prefix: '- ' });
+              }
+              if (memberDiscountEl && memberDiscountRow) {
+                  memberDiscountRow.style.display = 'none';
+                  UXMotion.tweenMoney(memberDiscountEl, 0, { prefix: '- ' });
+              }
               if(placeOrderButton) placeOrderButton.disabled = true;
               return;
           }
@@ -323,11 +338,42 @@ export function init(ctx = {}) {
           const discount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
               ? Promotion.calculateDiscount(subtotal, promo)
               : 0;
+          const bundleInfo = typeof BundleDeals !== 'undefined' && BundleDeals.calculateDiscount
+              ? BundleDeals.calculateDiscount(cart)
+              : { discount: 0, bundles: [] };
+          const bundleDiscount = Number(bundleInfo?.discount) || 0;
+          const memberBenefits = typeof Rewards !== 'undefined' && Rewards.getTierBenefits
+              ? Rewards.getTierBenefits(Rewards.getPoints?.() || 0)
+              : null;
+          const memberDiscount = typeof Rewards !== 'undefined' && Rewards.calcTierDiscount
+              ? Rewards.calcTierDiscount(Math.max(0, subtotal - discount - bundleDiscount))
+              : 0;
+          const availablePoints = typeof Rewards !== 'undefined' && Rewards.getPoints ? Rewards.getPoints() : 0;
+          if (rewardsAvailableEl) rewardsAvailableEl.textContent = `可用 ${availablePoints} 积分`;
+          const usePoints = rewardsToggle
+              ? Boolean(rewardsToggle.checked)
+              : Boolean(Utils.readStorageJSON(usePointsKey, false));
+          const maxMerch = Math.max(0, Pricing.roundMoney(subtotal - discount - bundleDiscount - memberDiscount));
+          const maxPoints = Math.floor(maxMerch * 100);
+          const pointsUsed = usePoints ? Math.min(maxPoints, Number(availablePoints) || 0) : 0;
+          const rewardsDiscount = typeof Rewards !== 'undefined' && Rewards.calcDiscountByPoints
+              ? Rewards.calcDiscountByPoints(pointsUsed)
+              : 0;
           const region = typeof ShippingRegion !== 'undefined' && ShippingRegion.get ? ShippingRegion.get() : 'cn-east';
           const shippingCost = typeof Pricing !== 'undefined' && Pricing.calculateShipping
-              ? Pricing.calculateShipping({ subtotal, discount, region, promotion: promo })
+              ? Pricing.calculateShipping({
+                  subtotal,
+                  discount: discount + rewardsDiscount + bundleDiscount + memberDiscount,
+                  region,
+                  promotion: promo,
+                  membership: memberBenefits,
+              })
               : 0;
-          const total = Math.max(0, Pricing.roundMoney(subtotal - discount) + Pricing.roundMoney(shippingCost));
+          const total = Math.max(
+              0,
+              Pricing.roundMoney(subtotal - discount - rewardsDiscount - bundleDiscount - memberDiscount)
+                  + Pricing.roundMoney(shippingCost),
+          );
   
           UXMotion.tweenMoney(summarySubtotalEl, subtotal);
           const discountEl = checkoutContainer.querySelector('.order-summary .summary-discount');
@@ -357,6 +403,38 @@ export function init(ctx = {}) {
               } catch {
                   // ignore
               }
+          }
+          if (bundleDiscountEl && bundleDiscountRow) {
+              const show = bundleDiscount > 0;
+              const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleDisplay
+                  ? Cinematic.toggleDisplay(bundleDiscountRow, show, { display: 'flex', y: 10, blur: 10, duration: 0.26 })
+                  : false;
+              if (!animated) bundleDiscountRow.style.display = show ? 'flex' : 'none';
+              UXMotion.tweenMoney(bundleDiscountEl, bundleDiscount, { prefix: '- ' });
+          }
+          if (memberDiscountEl && memberDiscountRow) {
+              const show = memberDiscount > 0;
+              const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleDisplay
+                  ? Cinematic.toggleDisplay(memberDiscountRow, show, { display: 'flex', y: 10, blur: 10, duration: 0.26 })
+                  : false;
+              if (!animated) memberDiscountRow.style.display = show ? 'flex' : 'none';
+              UXMotion.tweenMoney(memberDiscountEl, memberDiscount, { prefix: '- ' });
+          }
+          if (memberBadge) {
+              const tier = Rewards?.getTier?.();
+              memberBadge.textContent = tier ? `${tier.label} 会员` : '会员';
+          }
+          if (memberPerks) {
+              const perks = [];
+              const pct = Number(memberBenefits?.discountPercent) || 0;
+              const freeOverDelta = Number(memberBenefits?.freeOverDelta) || 0;
+              if (pct > 0) perks.push(`${pct}% 会员折扣`);
+              if (freeOverDelta > 0) perks.push(`包邮门槛下调 ¥${freeOverDelta}`);
+              const extra = Array.isArray(memberBenefits?.perks) ? memberBenefits.perks : [];
+              const list = [...perks, ...extra];
+              memberPerks.innerHTML = list.length
+                  ? list.map((item) => `<span class="member-perk">${Utils.escapeHtml(item)}</span>`).join('')
+                  : '<span class="member-perk">基础权益</span>';
           }
           UXMotion.tweenMoney(summaryShippingEl, shippingCost);
           UXMotion.tweenMoney(summaryTotalEl, total);
@@ -405,12 +483,22 @@ export function init(ctx = {}) {
               const promoDiscount = typeof Promotion !== 'undefined' && Promotion.calculateDiscount
                   ? Promotion.calculateDiscount(subtotal, promo)
                   : 0;
-  
+              const bundleInfo = typeof BundleDeals !== 'undefined' && BundleDeals.calculateDiscount
+                  ? BundleDeals.calculateDiscount(currentCart)
+                  : { discount: 0, bundles: [] };
+              const bundleDiscount = Number(bundleInfo?.discount) || 0;
+              const memberDiscount = typeof Rewards !== 'undefined' && Rewards.calcTierDiscount
+                  ? Rewards.calcTierDiscount(Math.max(0, subtotal - promoDiscount - bundleDiscount))
+                  : 0;
+
               const availablePoints = typeof Rewards !== 'undefined' && Rewards.getPoints ? Rewards.getPoints() : 0;
               const usePoints = rewardsToggle
                   ? Boolean(rewardsToggle.checked)
                   : Boolean(Utils.readStorageJSON(usePointsKey, false));
-              const maxMerch = Math.max(0, Pricing.roundMoney(subtotal - promoDiscount));
+              const maxMerch = Math.max(
+                  0,
+                  Pricing.roundMoney(subtotal - promoDiscount - bundleDiscount - memberDiscount),
+              );
               const maxPoints = Math.floor(maxMerch * 100);
               const pointsUsed = usePoints ? Math.min(maxPoints, Number(availablePoints) || 0) : 0;
               const rewardsDiscount = typeof Rewards !== 'undefined' && Rewards.calcDiscountByPoints
@@ -445,8 +533,8 @@ export function init(ctx = {}) {
                       Rewards.consumePoints?.(pointsUsed);
                   }
                   const earned = typeof Rewards !== 'undefined' && Rewards.calcEarnedPoints
-                      ? Rewards.calcEarnedPoints(Math.max(0, subtotal - promoDiscount - rewardsDiscount))
-                      : 0;
+                  ? Rewards.calcEarnedPoints(Math.max(0, subtotal - promoDiscount - bundleDiscount - memberDiscount - rewardsDiscount))
+                  : 0;
                   if (earned > 0 && typeof Rewards !== 'undefined') {
                       Rewards.addPoints?.(earned);
                       Toast?.show?.(`获得积分 +${earned}`, 'success', 1800);

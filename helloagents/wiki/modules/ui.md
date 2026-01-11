@@ -38,6 +38,12 @@
 - Skeleton：`.skeleton` / `.skeleton-card` / `.skeleton-line`
 - 页面转场遮罩：`.nav-transition-layer`（仅在 JS fallback 时注入）
 
+## 视觉升级（Neo-Quark）
+- 未来感渐变背景 + 细网格纹理
+- 玻璃拟态强化（透明卡片 + 柔和高光）
+- 新字体栈与更高对比度的标题排版
+- 新增组件皮肤：库存面板、套装卡片、关注中心、会员卡片、订单旅程
+
 ### 高级筛选 Dialog（PLP）
 `styles/extensions.css` 增加以下结构类以配合 `ProductListing` 的高级筛选对话框：
 - `.filter-dialog` / `.filter-dialog__content`
@@ -51,9 +57,15 @@
 
 ## UI 注入点（运行时）
 - PDP Lightbox：`scripts/main.js` 的 PDP 模块会按需注入 `<dialog class="lightbox-dialog">`，支持点击主图/键盘 Enter 打开大图预览（左右键切换、缩略图选择）
+- PDP 库存面板：`product-detail.html` + `product-detail.js` 动态写入库存状态与预售提示
+- PDP 组合购推荐：`bundle-deals` + `bundle-card` 动态渲染套装权益
+- PDP 智能策展：`smart-curation` 卡片网格由 `SmartCuration` 渲染
+- 会员中心关注中心：`watch-center` 列表动态渲染关注/降价/到货状态
+- 订单旅程：`orders.js` + `order-success.js` 写入 `order-journey` 时间轴
 - Checkout 支付方式选中态：结算页通过 `.payment-option.is-selected`（JS 注入）与 `:has(input:checked)`（CSS 渐进增强）共同提供稳定的选中态视觉反馈
 - Theme Color：主题切换时会动态更新 `meta[name="theme-color"]`，从 CSS Token 读取，确保浏览器 UI（地址栏/状态栏）与站点配色一致
 - Genesis Theme：三态主题切换（Light → Dark → Genesis），其中 Genesis 采用 `data-theme="dark"` + `data-variant="genesis"` 的表达方式，以复用暗色主题覆写并叠加霓虹/极光 token
 
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）与 Skeleton/转场基础设施
+- [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Neo-Quark 视觉升级与新业务组件样式

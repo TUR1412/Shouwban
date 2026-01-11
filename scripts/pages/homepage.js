@@ -48,6 +48,7 @@ export function init(ctx = {}) {
     Pricing,
     UXMotion,
     Celebration,
+    SmartCuration,
   } = ctx;
 
   // Homepage Specific Module (Modified to use SharedData)
@@ -232,8 +233,13 @@ export function init(ctx = {}) {
       }
   
       function renderCuration(tabKey) {
-          if (!curationGrid || typeof SharedData === 'undefined' || !SharedData.getCurationProducts) return;
-          const list = SharedData.getCurationProducts(tabKey);
+          if (!curationGrid) return;
+          const useSmart = tabKey === 'smart';
+          const list = useSmart && typeof SmartCuration !== 'undefined' && SmartCuration.getRecommendations
+              ? SmartCuration.getRecommendations({ seedId: '', limit: 6 })
+              : (typeof SharedData !== 'undefined' && SharedData.getCurationProducts
+                  ? SharedData.getCurationProducts(tabKey)
+                  : []);
           if (!list || list.length === 0) {
               curationGrid.innerHTML = '<p class="product-listing__empty-message text-center">暂无策展内容。</p>';
               return;

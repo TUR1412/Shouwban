@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260101.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260101.1">
+    <link rel="stylesheet" href="styles/main.css?v=20260111.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260111.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -211,6 +211,14 @@
                         <p class="text-muted rewards-hint">1 积分 = ¥0.01（示例）。</p>
                     </div>
 
+                    <div class="member-block member-block--summary">
+                        <div class="member-row">
+                            <span class="summary-label">会员等级</span>
+                            <span class="member-badge" data-member-tier>启航会员</span>
+                        </div>
+                        <div class="member-perks text-muted" data-member-perks></div>
+                    </div>
+
                     <div class="summary-row">
                         <span>商品小计:</span>
                         <span class="summary-subtotal">¥0.00</span>
@@ -218,6 +226,14 @@
                     <div class="summary-row" data-summary-discount-row style="display:none;">
                         <span>优惠:</span>
                         <span class="summary-discount">- ¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-bundle-row style="display:none;">
+                        <span>套装优惠:</span>
+                        <span class="summary-bundle">- ¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-member-row style="display:none;">
+                        <span>会员折扣:</span>
+                        <span class="summary-member">- ¥0.00</span>
                     </div>
                     <div class="summary-row" data-summary-rewards-row style="display:none;">
                         <span>积分抵扣:</span>
@@ -274,8 +290,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260101.1"></script>
-    <script type="module" src="scripts/core.js?v=20260101.1"></script>
-    <script type="module" src="scripts/main.js?v=20260101.1"></script>
+    <script type="module" src="scripts/motion.js?v=20260111.1"></script>
+    <script type="module" src="scripts/core.js?v=20260111.1"></script>
+    <script type="module" src="scripts/main.js?v=20260111.1"></script>
 </body>
 </html>

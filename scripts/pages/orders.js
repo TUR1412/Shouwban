@@ -32,6 +32,7 @@ export function init(ctx = {}) {
     Favorites,
     Compare,
     Orders,
+    OrderJourney,
     AddressBook,
     PriceAlerts,
     Cart,
@@ -149,7 +150,88 @@ export function init(ctx = {}) {
               actions.appendChild(copyBtn);
               actions.appendChild(removeBtn);
               body.appendChild(actions);
-  
+
+              const pricingRows = [];
+              if (Number.isFinite(pricing.subtotal)) {
+                  pricingRows.push({ label: '商品小计', value: Pricing.formatCny(pricing.subtotal) });
+              }
+              if (Number(pricing.discount) > 0) {
+                  pricingRows.push({ label: '优惠', value: `- ${Pricing.formatCny(pricing.discount)}` });
+              }
+              if (Number(pricing.bundleDiscount) > 0) {
+                  pricingRows.push({ label: '套装优惠', value: `- ${Pricing.formatCny(pricing.bundleDiscount)}` });
+              }
+              if (Number(pricing.memberDiscount) > 0) {
+                  pricingRows.push({ label: '会员折扣', value: `- ${Pricing.formatCny(pricing.memberDiscount)}` });
+              }
+              if (Number(pricing.rewardsDiscount) > 0) {
+                  const pointsLabel = Number.isFinite(Number(pricing.pointsUsed)) && Number(pricing.pointsUsed) > 0
+                      ? `（使用 ${pricing.pointsUsed} 积分）`
+                      : '';
+                  pricingRows.push({ label: '积分抵扣', value: `- ${Pricing.formatCny(pricing.rewardsDiscount)}${pointsLabel}` });
+              }
+              if (Number.isFinite(pricing.shipping)) {
+                  pricingRows.push({ label: '运费', value: Pricing.formatCny(pricing.shipping) });
+              }
+              if (Number.isFinite(pricing.total)) {
+                  pricingRows.push({ label: '应付总额', value: Pricing.formatCny(pricing.total), emphasis: true });
+              }
+              if (pricingRows.length) {
+                  const pricingWrap = document.createElement('div');
+                  pricingWrap.className = 'order-card__pricing';
+                  pricingWrap.innerHTML = pricingRows.map((row) => `
+                      <div class="order-pricing__row ${row.emphasis ? 'is-total' : ''}">
+                          <span>${Utils.escapeHtml(row.label)}</span>
+                          <span>${Utils.escapeHtml(row.value)}</span>
+                      </div>
+                  `).join('');
+                  body.appendChild(pricingWrap);
+              }
+
+              const journey = OrderJourney?.getProgress?.(id) || [];
+              const journeyRecord = OrderJourney?.get?.(id);
+              if (journey.length) {
+                  const journeyWrap = document.createElement('div');
+                  journeyWrap.className = 'order-journey';
+                  journeyWrap.innerHTML = `
+                      <div class="order-journey__head">订单旅程</div>
+                      <div class="order-journey__timeline">
+                          ${journey.map((step) => `
+                              <div class="order-journey__step ${step.done ? 'is-done' : ''}">
+                                  <span class="order-journey__dot"></span>
+                                  <div class="order-journey__content">
+                                      <div class="order-journey__label">${Utils.escapeHtml(step.label)}</div>
+                                      <div class="order-journey__time text-muted">${Utils.escapeHtml(formatDate(step.ts))}</div>
+                                  </div>
+                              </div>
+                          `).join('')}
+                      </div>
+                  `;
+                  body.appendChild(journeyWrap);
+              }
+
+              const afterSales = Array.isArray(journeyRecord?.afterSales) ? journeyRecord.afterSales : [];
+              const afterSalesWrap = document.createElement('div');
+              afterSalesWrap.className = 'order-after-sales';
+              afterSalesWrap.innerHTML = `
+                  <div class="order-after-sales__head">
+                      <span>售后记录</span>
+                      <button type="button" class="cta-button-secondary" data-after-sales="${Utils.escapeHtml(id)}">申请售后</button>
+                  </div>
+                  <div class="order-after-sales__list">
+                      ${afterSales.length
+                          ? afterSales.map((entry) => `
+                              <div class="after-sales-row">
+                                  <div class="after-sales-row__title">${Utils.escapeHtml(entry.type || '售后')}</div>
+                                  <div class="after-sales-row__meta text-muted">${Utils.escapeHtml(formatDate(entry.createdAt))}</div>
+                                  <div class="after-sales-row__reason">${Utils.escapeHtml(entry.reason || '无备注')}</div>
+                              </div>
+                          `).join('')
+                          : '<div class="text-muted">暂无售后记录</div>'}
+                  </div>
+              `;
+              body.appendChild(afterSalesWrap);
+
               const itemsWrap = document.createElement('div');
               itemsWrap.className = 'order-card__items';
   
@@ -222,6 +304,22 @@ export function init(ctx = {}) {
           });
   
           container.addEventListener('click', async (event) => {
+              const afterSalesBtn = event.target?.closest?.('[data-after-sales]');
+              if (afterSalesBtn) {
+                  const id = String(afterSalesBtn.dataset.afterSales || '').trim();
+                  if (!id) return;
+                  const type = window.prompt('售后类型（退款/补件/换货）', '补件');
+                  if (type === null) return;
+                  const reasonInput = window.prompt('请简述售后原因（可选）', '');
+                  if (reasonInput === null) return;
+                  const record = OrderJourney?.addAfterSales?.(id, { type: type.trim() || '售后申请', reason: reasonInput.trim() });
+                  if (record) {
+                      Toast?.show?.('售后申请已提交', 'success', 1800);
+                      render();
+                  }
+                  return;
+              }
+
               const rebuyBtn = event.target?.closest?.('.order-rebuy[data-order-id]');
               if (rebuyBtn) {
                   rebuy(rebuyBtn.dataset.orderId);
@@ -247,6 +345,7 @@ export function init(ctx = {}) {
   
           try {
               window.addEventListener('orders:changed', render);
+              window.addEventListener('orderJourney:changed', render);
           } catch {
               // ignore
           }

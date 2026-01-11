@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260101.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260101.1">
+    <link rel="stylesheet" href="styles/main.css?v=20260111.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260111.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -145,6 +145,10 @@
                         <span class="price-value">[加载中...]</span>
                         <span class="original-price" style="display: none;"></span>
                     </div>
+                    <div class="inventory-panel" data-inventory-panel style="display:none;">
+                        <span class="inventory-status" data-inventory-status>库存状态</span>
+                        <span class="inventory-meta" data-inventory-meta></span>
+                    </div>
 
                     <div class="product-specs" style="display: none;">
                         <h4>规格参数</h4>
@@ -166,15 +170,17 @@
                         <h4 class="product-description__title">商品描述</h4>
                         <!-- Description content will be inserted after h4 by JS -->
                     </div>
+
+                    <section class="bundle-deals" data-bundle-deals style="display:none;">
+                        <h3 class="section-title">组合购推荐</h3>
+                        <div class="bundle-deals__list" data-bundle-list></div>
+                    </section>
                 </div>
             </div>
 
-            <!-- Optional: Related Products Section -->
-            <section class="related-products" style="display: none;">
-                 <h3 class="related-products__title">相关推荐</h3>
-                 <div class="gallery-grid related-products__grid">
-                     <!-- Related product cards will be dynamically inserted here (if feature implemented) -->
-                 </div>
+            <section class="smart-curation" data-smart-curation style="display:none;">
+                 <h3 class="section-title">为你策展</h3>
+                 <div class="smart-curation__grid" data-curation-grid></div>
              </section>
 
         </div>
@@ -213,8 +219,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260101.1"></script>
-    <script type="module" src="scripts/core.js?v=20260101.1"></script>
-    <script type="module" src="scripts/main.js?v=20260101.1"></script>
+    <script type="module" src="scripts/motion.js?v=20260111.1"></script>
+    <script type="module" src="scripts/core.js?v=20260111.1"></script>
+    <script type="module" src="scripts/main.js?v=20260111.1"></script>
 </body>
 </html>

@@ -48,6 +48,8 @@ export function init(ctx = {}) {
     Pricing,
     UXMotion,
     Celebration,
+    InventoryPulse,
+    BundleDeals,
   } = ctx;
 
   // Product Listing / Category / Search Results Module (Modified to use SharedData)
@@ -93,10 +95,26 @@ export function init(ctx = {}) {
           if (isNew) {
               badges.push('<span class="product-card__badge product-card__badge--new">NEW</span>');
           }
-  
+
           if (Number.isFinite(originalPrice) && typeof safeProduct.price === 'number' && originalPrice > safeProduct.price) {
               const save = Math.max(1, Math.round(originalPrice - safeProduct.price));
               badges.push(`<span class="product-card__badge product-card__badge--sale">省￥${save}</span>`);
+          }
+          const inventoryStatus = typeof InventoryPulse !== 'undefined' && InventoryPulse.getStatus
+              ? InventoryPulse.getStatus(InventoryPulse.getInfo?.(safeProduct))
+              : null;
+          if (inventoryStatus?.tone === 'low') {
+              badges.push('<span class="product-card__badge product-card__badge--stock-low">库存紧张</span>');
+          } else if (inventoryStatus?.tone === 'out') {
+              badges.push('<span class="product-card__badge product-card__badge--stock-out">暂时缺货</span>');
+          } else if (inventoryStatus?.tone === 'preorder') {
+              badges.push('<span class="product-card__badge product-card__badge--preorder">预售中</span>');
+          }
+          const bundleHints = typeof BundleDeals !== 'undefined' && BundleDeals.getBundlesForProduct
+              ? BundleDeals.getBundlesForProduct(id).length
+              : 0;
+          if (bundleHints > 0) {
+              badges.push('<span class="product-card__badge product-card__badge--bundle">套装</span>');
           }
   
           const badgesHTML = badges.length > 0 ? `<div class="product-card__badges">${badges.join('')}</div>` : '';

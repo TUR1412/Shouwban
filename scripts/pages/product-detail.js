@@ -49,6 +49,12 @@ export function init(ctx = {}) {
     Pricing,
     UXMotion,
     Celebration,
+    InventoryPulse,
+    BundleDeals,
+    WatchCenter,
+    SmartCuration,
+    StorageKit,
+    Perf,
   } = ctx;
 
   // Recently Viewed Module (localStorage)
@@ -172,12 +178,20 @@ export function init(ctx = {}) {
       const plusBtn = pdpContainer.querySelector('.quantity-selector .plus');
       const addToCartBtn = pdpContainer.querySelector('.add-to-cart-btn');
       const actionsContainer = pdpContainer.querySelector('.product-actions');
+      const inventoryPanel = pdpContainer.querySelector('[data-inventory-panel]');
+      const inventoryStatusEl = pdpContainer.querySelector('[data-inventory-status]');
+      const inventoryMetaEl = pdpContainer.querySelector('[data-inventory-meta]');
+      const bundleSection = pdpContainer.querySelector('[data-bundle-deals]');
+      const bundleList = pdpContainer.querySelector('[data-bundle-list]');
+      const curationSection = pdpContainer.querySelector('[data-smart-curation]');
+      const curationGrid = pdpContainer.querySelector('[data-curation-grid]');
       const maxQuantity = 99;
-  
+
       let favoriteBtn = actionsContainer?.querySelector('.favorite-btn--pdp') || null;
       let shareBtn = actionsContainer?.querySelector('.share-btn--pdp') || null;
       let compareBtn = actionsContainer?.querySelector('.compare-btn--pdp') || null;
-      let alertBtn = actionsContainer?.querySelector('.alert-btn--pdp') || null;  
+      let alertBtn = actionsContainer?.querySelector('.alert-btn--pdp') || null;
+      let restockBtn = actionsContainer?.querySelector('.restock-btn--pdp') || null;
   
       let currentProductData = null;
       let lightbox = null;
@@ -458,6 +472,43 @@ export function init(ctx = {}) {
           if (typeof PriceAlerts !== 'undefined' && PriceAlerts.syncButtons) PriceAlerts.syncButtons(actionsContainer);
           return alertBtn;
       }
+
+      function ensureRestockButton(productId) {
+          if (!actionsContainer) return null;
+          if (!restockBtn) {
+              restockBtn = document.createElement('button');
+              restockBtn.type = 'button';
+              restockBtn.className = 'restock-btn restock-btn--pdp';
+              restockBtn.setAttribute('aria-label', '到货提醒');
+              restockBtn.setAttribute('aria-pressed', 'false');
+              restockBtn.innerHTML = `${Icons.svgHtml('icon-bell')}<span class="restock-btn__text">到货提醒</span>`;
+              actionsContainer.appendChild(restockBtn);
+              restockBtn.addEventListener('click', () => {
+                  const id = restockBtn?.dataset?.productId;
+                  if (!id) return;
+                  const active = WatchCenter?.toggleRestock?.(id);
+                  if (typeof Toast !== 'undefined' && Toast.show) {
+                      Toast.show(active ? '已开启到货提醒' : '已关闭到货提醒', 'info', 1600);
+                  }
+                  syncRestockButton(id);
+              });
+          }
+
+          if (productId) restockBtn.dataset.productId = String(productId);
+          syncRestockButton(productId);
+          return restockBtn;
+      }
+
+      function syncRestockButton(productId) {
+          if (!restockBtn) return;
+          const id = String(productId || restockBtn.dataset.productId || '').trim();
+          if (!id) return;
+          const active = WatchCenter?.isRestockWatching?.(id);
+          restockBtn.classList.toggle('is-active', Boolean(active));
+          restockBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+          const text = restockBtn.querySelector?.('.restock-btn__text');
+          if (text) text.textContent = active ? '已开启到货提醒' : '到货提醒';
+      }
   
       function initShareButton() {
           const btn = ensureShareButton();
@@ -527,6 +578,97 @@ export function init(ctx = {}) {
               // SEO 增强失败不影响页面主流程
           }
       }
+
+      function renderInventory(product) {
+          if (!inventoryPanel || !product) return;
+          const info = typeof InventoryPulse !== 'undefined' && InventoryPulse.getInfo
+              ? InventoryPulse.getInfo(product)
+              : null;
+          const status = typeof InventoryPulse !== 'undefined' && InventoryPulse.getStatus
+              ? InventoryPulse.getStatus(info)
+              : null;
+          if (!status) return;
+
+          inventoryPanel.style.display = 'flex';
+          if (inventoryStatusEl) {
+              inventoryStatusEl.textContent = status.label || '库存状态';
+              inventoryStatusEl.className = `inventory-status inventory-status--${status.tone || 'in'}`;
+          }
+          if (inventoryMetaEl) {
+              const stockText = Number.isFinite(info?.stock) ? `剩余 ${info.stock} 件` : '库存未知';
+              const etaText = info?.preorder && info?.eta ? `预计 ${info.eta}` : '';
+              inventoryMetaEl.textContent = [stockText, etaText].filter(Boolean).join(' · ');
+          }
+          if (addToCartBtn && status.tone === 'out' && !info?.preorder) {
+              addToCartBtn.disabled = true;
+              addToCartBtn.classList.add('is-disabled');
+              addToCartBtn.setAttribute('aria-disabled', 'true');
+          } else if (addToCartBtn) {
+              addToCartBtn.disabled = false;
+              addToCartBtn.classList.remove('is-disabled');
+              addToCartBtn.removeAttribute('aria-disabled');
+          }
+      }
+
+      function renderBundleDeals(product) {
+          if (!bundleSection || !bundleList || !product) return;
+          const bundles = typeof BundleDeals !== 'undefined' && BundleDeals.getBundlesForProduct
+              ? BundleDeals.getBundlesForProduct(product.id)
+              : [];
+          if (!bundles.length) {
+              bundleSection.style.display = 'none';
+              bundleList.innerHTML = '';
+              return;
+          }
+          bundleSection.style.display = 'block';
+          bundleList.innerHTML = bundles.map((bundle) => `
+              <div class="bundle-card">
+                  <div class="bundle-card__body">
+                      <div class="bundle-card__title">${Utils.escapeHtml(bundle.title || '套装优惠')}</div>
+                      <div class="bundle-card__desc text-muted">${Utils.escapeHtml(bundle.subtitle || '')}</div>
+                      <div class="bundle-card__items">${(bundle.items || []).map((id) => {
+                          const item = SharedData?.getProductById?.(id);
+                          return `<span class="bundle-card__item">${Utils.escapeHtml(item?.name || id)}</span>`;
+                      }).join('')}</div>
+                  </div>
+                  <button type="button" class="cta-button bundle-card__action" data-bundle-add="${Utils.escapeHtml(bundle.id || '')}">一键加入套装</button>
+              </div>
+          `).join('');
+      }
+
+      function renderSmartCuration(product) {
+          if (!curationSection || !curationGrid || !product) return;
+          const picks = typeof SmartCuration !== 'undefined' && SmartCuration.getRecommendations
+              ? SmartCuration.getRecommendations({ seedId: product.id, limit: 6 })
+              : [];
+          if (!picks.length) {
+              curationSection.style.display = 'none';
+              curationGrid.innerHTML = '';
+              return;
+          }
+          curationSection.style.display = 'block';
+          curationGrid.innerHTML = picks.map((item) => {
+              const id = String(item.id || '').trim();
+              const href = id ? `product-detail.html?id=${encodeURIComponent(id)}` : 'products.html';
+              const image = item.images?.[0]?.thumb || 'assets/images/figurine-1.svg';
+              const price = Number.isFinite(Number(item.price)) ? Pricing.formatCny(item.price) : '价格待定';
+              return `
+                  <article class="curation-card">
+                      <a href="${href}" class="curation-card__media">
+                          <img src="${Utils.escapeHtml(image)}" alt="${Utils.escapeHtml(item.name || '')}" loading="lazy" decoding="async">
+                      </a>
+                      <div class="curation-card__body">
+                          <div class="curation-card__title">${Utils.escapeHtml(item.name || '')}</div>
+                          <div class="curation-card__meta text-muted">${Utils.escapeHtml(item.series || '')}</div>
+                          <div class="curation-card__price">${price}</div>
+                          <button type="button" class="product-card__quick-add" data-product-id="${Utils.escapeHtml(id)}">加入购物车</button>
+                      </div>
+                  </article>
+              `;
+          }).join('');
+          Favorites?.syncButtons?.(curationGrid);
+          Compare?.syncButtons?.(curationGrid);
+      }
   
       // --- Update DOM with Product Data --- (Modified error handling)
       function populatePage(product) {
@@ -551,8 +693,16 @@ export function init(ctx = {}) {
           ensureCompareButton(product.id);
           ensureShareButton();
           ensureAlertButton(product.id);
+          ensureRestockButton(product.id);
           if (typeof RecentlyViewed !== 'undefined' && RecentlyViewed.record) {
               RecentlyViewed.record(product.id);
+          }
+          try {
+              if (Number.isFinite(Number(product.price))) {
+                  StorageKit?.pushPricePoint?.(product.id, Number(product.price));
+              }
+          } catch {
+              // 忽略趋势记录异常
           }
   
           // Update Breadcrumbs (Handle missing breadcrumbList gracefully)
@@ -610,6 +760,9 @@ export function init(ctx = {}) {
                   originalPriceElement.style.display = 'none';
               }
           }
+          renderInventory(product);
+          renderBundleDeals(product);
+          renderSmartCuration(product);
   
           // Update Image Gallery (Handle missing thumbnailContainer gracefully)
           if (product.images && product.images.length > 0) {
@@ -846,6 +999,22 @@ export function init(ctx = {}) {
               addToCartBtn.addEventListener('click', handleAddToCart);
           }
       }
+
+      function initBundleActions() {
+          if (!bundleSection) return;
+          bundleSection.addEventListener('click', (event) => {
+              const btn = event?.target?.closest?.('[data-bundle-add]');
+              if (!btn) return;
+              const bundleId = btn.dataset.bundleAdd;
+              if (!bundleId) return;
+              const result = BundleDeals?.addBundle?.(bundleId);
+              if (result?.ok && typeof Toast !== 'undefined' && Toast.show) {
+                  Toast.show('已加入套装商品', 'success', 1800);
+              } else if (!result?.ok && typeof Toast !== 'undefined' && Toast.show) {
+                  Toast.show(result?.reason || '套装加入失败', 'info', 1800);
+              }
+          });
+      }
   
       // --- Initialization --- (Modified to use SharedData)
       function init() {
@@ -871,6 +1040,7 @@ export function init(ctx = {}) {
               initQuantitySelector();
               initAddToCart();
               initShareButton();
+              initBundleActions();
               initLightbox();
           } else {
               console.error("PDP module initialization failed due to population errors.");

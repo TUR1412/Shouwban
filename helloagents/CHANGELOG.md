@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [20260111.1] - 2026-01-11
+
+### 新增
+- Runtime 拆分：新增 `StorageKit / StateHub / Perf` 三个运行时模块（schema 迁移、状态中心、性能工具）
+- 业务扩展：库存/预售提示、套装优惠、会员等级、关注中心、订单旅程与售后、智能策展
+- 视觉升级：Neo-Quark 视觉体系（霓虹渐变 + 玻璃拟态 + 未来感背景）
+
+### 变更
+- Cart/Checkout：引入套装与会员折扣行，配送费用支持会员权益
+- Orders/Order Success：补齐订单费用明细、旅程时间轴与售后入口
+- 工程守护：`sw.js` 预缓存新增 runtime 模块，`bump-version` 支持 runtime 版本替换，`validate` 校验 runtime 文件
+
+### 修复
+- Cart Summary：移除未定义积分变量，避免运行时异常
+
 ## [20260101.1] - 2026-01-01
 
 ### 新增

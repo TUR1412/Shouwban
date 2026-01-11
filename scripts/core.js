@@ -269,6 +269,28 @@
     }
   }
 
+  function normalizeInventory(raw) {
+    const obj = raw && typeof raw === 'object' ? raw : {};
+    const stock = Math.max(0, Math.floor(Number(obj.stock) || 0));
+    const preorder = Boolean(obj.preorder);
+    const eta = typeof obj.eta === 'string' ? obj.eta.trim() : '';
+    return { stock, preorder, eta };
+  }
+
+  function getInventoryStatus(info, options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const lowStockThreshold = Number.isFinite(opts.lowStockThreshold)
+      ? opts.lowStockThreshold
+      : 3;
+    const data = normalizeInventory(info);
+    if (data.preorder) return { label: '预售', tone: 'preorder' };
+    if (data.stock <= 0) return { label: '缺货', tone: 'out' };
+    if (data.stock <= lowStockThreshold) {
+      return { label: `仅剩 ${data.stock} 件`, tone: 'low' };
+    }
+    return { label: '现货', tone: 'in' };
+  }
+
   const api = Object.freeze({
     clampInt,
     clampQuantity,
@@ -281,6 +303,8 @@
     decodeStringArrayBase64,
     encodeCartLinesBase64,
     decodeCartLinesBase64,
+    normalizeInventory,
+    getInventoryStatus,
   });
 
   globalThis.ShouwbanCore = api;

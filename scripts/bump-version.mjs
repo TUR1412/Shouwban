@@ -83,6 +83,29 @@ function bumpSwVersion(sw, nextVersion) {
   out = r8.next;
   changed ||= r8.changed;
 
+  const r9 = replaceAll(
+    out,
+    /scripts\/runtime\/([A-Za-z0-9_-]+)\.js\?v=[^'"]+/g,
+    `scripts/runtime/$1.js?v=${nextVersion}`,
+  );
+  out = r9.next;
+  changed ||= r9.changed;
+
+  return { next: out, changed };
+}
+
+function bumpMainRuntimeVersion(mainText, nextVersion) {
+  let out = mainText;
+  let changed = false;
+
+  const r1 = replaceAll(
+    out,
+    /\.\/runtime\/([A-Za-z0-9_-]+)\.js\?v=[^'"]+/g,
+    `./runtime/$1.js?v=${nextVersion}`,
+  );
+  out = r1.next;
+  changed ||= r1.changed;
+
   return { next: out, changed };
 }
 
@@ -122,6 +145,16 @@ function main() {
     const r = bumpSwVersion(raw, nextVersion);
     if (r.changed) {
       writeText(swPath, r.next);
+      touched += 1;
+    }
+  }
+
+  const mainPath = path.join(workspaceRoot, 'scripts', 'main.js');
+  if (fs.existsSync(mainPath)) {
+    const raw = readText(mainPath);
+    const r = bumpMainRuntimeVersion(raw, nextVersion);
+    if (r.changed) {
+      writeText(mainPath, r.next);
       touched += 1;
     }
   }

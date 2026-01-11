@@ -32,6 +32,7 @@ export function init(ctx = {}) {
     Favorites,
     Compare,
     Orders,
+    OrderJourney,
     AddressBook,
     PriceAlerts,
     Cart,
@@ -67,6 +68,16 @@ export function init(ctx = {}) {
               return '';
           }
       }
+
+      function formatDate(iso) {
+          const t = Date.parse(String(iso || ''));
+          if (!Number.isFinite(t)) return '—';
+          try {
+              return new Date(t).toLocaleString('zh-CN', { hour12: false });
+          } catch {
+              return new Date(t).toISOString();
+          }
+      }
   
       function renderEmpty() {
           if (!summaryHost) return;
@@ -84,10 +95,11 @@ export function init(ctx = {}) {
               renderEmpty();
               return;
           }
-  
+
           const pricing = order.pricing || {};
           const promo = order.promotion;
           const regionLabel = Pricing.getRegion(order.region).label;
+          const journey = OrderJourney?.getProgress?.(id) || [];
   
           const rows = [];
           rows.push(`<div class="order-success__headline">订单提交成功（模拟）</div>`);
@@ -97,6 +109,9 @@ export function init(ctx = {}) {
           rows.push(`<p>${Utils.escapeHtml(order.shippingAddress?.name || '')} · ${Utils.escapeHtml(order.shippingAddress?.phone || '')}</p>`);
           rows.push(`<p>${Utils.escapeHtml(order.shippingAddress?.address || '')}</p>`);
           rows.push(`<p class="text-muted">配送地区：${Utils.escapeHtml(regionLabel)}</p>`);
+          if (order.membership?.label) {
+              rows.push(`<p class="text-muted">会员等级：${Utils.escapeHtml(order.membership.label)} 会员</p>`);
+          }
           rows.push(`</div>`);
   
           rows.push(`<div class="order-success__panel">`);
@@ -122,6 +137,14 @@ export function init(ctx = {}) {
           } else {
               rows.push(`<div class="summary-row"><span>优惠</span><span>- ${Pricing.formatCny(0)}</span></div>`);
           }
+          const bundleDiscount = Number(pricing.bundleDiscount) || 0;
+          if (bundleDiscount > 0) {
+              rows.push(`<div class="summary-row"><span>套装优惠</span><span>- ${Pricing.formatCny(bundleDiscount)}</span></div>`);
+          }
+          const memberDiscount = Number(pricing.memberDiscount) || 0;
+          if (memberDiscount > 0) {
+              rows.push(`<div class="summary-row"><span>会员折扣</span><span>- ${Pricing.formatCny(memberDiscount)}</span></div>`);
+          }
           const rewardsDiscount = Number(pricing.rewardsDiscount) || 0;
           const pointsUsed = Number.parseInt(String(pricing.pointsUsed ?? ''), 10);
           if (rewardsDiscount > 0) {
@@ -133,7 +156,26 @@ export function init(ctx = {}) {
           rows.push(`<div class="summary-row"><span>运费</span><span>${Pricing.formatCny(pricing.shipping)}</span></div>`);
           rows.push(`<div class="summary-row total-row"><span>应付总额</span><span>${Pricing.formatCny(pricing.total)}</span></div>`);
           rows.push(`</div>`);
-  
+
+          if (journey.length) {
+              rows.push(`<div class="order-success__panel">`);
+              rows.push(`<h3>订单旅程</h3>`);
+              rows.push(`<div class="order-journey__timeline">`);
+              journey.forEach((step) => {
+                  rows.push(`
+                      <div class="order-journey__step ${step.done ? 'is-done' : ''}">
+                          <span class="order-journey__dot"></span>
+                          <div class="order-journey__content">
+                              <div class="order-journey__label">${Utils.escapeHtml(step.label)}</div>
+                              <div class="order-journey__time text-muted">${Utils.escapeHtml(formatDate(step.ts))}</div>
+                          </div>
+                      </div>
+                  `);
+              });
+              rows.push(`</div>`);
+              rows.push(`</div>`);
+          }
+
           rows.push(`<div class="order-success__actions">`);
           rows.push(`<a class="cta-button" href="orders.html">查看订单中心</a>`);
           rows.push(`<a class="cta-button-secondary" href="products.html">继续逛逛</a>`);

@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260101.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260101.1">
+    <link rel="stylesheet" href="styles/main.css?v=20260111.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260111.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -161,6 +161,19 @@
                         <p class="promo-feedback text-muted" data-promo-feedback aria-live="polite">未使用优惠码</p>
                     </div>
 
+                    <div class="summary-block member-summary">
+                        <div class="member-summary__head">
+                            <span class="summary-label">会员权益</span>
+                            <span class="member-badge" data-member-tier>启航会员</span>
+                        </div>
+                        <p class="text-muted">会员折扣自动结算，包邮门槛下调。</p>
+                    </div>
+
+                    <div class="summary-block bundle-summary" data-bundle-summary style="display:none;">
+                        <div class="summary-label">套装优惠</div>
+                        <div class="bundle-list" data-bundle-list></div>
+                    </div>
+
                     <div class="summary-row">
                         <span>商品小计:</span>
                         <span class="summary-subtotal">¥0.00</span>
@@ -168,6 +181,14 @@
                     <div class="summary-row" data-summary-discount-row style="display:none;">
                         <span>优惠:</span>
                         <span class="summary-discount">- ¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-bundle-row style="display:none;">
+                        <span>套装优惠:</span>
+                        <span class="summary-bundle">- ¥0.00</span>
+                    </div>
+                    <div class="summary-row" data-summary-member-row style="display:none;">
+                        <span>会员折扣:</span>
+                        <span class="summary-member">- ¥0.00</span>
                     </div>
                     <div class="summary-row">
                         <span>运费:</span>
@@ -218,8 +239,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260101.1"></script>
-    <script type="module" src="scripts/core.js?v=20260101.1"></script>
-    <script type="module" src="scripts/main.js?v=20260101.1"></script>
+    <script type="module" src="scripts/motion.js?v=20260111.1"></script>
+    <script type="module" src="scripts/core.js?v=20260111.1"></script>
+    <script type="module" src="scripts/main.js?v=20260111.1"></script>
 </body>
 </html>
