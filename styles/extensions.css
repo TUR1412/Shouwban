@@ -862,6 +862,94 @@ html[data-theme="dark"] .view-toggle__btn.is-active {
   margin-top: var(--spacing-base);
 }
 
+/* Error Shield Dialog (global error boundary) */
+.error-shield__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.error-shield__title {
+  margin: 0;
+}
+
+.error-shield__close {
+  appearance: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-dark);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
+}
+
+.error-shield__close:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.error-shield__close:active {
+  transform: translateY(0);
+}
+
+.error-shield__close:focus-visible {
+  outline: 3px solid rgba(var(--color-primary-rgb), 0.35);
+  outline-offset: 2px;
+}
+
+.error-shield__hint {
+  margin: 0 0 var(--spacing-sm);
+  opacity: 0.92;
+}
+
+.error-shield__report {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: rgba(255, 255, 255, 0.56);
+  padding: var(--spacing-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--color-text-dark);
+}
+
+.error-shield__report:focus-visible {
+  outline: 3px solid rgba(var(--color-primary-rgb), 0.28);
+  outline-offset: 2px;
+}
+
+.error-shield__actions {
+  flex-wrap: wrap;
+}
+
+.error-shield__btn--danger {
+  border-color: rgba(220, 53, 69, 0.28) !important;
+  background: rgba(220, 53, 69, 0.10) !important;
+  color: #b42318 !important;
+}
+
+html[data-theme="dark"] .error-shield__close {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.56);
+  color: var(--color-text-dark);
+}
+
+html[data-theme="dark"] .error-shield__report {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.36);
+  color: var(--color-text-dark);
+}
+
 /* Advanced Filter Dialog (PLP) */
 .filter-dialog .filter-dialog__card {
   width: min(820px, 94vw);

@@ -25,6 +25,10 @@
 - `scripts/core.js`：可测试的纯函数集合（金额、数量、折扣等）
 - `scripts/motion.js`：Motion-lite（WAAPI）
 - `scripts/modules/accessibility.js`：无障碍与偏好（A11y Preferences：reduce motion / high contrast / font scale）
+- `scripts/modules/toast.js`：全局 Toast（可操作 action/关闭，事件驱动）
+- `scripts/modules/logger.js`：本地日志（ring buffer，可导出/可清空）
+- `scripts/modules/error-shield.js`：全局错误边界（error/unhandledrejection 捕捉 + 详情面板）
+- `scripts/modules/perf-vitals.js`：性能埋点（TTFB/FCP/LCP/CLS/INP/LongTask 近似）
 
 ## Runtime Kit（拆分模块）
 目的：降低 `scripts/main.js` 体积，将“状态 / 存储 / 性能”职责拆分为可独立维护的运行时单元。
@@ -146,6 +150,13 @@
   - `localStorage.sbTelemetryEndpoint`
   - `window.__SHOUWBAN_TELEMETRY__.endpoint`
 
+## Observability（可观测性）
+在不引入第三方依赖的前提下，项目通过“本地优先”的方式补齐可观测性基座：
+
+- `Logger`：写入 `localStorage.sbLogs` 的 ring buffer（默认仅本地，不上传）
+- `ErrorShield`：捕捉运行时错误并提供用户可见反馈（Toast + 详情面板）
+- `PerfVitals`：采集 Web Vitals 级指标，并输出到 Logger（可选 Telemetry 入队）
+
 ## Http（请求重试 + 缓存）
 
 目的：为未来 API 对接准备统一请求层（错误重试、超时、GET 缓存）。
@@ -192,3 +203,4 @@
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - StateHub/Prefetch/Telemetry/Http/Skeleton/NavigationTransitions 与多级筛选引擎
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Runtime 拆分与会员/关注/套装/订单旅程/策展模块
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（A11y）+ Motion 动效降级 + CrossTabSync 同步
+- [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - Logger/ErrorShield/PerfVitals 可观测性基座（本地日志/错误边界/性能埋点）

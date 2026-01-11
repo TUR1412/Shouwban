@@ -1,9 +1,12 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260111.3';
-import { createStorageKit } from './runtime/storage.js?v=20260111.3';
-import { createPerfKit } from './runtime/perf.js?v=20260111.3';
-import { createAccessibility } from './modules/accessibility.js?v=20260111.3';
-import { createToast } from './modules/toast.js?v=20260111.3';
+import { createStateHub } from './runtime/state.js?v=20260111.4';
+import { createStorageKit } from './runtime/storage.js?v=20260111.4';
+import { createPerfKit } from './runtime/perf.js?v=20260111.4';
+import { createAccessibility } from './modules/accessibility.js?v=20260111.4';
+import { createToast } from './modules/toast.js?v=20260111.4';
+import { createLogger } from './modules/logger.js?v=20260111.4';
+import { createErrorShield } from './modules/error-shield.js?v=20260111.4';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260111.4';
 
 // ==============================================
 // Utility Functions
@@ -249,6 +252,7 @@ const StateHub = (() => {
     return hub;
 })();
 const Accessibility = createAccessibility(Utils);
+const Logger = createLogger(Utils, { storageKey: 'sbLogs', maxEntries: 240 });
 
 // ==============================================
 // Local Icon System (SVG Sprite)
@@ -1994,6 +1998,11 @@ const Telemetry = (function() {
 
     return { init, track, flush, hashQuery };
 })();
+
+// ==============================================
+// Perf Vitals (Performance Telemetry)
+// ==============================================
+const PerfVitals = createPerfVitals({ Logger, Telemetry, Utils });
 
 // ==============================================
 // Header Module
@@ -4670,6 +4679,7 @@ const DataPortability = (function() {
     const keyWhitelist = Object.freeze([
         // UX / settings
         'theme',
+        'a11y',
         'shippingRegion',
         'pwaInstallDismissedAt',
 
@@ -4704,8 +4714,11 @@ const DataPortability = (function() {
         'plpViewMode',
         'plpFiltersV2',
 
-        // Optional: local telemetry queue (if present)
-        'telemetryQueue',
+        // Optional: local telemetry queue/config (if present)
+        'sbTelemetryQueue',
+        'sbTelemetryEndpoint',
+        // Optional: local logs
+        'sbLogs',
     ]);
 
     function safeNowIso() {
@@ -4886,6 +4899,11 @@ const DataPortability = (function() {
         resetAll,
     };
 })();
+
+// ==============================================
+// Error Shield / Error Boundary (global)
+// ==============================================
+const ErrorShield = createErrorShield({ Toast, Logger, Telemetry, DataPortability, Utils });
 
 // ==============================================
 // Service Worker Module (PWA offline support)
@@ -7167,13 +7185,13 @@ const PageModules = (function() {
   function createRuntimeContext() {
     return {
       runtimeVersion,
-      Utils, Icons, Toast, Theme, Accessibility, Header, SharedData, StateHub, Telemetry,
+      Utils, Icons, Toast, Theme, Accessibility, Header, SharedData, StateHub, Telemetry, Logger, ErrorShield,
       Rewards, Cinematic, ViewTransitions, NavigationTransitions, ShippingRegion,
       SmoothScroll, ScrollProgress, BackToTop, ScrollAnimations, ImageFallback,
       LazyLoad, Favorites, Compare, Orders, AddressBook, PriceAlerts, Cart,
       Promotion, QuickAdd, ServiceWorker, PWAInstall, CrossTabSync, Prefetch,
       Http, Skeleton, VirtualScroll, DataPortability, Pricing, UXMotion, Celebration,
-      StorageKit, Perf, InventoryPulse, BundleDeals, WatchCenter, OrderJourney, SmartCuration,
+      StorageKit, Perf, PerfVitals, InventoryPulse, BundleDeals, WatchCenter, OrderJourney, SmartCuration,
     };
   }
 
@@ -7202,6 +7220,8 @@ const App = {
 
         StorageKit.ensureSchema();
         Accessibility.init();
+        ErrorShield.init();
+        PerfVitals.init();
 
         // 全站基础：尽量保持“薄启动”，重模块按页初始化
         Header.init();

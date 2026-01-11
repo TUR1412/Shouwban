@@ -66,6 +66,7 @@
 - 订单旅程：`orders.js` + `order-success.js` 写入 `order-journey` 时间轴
 - Checkout 支付方式选中态：结算页通过 `.payment-option.is-selected`（JS 注入）与 `:has(input:checked)`（CSS 渐进增强）共同提供稳定的选中态视觉反馈
 - Toast：`scripts/modules/toast.js` 会注入 `.toast-container` 并统一承接 `toast:show` 事件（支持 action/关闭）
+- ErrorShield：`scripts/modules/error-shield.js` 会按需注入 `.glass-dialog.error-shield-dialog` 错误面板（复制报告/导出备份/重置刷新）
 - Theme Color：主题切换时会动态更新 `meta[name="theme-color"]`，从 CSS Token 读取，确保浏览器 UI（地址栏/状态栏）与站点配色一致
 - Genesis Theme：三态主题切换（Light → Dark → Genesis），其中 Genesis 采用 `data-theme="dark"` + `data-variant="genesis"` 的表达方式，以复用暗色主题覆写并叠加霓虹/极光 token
 
@@ -80,3 +81,4 @@
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Neo-Quark 视觉升级与新业务组件样式
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（减少动效/高对比/字体缩放）
 - [202601112345_actionable-toast-undo](../../history/2026-01/202601112345_actionable-toast-undo/) - 可操作 Toast 与购物车撤销交互
+- [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - ErrorShield 错误面板（Glass Dialog）与可观测性 UI 基座

@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [20260111.4] - 2026-01-11
+
+### 新增
+- Observability：新增 `Logger`（本地 ring buffer 日志）、`ErrorShield`（全局错误边界）、`PerfVitals`（性能埋点）
+- 测试：新增 `tests/logger.test.mjs` 覆盖 Logger 的 ring buffer 与大对象保护逻辑
+
+### 变更
+- DataPortability：备份白名单补齐 `a11y`、`sbLogs`、`sbTelemetryQueue/sbTelemetryEndpoint`，并修复旧 telemetry key 命名不一致
+- PWA/Guardrails：`sw.js` precache、`validate/check` 覆盖新增模块
+- UI：错误面板复用 Glass Dialog 风格，并提供复制报告/导出备份/重置刷新入口
+
 ## [20260111.3] - 2026-01-11
 
 ### 新增

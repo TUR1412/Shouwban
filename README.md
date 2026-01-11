@@ -16,6 +16,7 @@
 - **三态主题**：Light → Dark → Genesis（暗色基座 + 变体 token）。
 - **无障碍与偏好中心（新增）**：减少动效 / 高对比模式 / 字体缩放（100%~125%）。
 - **可操作 Toast（新增）**：关键操作反馈支持“撤销”（如购物车清空/移除），并提供关闭入口。
+- **可观测性（新增）**：`ErrorShield` 全局错误边界 + `Logger` 本地日志 + `PerfVitals` 性能埋点（默认本地，按需对接 endpoint）。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -66,6 +67,7 @@
 - **3-state Theme**: Light → Dark → Genesis (dark base + variant tokens).       
 - **A11y & Preferences (NEW)**: reduce motion / high contrast / font scaling (100%~125%).
 - **Actionable Toasts (NEW)**: undo for destructive actions (e.g., cart clear/remove) with dismiss support.
+- **Observability (NEW)**: `ErrorShield` (error boundary) + local `Logger` + `PerfVitals` telemetry (local-first; optional endpoint).
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start

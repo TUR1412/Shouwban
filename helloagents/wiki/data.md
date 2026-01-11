@@ -15,7 +15,11 @@
 | `rewards` | `{points:number}` | 积分状态 |
 | `addressBook` | `Array<Address>` | 常用地址簿 |
 | `priceAlerts` | `Array<Alert>` | 降价提醒（示例） |
-| `theme` | `'light' | 'dark'` | 主题偏好 |
+| `theme` | `'light' | 'dark' | 'genesis'` | 主题偏好（未设置时跟随系统） |
+| `a11y` | `{reduceMotion:boolean, highContrast:boolean, fontScale:number}` | 无障碍偏好（减少动效/高对比/字体缩放） |
+| `sbLogs` | `Array<{ts, level, message, ...}>` | 本地日志 ring buffer（用于诊断/复盘） |
+| `sbTelemetryQueue` | `Array<{id,name,ts,page,...}>` | 埋点队列（默认仅本地，不上传） |
+| `sbTelemetryEndpoint` | `string` | 可选埋点上报 endpoint（配置后 Telemetry 才会 flush） |
 
 ## 订单模型（示意）
 
@@ -33,4 +37,3 @@ type Order = {
   address: { name: string; phone: string; address: string };
 };
 ```
-
