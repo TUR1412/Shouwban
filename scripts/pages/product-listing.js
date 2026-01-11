@@ -1039,17 +1039,76 @@ export function init(ctx = {}) {
           });
       }
   
-      // --- Render Products Grid --- (Keep existing)
-      function renderProducts(productsToRender) {
-           // ... (no changes needed here)
-            if (!productGrid) return;
-          destroyVirtualList();
-  
-          const list = Array.isArray(productsToRender) ? productsToRender : [];
-          if (forceVirtual && currentView === 'list' && list.length > 60) {
-              mountVirtualList({ itemCount: list.length, getItem: (i) => list[i] });
-              return;
+       // --- Render Products Grid --- (Keep existing)
+      function upsertItemListJsonLd(productsToRender) {
+          try {
+              const existing = document.getElementById('itemlist-jsonld');
+              existing?.remove();
+
+              const list = Array.isArray(productsToRender) ? productsToRender : [];
+              if (list.length === 0) return;
+
+              const baseUrl = (() => {
+                  try {
+                      const u = new URL(window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              })();
+
+              const resolveUrl = (relative) => {
+                  try {
+                      const u = new URL(String(relative || ''), baseUrl || window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              };
+
+              const maxItems = 60;
+              const items = list.slice(0, maxItems).map((product, idx) => {
+                  const id = String(product?.id || '').trim();
+                  if (!id) return null;
+                  const url = resolveUrl(`product-detail.html?id=${encodeURIComponent(id)}`);
+                  const name = String(product?.name || id).trim();
+                  if (!url || !name) return null;
+                  return { '@type': 'ListItem', position: idx + 1, url, name };
+              }).filter(Boolean);
+
+              if (items.length === 0) return;
+
+              const data = {
+                  '@context': 'https://schema.org',
+                  '@type': 'ItemList',
+                  numberOfItems: items.length,
+                  itemListElement: items,
+              };
+              const cleaned = JSON.parse(JSON.stringify(data));
+
+              const script = document.createElement('script');
+              script.type = 'application/ld+json';
+              script.id = 'itemlist-jsonld';
+              script.textContent = JSON.stringify(cleaned);
+              document.head.appendChild(script);
+          } catch {
+              // SEO 增强失败不影响页面主流程
           }
+      }
+
+      function renderProducts(productsToRender) {
+            // ... (no changes needed here)
+             if (!productGrid) return;
+           destroyVirtualList();
+
+           const list = Array.isArray(productsToRender) ? productsToRender : [];
+           upsertItemListJsonLd(list);
+           if (forceVirtual && currentView === 'list' && list.length > 60) {
+               mountVirtualList({ itemCount: list.length, getItem: (i) => list[i] });
+               return;
+           }
   
           productGrid.setAttribute('aria-busy', 'true');
           productGrid.innerHTML = '';

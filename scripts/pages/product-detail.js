@@ -524,7 +524,79 @@ export function init(ctx = {}) {
               }
           });
       }
-  
+
+      function upsertBreadcrumbJsonLd(product) {
+          try {
+              if (!product || !product.id) return;
+
+              const existing = document.getElementById('breadcrumbs-jsonld');
+              existing?.remove();
+
+              const baseUrl = (() => {
+                  try {
+                      const u = new URL(window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              })();
+
+              const resolveUrl = (relative) => {
+                  try {
+                      const u = new URL(String(relative || ''), baseUrl || window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              };
+
+              const items = [];
+              items.push({ name: '首页', item: resolveUrl('index.html') });
+              items.push({ name: '所有手办', item: resolveUrl('products.html') });
+
+              const categoryKey = typeof product.category?.key === 'string' ? product.category.key.trim() : '';
+              const categoryName = typeof product.category?.name === 'string' ? product.category.name.trim() : '';
+              if (categoryKey && categoryName) {
+                  items.push({
+                      name: categoryName,
+                      item: resolveUrl(`category.html?cat=${encodeURIComponent(categoryKey)}`),
+                  });
+              }
+
+              items.push({
+                  name: String(product.name || product.id || '').trim(),
+                  item: resolveUrl(`product-detail.html?id=${encodeURIComponent(String(product.id || ''))}`) || baseUrl,
+              });
+
+              const list = items
+                  .filter((x) => x && x.item && x.name)
+                  .map((x, idx) => ({
+                      '@type': 'ListItem',
+                      position: idx + 1,
+                      name: x.name,
+                      item: x.item,
+                  }));
+              if (list.length === 0) return;
+
+              const data = {
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: list,
+              };
+              const cleaned = JSON.parse(JSON.stringify(data));
+
+              const script = document.createElement('script');
+              script.type = 'application/ld+json';
+              script.id = 'breadcrumbs-jsonld';
+              script.textContent = JSON.stringify(cleaned);
+              document.head.appendChild(script);
+          } catch {
+              // SEO 增强失败不影响页面主流程
+          }
+      }
+
       function upsertProductJsonLd(product) {
           try {
               if (!product || !product.id) return;
@@ -763,6 +835,7 @@ export function init(ctx = {}) {
   
           // Update Page Title
           document.title = `${product.name} - 塑梦潮玩`;
+          upsertBreadcrumbJsonLd(product);
           upsertProductJsonLd(product);
   
           // Update Product Info

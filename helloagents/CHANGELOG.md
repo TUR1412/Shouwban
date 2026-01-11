@@ -12,6 +12,17 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.8] - 2026-01-12
+
+### 新增
+- SEO：商品详情页新增 BreadcrumbList JSON-LD（`#breadcrumbs-jsonld`）
+- SEO：商品列表页新增 ItemList JSON-LD（`#itemlist-jsonld`）
+- 文档：新增 `helloagents/wiki/modules/seo.md`（SEO 模块与结构化数据约定）
+
+### 变更
+- 文档：`README.md` 补齐 SEO 富结果能力说明
+- 版本：统一缓存穿透版本号 bump 到 `20260112.8`
+
 ## [20260112.7] - 2026-01-12
 
 ### 新增

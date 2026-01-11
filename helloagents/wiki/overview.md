@@ -23,8 +23,9 @@
 |---------|------|------|------|
 | UI / Styles | 视觉体系、布局与组件样式 | 稳定 | `modules/ui.md` |
 | Runtime JS | 交互、渲染、页面模块与本地数据 | 稳定 | `modules/runtime-js.md` |
+| SEO | Canonical / JSON-LD / 富结果约定 | 稳定 | `modules/seo.md` |
 | PWA | SW 缓存策略、离线页、manifest | 稳定 | `modules/pwa.md` |
-| Tooling | 校验脚本、版本号 bump、CI 约束 | 稳定 | `modules/tooling.md` |
+| Tooling | 校验脚本、版本号 bump、CI 约束 | 稳定 | `modules/tooling.md` |      
 
 ## 3. 快速链接
 - [技术约定](../project.md)
