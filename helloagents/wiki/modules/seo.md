@@ -7,9 +7,9 @@
 
 ## 关键文件
 - `scripts/modules/seo.js`：SEO 工具模块（Canonical 兜底，支持依赖注入便于测试）
-- `scripts/main.js`：在 `App.init()` 早期调用 `Seo.ensureCanonical()`（全站兜底）
+- `scripts/main.js`：在 `App.init()` 早期调用 `Seo.ensureCanonical()` + `Seo.upsertWebSiteJsonLd()`（全站兜底与站点级结构化数据）
 - `scripts/pages/product-detail.js`：PDP 输出 `Product` + `BreadcrumbList` JSON-LD
-- `scripts/pages/product-listing.js`：PLP 输出 `ItemList` JSON-LD（基于当前渲染列表）
+- `scripts/pages/product-listing.js`：PLP 输出 `ItemList` + `BreadcrumbList` JSON-LD（基于当前渲染列表与页面模式）
 - `sw.js`：PRECACHE_URLS 覆盖 `scripts/modules/seo.js?v=...`，避免离线缺失
 
 ## Canonical 约定
@@ -20,10 +20,13 @@
 
 ## JSON-LD 约定（脚本 id）
 为避免重复插入，所有结构化数据统一采用固定 id 进行 upsert：
+- 站点级（全站）
+  - `#website-jsonld`：`@type=WebSite`（含 `SearchAction`）
 - 商品详情页（PDP）
   - `#product-jsonld`：`@type=Product`
   - `#breadcrumbs-jsonld`：`@type=BreadcrumbList`
 - 商品列表页（PLP）
+  - `#plp-breadcrumbs-jsonld`：`@type=BreadcrumbList`
   - `#itemlist-jsonld`：`@type=ItemList`
 
 ### URL 一致性
@@ -41,3 +44,4 @@
 - [202601120341_seo-canonical-structured-data](../../history/2026-01/202601120341_seo-canonical-structured-data/) - Canonical 兜底 + PDP Product JSON-LD + 首页 LCP 提示
 - [202601120416_seo-module-tests](../../history/2026-01/202601120416_seo-module-tests/) - SEO 模块化（Canonical）+ 单测覆盖 + SW/Check 守护同步
 - [202601120524_seo-rich-results](../../history/2026-01/202601120524_seo-rich-results/) - Rich Results：PDP BreadcrumbList + PLP ItemList JSON-LD
+- [202601120540_seo-searchaction-breadcrumbs](../../history/2026-01/202601120540_seo-searchaction-breadcrumbs/) - WebSite/SearchAction JSON-LD + PLP BreadcrumbList JSON-LD

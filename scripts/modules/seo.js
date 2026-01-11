@@ -84,13 +84,80 @@ export function createSeo(deps = {}, options = {}) {
         created.href = href;
       }
 
-      if (typeof head.appendChild === 'function') head.appendChild(created);
+      if (typeof head.appendChild === 'function') head.appendChild(created);    
       return true;
     } catch {
       return false;
     }
   }
 
-  return { canonicalizeHref, ensureCanonical };
-}
+  function upsertJsonLd(id, data) {
+    try {
+      const rawId = String(id ?? '').trim().replace(/^#/, '');
+      if (!rawId) return false;
 
+      const doc = getDocument();
+      if (!doc) return false;
+
+      const head =
+        doc.head ||
+        (typeof doc.getElementsByTagName === 'function'
+          ? doc.getElementsByTagName('head')?.[0]
+          : null);
+      if (!head) return false;
+
+      const existing =
+        typeof doc.getElementById === 'function' ? doc.getElementById(rawId) : null;
+      existing?.remove?.();
+
+      if (typeof doc.createElement !== 'function') return false;
+      const script = doc.createElement('script');
+      if (!script) return false;
+
+      const cleaned = JSON.parse(JSON.stringify(data ?? {}));
+      script.type = 'application/ld+json';
+      script.id = rawId;
+      script.textContent = JSON.stringify(cleaned);
+      head.appendChild(script);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function upsertWebSiteJsonLd(params = {}) {
+    try {
+      const p = params && typeof params === 'object' ? params : {};
+      const siteName = String(p.name || '塑梦潮玩').trim();
+      if (!siteName) return false;
+
+      const current = canonicalizeHref(getHref(), getHref());
+      if (!current) return false;
+
+      const websiteUrl = canonicalizeHref('index.html', current);
+      const productsUrl = canonicalizeHref('products.html', current);
+      if (!websiteUrl || !productsUrl) return false;
+
+      const sep = productsUrl.includes('?') ? '&' : '?';
+      const urlTemplate = `${productsUrl}${sep}query={search_term_string}`;
+
+      const data = {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: siteName,
+        url: websiteUrl,
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: urlTemplate,
+          'query-input': 'required name=search_term_string',
+        },
+      };
+
+      return upsertJsonLd('website-jsonld', data);
+    } catch {
+      return false;
+    }
+  }
+
+  return { canonicalizeHref, ensureCanonical, upsertJsonLd, upsertWebSiteJsonLd };
+}

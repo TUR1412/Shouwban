@@ -74,5 +74,41 @@ describe('SEO', () => {
     assert.equal(ok, true);
     assert.equal(attrs.href, 'https://example.test/index.html');
   });
-});
 
+  it('upsertWebSiteJsonLd emits WebSite + SearchAction JSON-LD', () => {
+    const appended = [];
+    const head = {
+      appendChild: (el) => appended.push(el),
+    };
+    const doc = {
+      head,
+      getElementById: () => null,
+      createElement: () => ({}),
+    };
+
+    const seo = createSeo({
+      getHref: () => 'https://example.test/products.html#top',
+      getDocument: () => doc,
+    });
+
+    const ok = seo.upsertWebSiteJsonLd({ name: 'Shouwban' });
+    assert.equal(ok, true);
+    assert.equal(appended.length, 1);
+    assert.equal(appended[0].id, 'website-jsonld');
+    assert.equal(appended[0].type, 'application/ld+json');
+
+    const json = JSON.parse(appended[0].textContent);
+    assert.equal(json['@type'], 'WebSite');
+    assert.equal(json.name, 'Shouwban');
+    assert.equal(json.url, 'https://example.test/index.html');
+    assert.equal(json.potentialAction['@type'], 'SearchAction');
+    assert.equal(
+      json.potentialAction.target,
+      'https://example.test/products.html?query={search_term_string}',
+    );
+    assert.equal(
+      json.potentialAction['query-input'],
+      'required name=search_term_string',
+    );
+  });
+});

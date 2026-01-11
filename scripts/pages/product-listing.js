@@ -982,6 +982,85 @@ export function init(ctx = {}) {
           productGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
   
+      function upsertPlpBreadcrumbJsonLd() {
+          try {
+              const existing = document.getElementById('plp-breadcrumbs-jsonld');
+              existing?.remove();
+
+              const baseUrl = (() => {
+                  try {
+                      const u = new URL(window.location.href);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              })();
+              if (!baseUrl) return;
+
+              const resolveUrl = (relative) => {
+                  try {
+                      const u = new URL(String(relative || ''), baseUrl);
+                      u.hash = '';
+                      return u.toString();
+                  } catch {
+                      return '';
+                  }
+              };
+
+              const items = [];
+              items.push({ name: '首页', item: resolveUrl('index.html') });
+
+              const categoryNames =
+                  (typeof SharedData !== 'undefined' && SharedData.getCategoryName)
+                      ? SharedData.getCategoryName
+                      : (key) => key;
+
+              if (pageMode === 'category') {
+                  const key = String(currentCategory || '').trim();
+                  const name = String(categoryNames(key) || '').trim();
+                  items.push({ name: '所有手办', item: resolveUrl('products.html') });
+                  items.push({
+                      name: name || '分类',
+                      item: resolveUrl(`category.html?cat=${encodeURIComponent(key)}`) || baseUrl,
+                  });
+              } else if (pageMode === 'search') {
+                  items.push({ name: '搜索结果', item: baseUrl });
+              } else if (pageMode === 'favorites') {
+                  items.push({ name: '所有手办', item: resolveUrl('products.html') });
+                  items.push({ name: '我的收藏', item: resolveUrl('favorites.html') || baseUrl });
+              } else {
+                  const allName = String(categoryNames('all') || '所有手办').trim();
+                  items.push({ name: allName, item: resolveUrl('products.html') || baseUrl });
+              }
+
+              const list = items
+                  .filter((x) => x && x.item && x.name)
+                  .map((x, idx) => ({
+                      '@type': 'ListItem',
+                      position: idx + 1,
+                      name: String(x.name),
+                      item: String(x.item),
+                  }));
+              if (list.length === 0) return;
+
+              const data = {
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: list,
+              };
+              const cleaned = JSON.parse(JSON.stringify(data));
+
+              const script = document.createElement('script');
+              script.type = 'application/ld+json';
+              script.id = 'plp-breadcrumbs-jsonld';
+              script.textContent = JSON.stringify(cleaned);
+              document.head.appendChild(script);
+          } catch {
+              // SEO 增强失败不影响页面主流程
+          }
+      }
+
       // --- Update Breadcrumbs --- (Use SharedData)
       function updateBreadcrumbs() {
           if (!breadcrumbContainer) return;
@@ -1000,6 +1079,7 @@ export function init(ctx = {}) {
                breadcrumbHTML += `<li class="breadcrumb-item active" aria-current="page">${Utils.escapeHtml(categoryNames('all'))}</li>`;
           }
           breadcrumbContainer.innerHTML = breadcrumbHTML;
+          upsertPlpBreadcrumbJsonLd();
       }
   
       // --- Render Page --- (Keep existing)

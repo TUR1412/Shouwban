@@ -23,6 +23,7 @@
 | 202601120341 | seo-canonical-structured-data | SEO/性能 | ✅已完成 | `2026-01/202601120341_seo-canonical-structured-data/` |
 | 202601120416 | seo-module-tests | SEO/测试/工程守护 | ✅已完成 | `2026-01/202601120416_seo-module-tests/` |
 | 202601120524 | seo-rich-results | SEO/富结果/结构化数据 | ✅已完成 | `2026-01/202601120524_seo-rich-results/` |
+| 202601120540 | seo-searchaction-breadcrumbs | SEO/SearchAction/面包屑 | ✅已完成 | `2026-01/202601120540_seo-searchaction-breadcrumbs/` |
 
 ## 按月归档
 
@@ -46,3 +47,4 @@
 - [202601120341_seo-canonical-structured-data](2026-01/202601120341_seo-canonical-structured-data/) - Canonical 兜底 + PDP Product JSON-LD（库存语义）+ 首页 Hero LCP 提示（渐进增强）
 - [202601120416_seo-module-tests](2026-01/202601120416_seo-module-tests/) - SEO 模块化（Canonical）+ 单测覆盖 + SW/Check 守护同步
 - [202601120524_seo-rich-results](2026-01/202601120524_seo-rich-results/) - Rich Results：PDP BreadcrumbList JSON-LD + PLP ItemList JSON-LD（与 canonical URL 规则一致）
+- [202601120540_seo-searchaction-breadcrumbs](2026-01/202601120540_seo-searchaction-breadcrumbs/) - WebSite/SearchAction JSON-LD（站内搜索）+ PLP BreadcrumbList JSON-LD
