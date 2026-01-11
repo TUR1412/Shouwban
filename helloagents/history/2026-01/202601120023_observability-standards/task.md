@@ -11,4 +11,4 @@
 - [√] DataPortability：白名单补齐 `a11y/sbLogs/sbTelemetryQueue/sbTelemetryEndpoint`
 - [√] 新增单测：`tests/logger.test.mjs`
 - [√] bump 版本号到 `20260111.4` 并通过 `npm run verify && npm test && npm run test:coverage`
-- [ ] 提交并推送到 `origin/master`
+- [√] 提交并推送到 `origin/master`（commit: `8ed1ba6`）
