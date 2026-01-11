@@ -23,5 +23,11 @@
 
 - `vite.config.mjs`：多页面输入（14 个 HTML）+ esbuild 压缩配置
 - `scripts/build-ultra.mjs`：一键执行构建 + 产物补齐 + 预压缩（对应 `npm run build`）
+- `scripts/generate-dist-sw.mjs`：为 dist 构建产物生成 `dist/sw.js`（基于输出文件列表生成 precache），使 dist 部署形态也具备 PWA 离线兜底能力
 - `scripts/postbuild-copy.mjs`：补齐运行时以“字符串路径”引用的静态资源（`assets/icons.svg`、`assets/images/*` 等）
 - `scripts/compress-dist.mjs`：为 `dist/` 生成 `.br` / `.gz` 预压缩文件（便于静态托管启用预压缩分发）
+
+## 性能回归：Lighthouse CI
+- 配置：`.lighthouserc.json`（关键页面 URL + 分项阈值断言）
+- 本地：`npm run lighthouse`（会先 `npm run build` 再执行 `lhci autorun`）
+- CI：`.github/workflows/lighthouse.yml`（自动构建并产出 `.lighthouseci` 报告作为 artifact）

@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+## [20260112.5] - 2026-01-12
+
+### 新增
+- dist/PWA：新增 `scripts/generate-dist-sw.mjs`，在 `npm run build` 后生成 `dist/sw.js`（基于 dist 输出文件列表生成 precache）
+- CI：新增 Lighthouse 回归门禁（`.lighthouserc.json` + `.github/workflows/lighthouse.yml`），自动产出 `.lighthouseci` 报告 artifact
+- 测试：新增 `tests/generate-dist-sw.test.mjs` 覆盖 dist SW 生成逻辑与过滤规则
+
+### 变更
+- 构建链路：`scripts/build-ultra.mjs` 增加 dist SW 生成步骤（build → copy → sw → compress）
+- 工程守护：`scripts/validate.mjs` 忽略 `.lighthouseci/`（避免本地跑 Lighthouse 后触发校验误报）
+- 工程脚本：`package.json` 增加 `npm run lighthouse`，并补齐 `npm run check` 覆盖新增脚本
+
 ## [20260112.4] - 2026-01-12
 
 ### 新增

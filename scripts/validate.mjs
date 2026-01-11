@@ -531,7 +531,18 @@ function main() {
   }
 
   const allFiles = listFiles(workspaceRoot, {
-    ignoreDirs: ['.git', 'node_modules', 'dist', 'build', 'out', '.cache', 'temp', 'tmp', 'logs'],
+    ignoreDirs: [
+      '.git',
+      'node_modules',
+      'dist',
+      'build',
+      'out',
+      '.cache',
+      'temp',
+      'tmp',
+      'logs',
+      '.lighthouseci',
+    ],
   });
   const htmlFiles = allFiles.filter((p) => path.extname(p).toLowerCase() === '.html');
   const cssFiles = allFiles.filter((p) => path.extname(p).toLowerCase() === '.css');

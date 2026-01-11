@@ -19,4 +19,4 @@
   - `sw.js` → `PRECACHE_URLS`（`scripts/pages/*.js?v=...`）
   - `scripts/bump-version.mjs`（确保版本号替换覆盖 `scripts/pages/*` 与 `scripts/modules/*`）
   - `scripts/validate.mjs`（确保校验能守护 precache 不回退）
-- `dist/`（Vite 极限构建产物）默认不保证与源站 `sw.js` 预缓存策略一致；如需 PWA 离线能力，优先采用“仓库根目录直接静态部署”模式
+- `dist/`（Vite 构建产物）现已支持 PWA：`npm run build` 会在构建后自动生成 `dist/sw.js`（扫描 dist 输出文件并生成 precache），适用于直接托管 `dist/` 目录的离线兜底需求

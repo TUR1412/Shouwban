@@ -20,6 +20,7 @@
 - **诊断中心（新增）**：`account.html#diagnostics` 一站式查看日志/错误/性能快照，支持复制摘要、下载日志 JSON、配置 Telemetry endpoint（可选）。
 - **性能薄启动（新增）**：非关键模块（诊断/PWA/动效等）延后到 idle 初始化，并预加载 `assets/icons.svg` 降低首屏请求链路。
 - **工具模块懒加载（新增）**：Diagnostics / Command Palette 抽离为独立模块，触发时动态加载，进一步降低首屏 JS 解析成本。
+- **Lighthouse CI（新增）**：对关键页面做性能/可访问性/SEO 回归门禁（CI 自动产出报告，避免性能回退无感发生）。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -33,11 +34,12 @@
 - 完整校验：`npm run verify`
 - 单元测试：`npm test`
 - 覆盖率守护：`npm run test:coverage`（`scripts/core.js` 100% 覆盖率）
+- Lighthouse：`npm run lighthouse`（需要本机可用的 Chrome/Chromium；CI 已集成）
 
 ### 部署（建议）
 本仓库支持两种部署形态：
 1. **根目录静态部署（推荐演示一致性）**：直接托管仓库根目录文件（HTML 内含 `?v=YYYYMMDD.N` 缓存穿透版本）。
-2. **Vite 构建产物（产物更小）**：`npm run build` 输出到 `dist/`，适合对体积更敏感的托管环境。
+2. **Vite 构建产物（产物更小）**：`npm run build` 输出到 `dist/`，并会生成 `dist/sw.js`（dist 形态同样具备 PWA 离线兜底能力）。
 
 ### 项目结构
 - `index.html` / `*.html`：多页面入口（MPA）
@@ -74,6 +76,7 @@
 - **Diagnostics Center (NEW)**: `account.html#diagnostics` to inspect logs/errors/perf snapshot, copy a report, download logs JSON, and optionally configure a telemetry endpoint.
 - **Thin Startup (NEW)**: defers non-critical modules (diagnostics/PWA/animations) to idle time and preloads `assets/icons.svg` to reduce first-load request chaining.
 - **Lazy Tooling Modules (NEW)**: splits Diagnostics / Command Palette out of `main.js` and dynamically loads them on demand to further reduce first-load JS parsing.
+- **Lighthouse CI (NEW)**: CI regression gate for performance/a11y/SEO on key pages (report as artifact).
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start
@@ -87,6 +90,7 @@
 - Full verify: `npm run verify`
 - Unit tests: `npm test`
 - Coverage guardrail: `npm run test:coverage` (100% for `scripts/core.js`)
+- Lighthouse: `npm run lighthouse` (requires Chrome/Chromium locally; enabled in CI)
 
 ### Structure
 - `*.html`: multi-page entries (MPA)
