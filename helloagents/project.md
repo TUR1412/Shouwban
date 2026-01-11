@@ -11,6 +11,7 @@
 - **渐进增强**：动效基于 WAAPI（`scripts/motion.js`），并尊重 `prefers-reduced-motion`
 - **缓存穿透**：HTML 通过 `?v=YYYYMMDD.N` 统一版本号；Service Worker 使用同一版本作为 `CACHE_NAME`
 - **零运行时 CDN**：图标使用本地 `assets/icons.svg`；字体使用系统字体栈（CSS 变量）
+- **无障碍偏好**：`scripts/modules/accessibility.js` 统一管理 `localStorage.a11y`，并映射到 `html[data-motion] / html[data-contrast]` 与 `--a11y-font-scale`
 
 ## 安全与隐私
 - **默认本地化**：购物车/收藏/对比/订单/地址簿/积分等存储在 `localStorage`

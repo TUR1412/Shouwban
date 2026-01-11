@@ -6,6 +6,7 @@
 - HTML 是否包含版本号（CSS/JS）
 - HTML 与 `sw.js` 的版本号是否一致
 - `sw.js` 的 `PRECACHE_URLS` 是否覆盖全部 HTML
+- `sw.js` 的 `PRECACHE_URLS` 是否覆盖浏览器运行时模块（如 `scripts/modules/*.js?v=...`）
 - 资源引用是否存在（含 `assets/icons.svg#...`）
 - 禁止引入外部 CDN（Google Fonts / Font Awesome / 通用 CDN 兜底规则）
 - 忽略构建产物目录（`dist/`、`build/`、`out/` 等），避免“构建后自检误报”
@@ -14,6 +15,7 @@
 ## 版本号脚本：`scripts/bump-version.mjs`
 - 用途：统一更新 HTML/CSS/JS 引用的 `?v=` 与 `sw.js` 的 `CACHE_NAME`
 - 格式：`YYYYMMDD.N`
+- 覆盖：HTML + `sw.js` + `scripts/main.js` + `scripts/modules/*`
 
 ## 可选构建链路：Vite
 

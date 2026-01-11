@@ -1,7 +1,8 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260111.1';
-import { createStorageKit } from './runtime/storage.js?v=20260111.1';
-import { createPerfKit } from './runtime/perf.js?v=20260111.1';
+import { createStateHub } from './runtime/state.js?v=20260111.2';
+import { createStorageKit } from './runtime/storage.js?v=20260111.2';
+import { createPerfKit } from './runtime/perf.js?v=20260111.2';
+import { createAccessibility } from './modules/accessibility.js?v=20260111.2';
 
 // ==============================================
 // Utility Functions
@@ -155,7 +156,16 @@ const Utils = {
 
     prefersReducedMotion: () => {
         try {
-            return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            const root = document && document.documentElement ? document.documentElement : null;
+            if (root?.dataset?.motion === 'reduce') return true;
+        } catch {
+            // ignore
+        }
+        try {
+            return Boolean(
+                window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+            );
         } catch {
             return false;
         }
@@ -237,6 +247,7 @@ const StateHub = (() => {
     Utils.dispatch = enhanceDispatch(Utils.dispatch);
     return hub;
 })();
+const Accessibility = createAccessibility(Utils);
 
 // ==============================================
 // Local Icon System (SVG Sprite)
@@ -6378,6 +6389,12 @@ const CrossTabSync = (function() {
                 return;
             }
 
+            if (key === 'a11y') {
+                Accessibility?.init?.();
+                Utils.dispatchChanged('a11y');
+                return;
+            }
+
             if (key === 'favorites') {
                 if (typeof Favorites !== 'undefined') {
                     const ids = typeof Favorites.getIds === 'function' ? Favorites.getIds() : [];
@@ -7187,7 +7204,7 @@ const PageModules = (function() {
   function createRuntimeContext() {
     return {
       runtimeVersion,
-      Utils, Icons, Toast, Theme, Header, SharedData, StateHub, Telemetry,
+      Utils, Icons, Toast, Theme, Accessibility, Header, SharedData, StateHub, Telemetry,
       Rewards, Cinematic, ViewTransitions, NavigationTransitions, ShippingRegion,
       SmoothScroll, ScrollProgress, BackToTop, ScrollAnimations, ImageFallback,
       LazyLoad, Favorites, Compare, Orders, AddressBook, PriceAlerts, Cart,
@@ -7221,6 +7238,7 @@ const App = {
         const pageModulePromise = PageModules.importPageModule(page);
 
         StorageKit.ensureSchema();
+        Accessibility.init();
 
         // 全站基础：尽量保持“薄启动”，重模块按页初始化
         Header.init();

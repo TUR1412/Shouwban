@@ -18,6 +18,24 @@
     Element.prototype &&
     typeof Element.prototype.animate === 'function';
 
+  function prefersReducedMotion() {
+    // 1) 用户显式偏好（A11y 中心）：html[data-motion="reduce"]
+    try {
+      const doc = root.document || (typeof document !== 'undefined' ? document : null);
+      const el = doc && doc.documentElement ? doc.documentElement : null;
+      if (el && el.dataset && el.dataset.motion === 'reduce') return true;
+    } catch {
+      // ignore
+    }
+
+    // 2) 系统偏好：prefers-reduced-motion
+    try {
+      return Boolean(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch {
+      return false;
+    }
+  }
+
   function toMs(value, fallbackMs) {
     const n = Number(value);
     if (!Number.isFinite(n)) return fallbackMs;
@@ -127,8 +145,9 @@
     if (!supportsWAAPI || !element) return null;
 
     const opts = options && typeof options === 'object' ? options : {};
-    const duration = toMs(opts.duration, 300);
-    const delay = toMs(opts.delay, 0);
+    const reduced = prefersReducedMotion();
+    const duration = reduced ? 0 : toMs(opts.duration, 300);
+    const delay = reduced ? 0 : toMs(opts.delay, 0);
     const easing = easingToString(opts.easing) || 'linear';
     const fill = typeof opts.fill === 'string' ? opts.fill : 'both';
 
@@ -144,4 +163,3 @@
 
   root.Motion = { animate };
 })();
-

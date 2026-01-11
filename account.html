@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260111.1">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260111.1">
+    <link rel="stylesheet" href="styles/main.css?v=20260111.2">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260111.2">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -245,6 +245,48 @@
                         </div>
                     </div>
                 </article>
+
+                <article class="account-card fade-in-up" data-account-a11y>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-scale" xlink:href="assets/icons.svg#icon-scale"></use></svg> 无障碍与偏好</h2>
+                    </div>
+
+                    <div class="account-a11y">
+                        <p class="text-muted account-a11y__hint">
+                            这些偏好仅影响本机浏览器的字体、对比度与动效呈现（示例站点）。
+                        </p>
+
+                        <div class="account-a11y__options" role="group" aria-label="无障碍选项">
+                            <label class="filter-option account-a11y__option">
+                                <input type="checkbox" data-a11y-reduce-motion>
+                                <span>减少动效</span>
+                            </label>
+                            <label class="filter-option account-a11y__option">
+                                <input type="checkbox" data-a11y-high-contrast>
+                                <span>高对比模式</span>
+                            </label>
+                        </div>
+
+                        <div class="account-a11y__scale">
+                            <div class="account-a11y__scale-head">
+                                <span class="summary-label">字体缩放</span>
+                                <span class="account-a11y__scale-value text-muted" data-a11y-font-label>100%</span>
+                            </div>
+                            <input
+                                class="account-a11y__range"
+                                type="range"
+                                min="100"
+                                max="125"
+                                step="5"
+                                value="100"
+                                data-a11y-font-scale
+                                aria-label="字体缩放比例（百分比）">
+                            <div class="account-a11y__ticks text-muted" aria-hidden="true">
+                                <span>100%</span><span>110%</span><span>125%</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
             </section>
         </div>
     </main>
@@ -282,9 +324,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260111.1"></script>
-    <script type="module" src="scripts/core.js?v=20260111.1"></script>
-    <script type="module" src="scripts/main.js?v=20260111.1"></script>
+    <script type="module" src="scripts/motion.js?v=20260111.2"></script>
+    <script type="module" src="scripts/core.js?v=20260111.2"></script>
+    <script type="module" src="scripts/main.js?v=20260111.2"></script>
 </body>
 </html>
-

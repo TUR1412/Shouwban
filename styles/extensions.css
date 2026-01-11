@@ -7,6 +7,43 @@ html {
   color-scheme: light dark;
 }
 
+:root {
+  --a11y-font-scale: 1;
+}
+
+/* A11y: 字体缩放（仅影响 rem 系统；用 px 避免 root rem 递归） */
+html {
+  font-size: calc(16px * var(--a11y-font-scale, 1));
+}
+
+/* A11y: 减少动效（用户显式偏好） */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* A11y: 高对比（用户显式偏好） */
+html[data-contrast="high"] {
+  --glass-surface: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(15, 23, 42, 0.22);
+  --color-border: rgba(15, 23, 42, 0.22);
+}
+
+html[data-theme="dark"][data-contrast="high"] {
+  --glass-surface: rgba(2, 6, 23, 0.68);
+  --glass-border: rgba(226, 232, 240, 0.22);
+  --color-border: rgba(226, 232, 240, 0.22);
+}
+
+html[data-contrast="high"] :focus-visible {
+  outline: 3px solid rgba(var(--color-primary-rgb), 0.92);
+  outline-offset: 3px;
+}
+
 /* ==============================================
    Cross-Document View Transitions (MPA)
    - 自动触发：同源页面跳转时生效（不需要 JS 调用）
@@ -2302,6 +2339,51 @@ html[data-theme="dark"] .account-data__danger {
   .account-data__actions .account-data__danger {
     grid-column: 1 / -1;
   }
+}
+
+/* Account: 无障碍与偏好 */
+.account-a11y__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.account-a11y__option {
+  border-radius: 999px;
+}
+
+.account-a11y__scale {
+  margin-top: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: var(--spacing-sm);
+}
+
+html[data-theme="dark"] .account-a11y__scale {
+  background: rgba(15, 23, 42, 0.56);
+  border-color: rgba(148, 163, 184, 0.20);
+}
+
+.account-a11y__scale-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.account-a11y__range {
+  width: 100%;
+  margin-top: var(--spacing-xs);
+  accent-color: var(--color-primary);
+}
+
+.account-a11y__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  margin-top: 0.35rem;
+  opacity: 0.8;
 }
 
 /* ==============================================

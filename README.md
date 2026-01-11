@@ -1,24 +1,21 @@
 # Shouwban · 塑梦潮玩
 
-一个以“手办收藏体验”为核心的高质感前端样板：保留原有架构逻辑，升级为更强的会员、关注、套装与订单旅程体系，并完成未来感 UI 视觉重塑。
+一个以“手办收藏体验”为核心的高质感前端样板：**纯静态站点（多页面 HTML/CSS/JS）+ PWA（Service Worker）+ 原生零依赖 Runtime**。
+目标是以“保留核心架构、不破坏原逻辑根基”为前提，演示商业化电商站点在 **交互、性能、可维护性、离线与可访问性** 维度的最佳实践组合。
 
 ---
 
-## 中文版
+## 中文（ZH）
 
-### 核心亮点
-- 会员体系进阶：积分 → 等级 → 权益闭环（折扣、包邮门槛、专属权益）。
-- 关注中心：收藏 / 降价 / 到货提醒统一视图，趋势记录贯穿详情页。
-- 套装策略：组合购推荐 + 套装折扣 + 购物车一键移除。
-- 订单旅程：时间轴 + 售后入口，完整还原下单生命周期。
-- 智能策展：基于浏览、收藏、品类偏好形成“策展式推荐”。
-- 视觉重塑：玻璃拟态 + 霓虹质感 + 未来感渐变背景。
-
-### 主要能力矩阵
-- 商品侧：库存状态、预售提示、价格趋势记录、组合购推荐。
-- 购物侧：套装折扣、会员折扣、智能推荐、库存校验。
-- 会员侧：等级卡片、积分动画、会员权益与优惠贯通。
-- 订单侧：旅程时间轴、售后记录、订单再购。
+### 功能亮点（摘选）
+- **会员体系**：积分 → 等级 → 权益闭环（折扣、包邮门槛等）。
+- **关注中心**：收藏 / 降价 / 到货提醒统一视图，趋势记录贯穿详情页。
+- **套装策略**：组合购推荐 + 套装折扣 + 购物车一键移除。
+- **订单旅程**：订单时间轴 + 售后入口，完整还原下单生命周期。
+- **智能策展**：基于浏览/收藏/品类偏好生成推荐。
+- **三态主题**：Light → Dark → Genesis（暗色基座 + 变体 token）。
+- **无障碍与偏好中心（新增）**：减少动效 / 高对比模式 / 字体缩放（100%~125%）。
+- **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
 1. 安装依赖：`npm install`
@@ -26,48 +23,67 @@
 3. 构建产物：`npm run build`
 
 ### 校验与测试
-- 结构校验：`npm run validate`
-- 完整校验：`npm run verify`
 - 语法检查：`npm run check`
+- 结构校验：`npm run validate`（资源引用、版本号一致性、SW precache 覆盖等）
+- 完整校验：`npm run verify`
+- 单元测试：`npm test`
+- 覆盖率守护：`npm run test:coverage`（`scripts/core.js` 100% 覆盖率）
 
-### 目录概览
-- `scripts/main.js`：核心业务逻辑与模块聚合
-- `scripts/runtime/`：运行时内核（state / storage / perf）
-- `scripts/pages/`：按页面拆分的交互逻辑
-- `styles/`：基础样式与扩展视觉体系
+### 部署（建议）
+本仓库支持两种部署形态：
+1. **根目录静态部署（推荐演示一致性）**：直接托管仓库根目录文件（HTML 内含 `?v=YYYYMMDD.N` 缓存穿透版本）。
+2. **Vite 构建产物（产物更小）**：`npm run build` 输出到 `dist/`，适合对体积更敏感的托管环境。
+
+### 项目结构
+- `index.html` / `*.html`：多页面入口（MPA）
+- `styles/main.css`：基础变量、布局与组件样式
+- `styles/extensions.css`：扩展组件皮肤、主题覆盖与高级特性（View Transitions、content-visibility 等）
+- `scripts/main.js`：运行时入口（模块聚合 + PageModules loader + App.init）
+- `scripts/runtime/`：运行时内核（StateHub / StorageKit / PerfKit）
+- `scripts/pages/`：按页面拆分的交互逻辑（动态加载，实现真正代码分割）
+- `scripts/modules/`：跨页面的扩展模块（如 Accessibility）
 - `sw.js`：PWA 缓存与离线策略
+
+### 无障碍与偏好中心（A11y）
+- 存储键：`localStorage.a11y`
+- 映射：
+  - `reduceMotion=true` → `html[data-motion="reduce"]`
+  - `highContrast=true` → `html[data-contrast="high"]`
+  - `fontScale` → `--a11y-font-scale`（影响全站 rem 字阶）
+- 动效：`scripts/motion.js` 会同时尊重用户偏好与系统 `prefers-reduced-motion`。
 
 ---
 
 ## English
 
-### Highlights
-- Membership upgrades: points → tiers → benefits (discounts, shipping perks, exclusive perks).
-- Watch Center: favorites + price alerts + restock alerts in a single dashboard.
-- Bundling strategy: bundle recommendations, bundle discounting, one-click removal.
-- Order Journey: visual timeline + after-sales records for the full lifecycle.
-- Smart Curation: preference-aware recommendations driven by behavior.
-- Visual overhaul: glassmorphism, neon accents, future-facing gradients.
-
-### Capability Matrix
-- Product: inventory signals, preorder, price-trend logging, bundle recommendations.
-- Cart: bundle discounts, member discounts, smart recs, inventory-aware validation.
-- Account: tier cards, animated points, benefits wiring.
-- Orders: journey timeline, after-sales entry, rebuy flow.
+### Highlights (Selected)
+- **Membership**: points → tiers → benefits (discounts, shipping perks, etc.).
+- **Watch Center**: favorites + price alerts + restock alerts in one dashboard.
+- **Bundling Strategy**: bundle recommendations + bundle discounts + one-click removal.
+- **Order Journey**: a visual timeline + after-sales entry for the whole lifecycle.
+- **Smart Curation**: behavior-driven recommendations.
+- **3-state Theme**: Light → Dark → Genesis (dark base + variant tokens).
+- **A11y & Preferences (NEW)**: reduce motion / high contrast / font scaling (100%~125%).
+- **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start
 1. Install: `npm install`
 2. Dev: `npm run dev`
 3. Build: `npm run build`
 
-### Validation
-- Structure: `npm run validate`
+### Validation & Tests
+- Syntax: `npm run check`
+- Structure validation: `npm run validate`
 - Full verify: `npm run verify`
-- Syntax check: `npm run check`
+- Unit tests: `npm test`
+- Coverage guardrail: `npm run test:coverage` (100% for `scripts/core.js`)
 
 ### Structure
-- `scripts/main.js`: core logic & modules
-- `scripts/runtime/`: runtime kernels (state / storage / perf)
-- `scripts/pages/`: page-level logic
-- `styles/`: base styles + extension theme
-- `sw.js`: PWA caching & offline strategy
+- `*.html`: multi-page entries (MPA)
+- `styles/`: base styles + extensions/theme layer
+- `scripts/main.js`: runtime entry (module aggregation + PageModules loader)
+- `scripts/runtime/`: runtime kernels (State / Storage / Perf)
+- `scripts/pages/`: page-level modules (lazy-loaded)
+- `scripts/modules/`: shared feature modules (e.g. Accessibility)
+- `sw.js`: service worker (PWA caching & offline)
+

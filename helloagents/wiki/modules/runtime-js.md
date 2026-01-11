@@ -24,6 +24,7 @@
   - `scripts/pages/offline.js`：`offline.html`
 - `scripts/core.js`：可测试的纯函数集合（金额、数量、折扣等）
 - `scripts/motion.js`：Motion-lite（WAAPI）
+- `scripts/modules/accessibility.js`：无障碍与偏好（A11y Preferences：reduce motion / high contrast / font scale）
 
 ## Runtime Kit（拆分模块）
 目的：降低 `scripts/main.js` 体积，将“状态 / 存储 / 性能”职责拆分为可独立维护的运行时单元。
@@ -178,6 +179,16 @@
 - 快捷键：`Ctrl/Cmd + K` 或 `/`
 - 目标：减少鼠标操作成本，提供“商业软件级”的效率交互
 
+## Accessibility（无障碍与偏好）
+- 存储键：`localStorage.a11y`
+- 映射：
+  - `reduceMotion=true` → `html[data-motion="reduce"]`
+  - `highContrast=true` → `html[data-contrast="high"]`
+  - `fontScale` → `--a11y-font-scale`（影响全站 rem 字阶）
+- 同步：`CrossTabSync` 监听 `storage` 事件的 `a11y` key，并触发 `a11y:changed`
+- 动效：`scripts/motion.js` 的 `Motion.animate()` 同时尊重用户偏好与系统 `prefers-reduced-motion`
+
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - StateHub/Prefetch/Telemetry/Http/Skeleton/NavigationTransitions 与多级筛选引擎
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Runtime 拆分与会员/关注/套装/订单旅程/策展模块
+- [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（A11y）+ Motion 动效降级 + CrossTabSync 同步

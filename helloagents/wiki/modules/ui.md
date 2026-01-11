@@ -20,6 +20,7 @@
 - `--shadow-elev-1..5`：动态阴影层级（含轻微品牌色光晕）
 - `--glass-*`：毛玻璃参数（blur/saturate/bg/border）
 - `--border-gradient / --border-gradient-soft`：动态渐变边框基座
+- `--a11y-font-scale`：字体缩放系数（映射到全站 rem 字阶，范围受控）
 
 ### 12 列响应式栅格
 - `.grid-12`：12 列容器
@@ -66,6 +67,13 @@
 - Theme Color：主题切换时会动态更新 `meta[name="theme-color"]`，从 CSS Token 读取，确保浏览器 UI（地址栏/状态栏）与站点配色一致
 - Genesis Theme：三态主题切换（Light → Dark → Genesis），其中 Genesis 采用 `data-theme="dark"` + `data-variant="genesis"` 的表达方式，以复用暗色主题覆写并叠加霓虹/极光 token
 
+## 无障碍与偏好（A11y）
+`styles/extensions.css` 提供用户级偏好映射（配合 `scripts/modules/accessibility.js`）：
+- `html[data-motion="reduce"]`：减少动效（兜底关闭 CSS animation/transition，并与 `prefers-reduced-motion` 协同）
+- `html[data-contrast="high"]`：高对比模式（增强 glass/bg/border 与 focus ring 可读性）
+- `--a11y-font-scale`：字体缩放（100%~125%）
+
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）与 Skeleton/转场基础设施
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Neo-Quark 视觉升级与新业务组件样式
+- [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（减少动效/高对比/字体缩放）

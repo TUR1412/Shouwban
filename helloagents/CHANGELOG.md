@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [20260111.2] - 2026-01-11
+
+### 新增
+- 无障碍与偏好中心：在会员中心提供「减少动效 / 高对比 / 字体缩放（100%~125%）」并持久化到 `localStorage.a11y`
+
+### 变更
+- Motion：`scripts/motion.js` 的 `Motion.animate()` 自动尊重用户偏好与 `prefers-reduced-motion`
+- PWA：`sw.js` precache 补齐 `scripts/modules/accessibility.js?v=...`
+- 工程守护：`bump-version` 支持替换 `scripts/modules/*` 的版本号；`validate/check` 覆盖新增模块
+
+### 修复
+- 单测覆盖：补齐 `scripts/core.js` 的库存纯函数覆盖，恢复 `npm run test:coverage` 为 100%
+
 ## [20260111.1] - 2026-01-11
 
 ### 新增

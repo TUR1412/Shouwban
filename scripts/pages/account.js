@@ -14,6 +14,7 @@ export function init(ctx = {}) {
     Icons,
     Toast,
     Theme,
+    Accessibility,
     Header,
     SharedData,
     StateHub,
@@ -73,10 +74,59 @@ export function init(ctx = {}) {
       const watchList = container.querySelector('[data-watch-list]');
       const watchEmpty = container.querySelector('[data-watch-empty]');
 
-      const dataExportBtn = container.querySelector('[data-data-export]');
-      const dataImportBtn = container.querySelector('[data-data-import]');
-      const dataFileInput = container.querySelector('[data-data-file]');
-      const dataResetBtn = container.querySelector('[data-data-reset]');
+      const dataExportBtn = container.querySelector('[data-data-export]');      
+      const dataImportBtn = container.querySelector('[data-data-import]');      
+      const dataFileInput = container.querySelector('[data-data-file]');        
+      const dataResetBtn = container.querySelector('[data-data-reset]');        
+
+      const a11yReduceMotion = container.querySelector('[data-a11y-reduce-motion]');
+      const a11yHighContrast = container.querySelector('[data-a11y-high-contrast]');
+      const a11yFontScale = container.querySelector('[data-a11y-font-scale]');
+      const a11yFontLabel = container.querySelector('[data-a11y-font-label]');
+
+      function clampFontPct(raw) {
+          const n = Math.round(Number(raw) || 100);
+          if (!Number.isFinite(n)) return 100;
+          const clamped = Math.min(125, Math.max(100, n));
+          // step=5
+          return Math.round(clamped / 5) * 5;
+      }
+
+      function pctToScale(pct) {
+          const p = clampFontPct(pct);
+          return Math.round((p / 100) * 100) / 100;
+      }
+
+      function getA11yCurrent() {
+          if (Accessibility?.get) return Accessibility.get();
+          return { reduceMotion: false, highContrast: false, fontScale: 1 };    
+      }
+
+      function renderA11y() {
+          if (!Accessibility?.get) return;
+          const settings = Accessibility.get();
+          if (a11yReduceMotion) a11yReduceMotion.checked = Boolean(settings.reduceMotion);
+          if (a11yHighContrast) a11yHighContrast.checked = Boolean(settings.highContrast);
+
+          const pct = Math.round(Number(settings.fontScale || 1) * 100);
+          const safePct = clampFontPct(pct);
+          if (a11yFontScale) a11yFontScale.value = String(safePct);
+          if (a11yFontLabel) a11yFontLabel.textContent = `${safePct}%`;
+      }
+
+      function previewFontScale(pct) {
+          if (!Accessibility?.apply) return;
+          const safePct = clampFontPct(pct);
+          const scale = pctToScale(safePct);
+          Accessibility.apply({ ...getA11yCurrent(), fontScale: scale });
+          if (a11yFontLabel) a11yFontLabel.textContent = `${safePct}%`;
+      }
+
+      function persistA11y(next, { toast = false } = {}) {
+          if (!Accessibility?.set) return;
+          Accessibility.set(next);
+          if (toast) Toast?.show?.('无障碍偏好已更新', 'success', 1400);
+      }
 
       let didEnterCards = false;
       let didEnterAddresses = false;
@@ -308,7 +358,24 @@ export function init(ctx = {}) {
           dataResetBtn?.addEventListener?.('click', () => {
               DataPortability?.resetAll?.();
           });
-  
+
+          a11yReduceMotion?.addEventListener?.('change', () => {
+              persistA11y({ ...getA11yCurrent(), reduceMotion: Boolean(a11yReduceMotion.checked) }, { toast: true });
+          });
+
+          a11yHighContrast?.addEventListener?.('change', () => {
+              persistA11y({ ...getA11yCurrent(), highContrast: Boolean(a11yHighContrast.checked) }, { toast: true });
+          });
+
+          a11yFontScale?.addEventListener?.('input', () => {
+              previewFontScale(a11yFontScale.value);
+          });
+
+          a11yFontScale?.addEventListener?.('change', () => {
+              const pct = clampFontPct(a11yFontScale.value);
+              persistA11y({ ...getA11yCurrent(), fontScale: pctToScale(pct) }, { toast: true });
+          });
+
           addressOpenFormBtn?.addEventListener?.('click', () => openAddressForm(null));
           addressCancelBtn?.addEventListener?.('click', () => {
               if (addressFormDetails) addressFormDetails.open = false;
@@ -395,9 +462,10 @@ export function init(ctx = {}) {
                   renderRewards();
                   renderTier();
               });
-              window.addEventListener('addressbook:changed', renderAddresses);
+              window.addEventListener('addressbook:changed', renderAddresses);  
               window.addEventListener('watchcenter:changed', renderWatchCenter);
-              window.addEventListener('membership:changed', renderTier);
+              window.addEventListener('membership:changed', renderTier);        
+              window.addEventListener('a11y:changed', renderA11y);
           } catch {
               // ignore
           }
@@ -408,6 +476,7 @@ export function init(ctx = {}) {
           renderTier();
           renderAddresses();
           renderWatchCenter();
+          renderA11y();
           bind();
           if (!didEnterCards && typeof Cinematic !== 'undefined') {
               const entered = Cinematic.staggerEnter?.(container.querySelectorAll('.account-card'), {

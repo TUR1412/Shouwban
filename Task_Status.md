@@ -1,7 +1,7 @@
 # [Shouwban-OPT-20251221] 任务看板
 > **环境**: Windows 11 | **终端**: `pwsh -NoLogo -Command "..."` | **项目形态**: 纯静态站点 (HTML/CSS/JS/PWA) | **档位**: 4档（架构重构）
 > **已激活矩阵**: [模块 A: 现代前端] + [模块 E: 终端统一/幽灵防御] + [模块 F: 需求镜像/验证]
-> **缓存穿透统一版本号**：`20260111.1`
+> **缓存穿透统一版本号**：`20260111.2`
 
 ## 1. 需求镜像 (Requirement Mirroring)
 > **我的理解**: 对 `https://github.com/TUR1412/Shouwban.git` 执行「原子级审查 + 重构收敛 + 新增 3~5 个核心高级功能 + UI/UX 现代化升级 + README 重写（含架构图/徽章/部署指南）」，并在验证通过后尝试推送远程仓库；删除本地仓库属于毁灭性操作，必须单独确认后执行。
@@ -71,7 +71,14 @@
 - [x] README 产品门户化：补齐 ASCII Title + Emoji 特性清单 + Genesis 主题说明
 - [ ] 推送与删除动作需明确授权确认（依旧保持高危单独确认）
 
-## 9. 验收命令（推荐）
+## 9. 第七轮递归进化（B7：A11y Center · 2026-01-11）
+- [x] 无障碍与偏好中心：会员中心新增「减少动效 / 高对比 / 字体缩放（100%~125%）」
+- [x] Motion 自动降级：`Motion.animate()` 同时尊重用户偏好与 `prefers-reduced-motion`
+- [x] PWA precache 守护：`sw.js` 预缓存补齐 `scripts/modules/*`（新增 accessibility 模块）
+- [x] 工程守护扩展：`bump-version`/`validate`/`check` 覆盖 `scripts/modules/*`
+- [x] 覆盖率修复：补齐 `scripts/core.js` 库存函数单测，恢复 `npm run test:coverage` 100%
+
+## 10. 验收命令（推荐）
 
 ```powershell
 pwsh -NoLogo -Command "npm run verify"

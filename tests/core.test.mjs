@@ -127,6 +127,30 @@ describe('ShouwbanCore', () => {
     assert.equal(calculatePromotionDiscount(12.345, { type: 'percent', value: 10 }), 1.24);
   });
 
+  it('inventory helpers normalize and compute status', () => {
+    const { normalizeInventory, getInventoryStatus } = globalThis.ShouwbanCore;
+
+    assert.deepEqual(normalizeInventory(null), { stock: 0, preorder: false, eta: '' });
+    assert.deepEqual(normalizeInventory(undefined), { stock: 0, preorder: false, eta: '' });
+    assert.deepEqual(normalizeInventory('bad'), { stock: 0, preorder: false, eta: '' });
+
+    assert.deepEqual(
+      normalizeInventory({ stock: '3.9', preorder: 1, eta: ' 2026/04 ' }),
+      { stock: 3, preorder: true, eta: '2026/04' },
+    );
+    assert.deepEqual(
+      normalizeInventory({ stock: -5, preorder: 0, eta: null }),
+      { stock: 0, preorder: false, eta: '' },
+    );
+
+    assert.deepEqual(getInventoryStatus({ preorder: true, stock: 0 }), { label: '预售', tone: 'preorder' });
+    assert.deepEqual(getInventoryStatus({ preorder: false, stock: 0 }), { label: '缺货', tone: 'out' });
+    assert.deepEqual(getInventoryStatus({ preorder: false, stock: 2 }), { label: '仅剩 2 件', tone: 'low' });
+    assert.deepEqual(getInventoryStatus({ preorder: false, stock: 10 }), { label: '现货', tone: 'in' });
+
+    assert.deepEqual(getInventoryStatus({ preorder: false, stock: 2 }, { lowStockThreshold: 1 }), { label: '现货', tone: 'in' });
+  });
+
   it('binary codec: string array base64 roundtrip + normalization', () => {
     const { encodeStringArrayBase64, decodeStringArrayBase64 } = globalThis.ShouwbanCore;
 

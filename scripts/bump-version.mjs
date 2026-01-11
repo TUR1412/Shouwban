@@ -23,6 +23,20 @@ function listRootHtmlFiles() {
     .map((e) => path.join(workspaceRoot, e.name));
 }
 
+function listFiles(dir) {
+  const out = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listFiles(full));
+      continue;
+    }
+    if (entry.isFile()) out.push(full);
+  }
+  return out;
+}
+
 function replaceAll(str, re, replacement) {
   const next = str.replace(re, replacement);
   return { next, changed: next !== str };
@@ -91,6 +105,14 @@ function bumpSwVersion(sw, nextVersion) {
   out = r9.next;
   changed ||= r9.changed;
 
+  const r10 = replaceAll(
+    out,
+    /scripts\/modules\/([A-Za-z0-9_-]+)\.js\?v=[^'"]+/g,
+    `scripts/modules/$1.js?v=${nextVersion}`,
+  );
+  out = r10.next;
+  changed ||= r10.changed;
+
   return { next: out, changed };
 }
 
@@ -105,6 +127,14 @@ function bumpMainRuntimeVersion(mainText, nextVersion) {
   );
   out = r1.next;
   changed ||= r1.changed;
+
+  const r2 = replaceAll(
+    out,
+    /\.\/modules\/([A-Za-z0-9_-]+)\.js\?v=[^'"]+/g,
+    `./modules/$1.js?v=${nextVersion}`,
+  );
+  out = r2.next;
+  changed ||= r2.changed;
 
   return { next: out, changed };
 }
@@ -155,6 +185,18 @@ function main() {
     const r = bumpMainRuntimeVersion(raw, nextVersion);
     if (r.changed) {
       writeText(mainPath, r.next);
+      touched += 1;
+    }
+  }
+
+  const modulesDir = path.join(workspaceRoot, 'scripts', 'modules');
+  if (fs.existsSync(modulesDir)) {
+    const jsFiles = listFiles(modulesDir, { ignoreDirs: [] }).filter((p) => p.toLowerCase().endsWith('.js'));
+    for (const file of jsFiles) {
+      const raw = readText(file);
+      const r = bumpMainRuntimeVersion(raw, nextVersion);
+      if (!r.changed) continue;
+      writeText(file, r.next);
       touched += 1;
     }
   }
