@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [20260112.1] - 2026-01-12
+
+### 新增
+- 诊断中心：`account.html#diagnostics` 增加可观测性 UI（日志/错误/性能快照/Telemetry 队列），支持复制摘要、下载日志 JSON、导出备份与可选 Flush
+- Command Palette：新增“打开诊断中心 / 打开错误报告”命令入口
+- 测试：新增 `tests/error-shield.test.mjs` 与 `tests/perf-vitals.test.mjs`
+
+### 变更
+- UI：`styles/extensions.css` 补齐诊断中心原子组件样式（KPI/面板/日志详情）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.1`（HTML `?v=` 与 `sw.js` CACHE_NAME 强一致）
+
 ## [20260111.4] - 2026-01-11
 
 ### 新增

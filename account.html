@@ -34,8 +34,8 @@
         })();
     </script>
     <!-- Main CSS -->
-    <link rel="stylesheet" href="styles/main.css?v=20260111.4">
-    <link rel="stylesheet" href="styles/extensions.css?v=20260111.4">
+    <link rel="stylesheet" href="styles/main.css?v=20260112.1">
+    <link rel="stylesheet" href="styles/extensions.css?v=20260112.1">
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="manifest" href="assets/manifest.webmanifest">
@@ -287,6 +287,106 @@
                         </div>
                     </div>
                 </article>
+
+                <article id="diagnostics" class="account-card account-card--wide fade-in-up" data-account-diagnostics>
+                    <div class="account-card__head">
+                        <h2 class="account-card__title"><svg class="icon" aria-hidden="true" focusable="false"><use href="assets/icons.svg#icon-shield" xlink:href="assets/icons.svg#icon-shield"></use></svg> 诊断中心</h2>
+                        <button type="button" class="cta-button-secondary" data-diag-refresh>刷新快照</button>
+                    </div>
+
+                    <div class="account-diagnostics">
+                        <p class="text-muted account-diagnostics__hint">
+                            本页展示本地日志、最近错误与性能快照（仅保存在本机浏览器中）。
+                        </p>
+
+                        <div class="diagnostics-kpis" role="list" aria-label="诊断概览">
+                            <div class="diag-kpi" role="listitem">
+                                <div class="diag-kpi__label text-muted">本地日志</div>
+                                <div class="diag-kpi__value" data-diag-kpi-logs>0</div>
+                                <div class="diag-kpi__sub text-muted" data-diag-kpi-logs-sub>—</div>
+                            </div>
+                            <div class="diag-kpi" role="listitem">
+                                <div class="diag-kpi__label text-muted">最近错误</div>
+                                <div class="diag-kpi__value" data-diag-kpi-errors>0</div>
+                                <div class="diag-kpi__sub text-muted">ErrorShield</div>
+                            </div>
+                            <div class="diag-kpi" role="listitem">
+                                <div class="diag-kpi__label text-muted">Telemetry 队列</div>
+                                <div class="diag-kpi__value" data-diag-kpi-telemetry>0</div>
+                                <div class="diag-kpi__sub text-muted" data-diag-kpi-telemetry-sub>未配置 Endpoint</div>
+                            </div>
+                            <div class="diag-kpi" role="listitem">
+                                <div class="diag-kpi__label text-muted">性能快照</div>
+                                <div class="diag-kpi__value" data-diag-kpi-perf>—</div>
+                                <div class="diag-kpi__sub text-muted">PerfVitals</div>
+                            </div>
+                        </div>
+
+                        <div class="diagnostics-actions">
+                            <button type="button" class="cta-button-secondary" data-diag-copy>复制摘要</button>
+                            <button type="button" class="cta-button-secondary" data-diag-export>导出备份</button>
+                            <button type="button" class="cta-button-secondary account-data__danger" data-diag-clear-logs>清空日志</button>
+                        </div>
+
+                        <details class="diagnostics-panel" data-diag-panel-perf>
+                            <summary class="diagnostics-panel__summary">性能快照</summary>
+                            <div class="diagnostics-panel__body">
+                                <div class="diag-table" data-diag-perf></div>
+                            </div>
+                        </details>
+
+                        <details class="diagnostics-panel" data-diag-panel-errors>
+                            <summary class="diagnostics-panel__summary">最近错误</summary>
+                            <div class="diagnostics-panel__body">
+                                <div class="account-empty text-muted" data-diag-errors-empty style="display:none;">暂无错误记录。</div>
+                                <div class="diag-list" data-diag-errors-list></div>
+                                <div class="diagnostics-actions diagnostics-actions--compact">
+                                    <button type="button" class="cta-button-secondary" data-diag-open-error-report>打开错误报告</button>
+                                    <button type="button" class="cta-button-secondary account-data__danger" data-diag-clear-errors>清空错误记录</button>
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="diagnostics-panel" data-diag-panel-logs>
+                            <summary class="diagnostics-panel__summary">本地日志</summary>
+                            <div class="diagnostics-panel__body">
+                                <div class="diag-toolbar" role="group" aria-label="日志筛选">
+                                    <label class="filter-option diag-toolbar__item">
+                                        <input type="checkbox" data-diag-only-errors>
+                                        <span>仅错误</span>
+                                    </label>
+                                    <label class="filter-option diag-toolbar__item">
+                                        <input type="checkbox" data-diag-capture-console>
+                                        <span>捕捉 console（本次会话）</span>
+                                    </label>
+                                </div>
+                                <div class="account-empty text-muted" data-diag-logs-empty style="display:none;">暂无日志。</div>
+                                <div class="diag-list" data-diag-logs-list></div>
+                                <div class="diagnostics-actions diagnostics-actions--compact">
+                                    <button type="button" class="cta-button-secondary" data-diag-download-logs>下载日志 JSON</button>
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="diagnostics-panel" data-diag-panel-telemetry>
+                            <summary class="diagnostics-panel__summary">Telemetry（可选）</summary>
+                            <div class="diagnostics-panel__body">
+                                <p class="text-muted">
+                                    默认仅本地入队，不会上报；配置 Endpoint 后可手动 Flush（示例站点）。
+                                </p>
+                                <div class="diag-telemetry-row">
+                                    <input class="diag-endpoint-input" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com/telemetry" data-diag-endpoint>
+                                    <button type="button" class="cta-button-secondary" data-diag-save-endpoint>保存</button>
+                                    <button type="button" class="cta-button-secondary" data-diag-clear-endpoint>清除</button>
+                                </div>
+                                <div class="diagnostics-actions diagnostics-actions--compact">
+                                    <button type="button" class="cta-button-secondary" data-diag-flush>Flush</button>
+                                </div>
+                                <div class="diag-telemetry-meta text-muted" data-diag-telemetry-meta></div>
+                            </div>
+                        </details>
+                    </div>
+                </article>
             </section>
         </div>
     </main>
@@ -324,8 +424,8 @@
         </div>
     </footer>
 
-    <script type="module" src="scripts/motion.js?v=20260111.4"></script>
-    <script type="module" src="scripts/core.js?v=20260111.4"></script>
-    <script type="module" src="scripts/main.js?v=20260111.4"></script>
+    <script type="module" src="scripts/motion.js?v=20260112.1"></script>
+    <script type="module" src="scripts/core.js?v=20260112.1"></script>
+    <script type="module" src="scripts/main.js?v=20260112.1"></script>
 </body>
 </html>

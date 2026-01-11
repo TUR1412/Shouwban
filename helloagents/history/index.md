@@ -16,6 +16,7 @@
 | 202601112230 | accessibility-preferences | A11y/体验/守护 | ✅已完成 | `2026-01/202601112230_accessibility-preferences/` |
 | 202601112345 | actionable-toast-undo | UI/反馈/购物车 | ✅已完成 | `2026-01/202601112345_actionable-toast-undo/` |
 | 202601120023 | observability-standards | Observability/质量 | ✅已完成 | `2026-01/202601120023_observability-standards/` |
+| 202601120102 | diagnostics-center | Observability/UI/诊断 | ✅已完成 | `2026-01/202601120102_diagnostics-center/` |
 
 ## 按月归档
 
@@ -32,3 +33,4 @@
 - [202601112230_accessibility-preferences](2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心 + 动效降级 + PWA/Tooling 守护
 - [202601112345_actionable-toast-undo](2026-01/202601112345_actionable-toast-undo/) - Toast 可操作升级（action/关闭）+ 购物车撤销交互
 - [202601120023_observability-standards](2026-01/202601120023_observability-standards/) - Logger/ErrorShield/PerfVitals 可观测性基座 + DataPortability 白名单补齐 + 单测
+- [202601120102_diagnostics-center](2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）+ Command Palette 入口 + 单测

@@ -189,6 +189,7 @@
 ## 命令面板
 - 快捷键：`Ctrl/Cmd + K` 或 `/`
 - 目标：减少鼠标操作成本，提供“商业软件级”的效率交互
+- 内置命令：`打开诊断中心`（`account.html#diagnostics`）与 `打开错误报告`（`ErrorShield.open()`）
 
 ## Accessibility（无障碍与偏好）
 - 存储键：`localStorage.a11y`
@@ -204,3 +205,4 @@
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Runtime 拆分与会员/关注/套装/订单旅程/策展模块
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（A11y）+ Motion 动效降级 + CrossTabSync 同步
 - [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - Logger/ErrorShield/PerfVitals 可观测性基座（本地日志/错误边界/性能埋点）
+- [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 诊断中心（`account.html#diagnostics`）+ Command Palette 快捷入口

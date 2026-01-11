@@ -17,6 +17,7 @@
 - **无障碍与偏好中心（新增）**：减少动效 / 高对比模式 / 字体缩放（100%~125%）。
 - **可操作 Toast（新增）**：关键操作反馈支持“撤销”（如购物车清空/移除），并提供关闭入口。
 - **可观测性（新增）**：`ErrorShield` 全局错误边界 + `Logger` 本地日志 + `PerfVitals` 性能埋点（默认本地，按需对接 endpoint）。
+- **诊断中心（新增）**：`account.html#diagnostics` 一站式查看日志/错误/性能快照，支持复制摘要、下载日志 JSON、配置 Telemetry endpoint（可选）。
 - **PWA**：预缓存 + 离线兜底页，导航请求 network-first。
 
 ### 快速开始
@@ -68,6 +69,7 @@
 - **A11y & Preferences (NEW)**: reduce motion / high contrast / font scaling (100%~125%).
 - **Actionable Toasts (NEW)**: undo for destructive actions (e.g., cart clear/remove) with dismiss support.
 - **Observability (NEW)**: `ErrorShield` (error boundary) + local `Logger` + `PerfVitals` telemetry (local-first; optional endpoint).
+- **Diagnostics Center (NEW)**: `account.html#diagnostics` to inspect logs/errors/perf snapshot, copy a report, download logs JSON, and optionally configure a telemetry endpoint.
 - **PWA**: precache + offline fallback, network-first navigation.
 
 ### Quick Start

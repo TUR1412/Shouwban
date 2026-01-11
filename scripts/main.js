@@ -1,12 +1,12 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260111.4';
-import { createStorageKit } from './runtime/storage.js?v=20260111.4';
-import { createPerfKit } from './runtime/perf.js?v=20260111.4';
-import { createAccessibility } from './modules/accessibility.js?v=20260111.4';
-import { createToast } from './modules/toast.js?v=20260111.4';
-import { createLogger } from './modules/logger.js?v=20260111.4';
-import { createErrorShield } from './modules/error-shield.js?v=20260111.4';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260111.4';
+import { createStateHub } from './runtime/state.js?v=20260112.1';
+import { createStorageKit } from './runtime/storage.js?v=20260112.1';
+import { createPerfKit } from './runtime/perf.js?v=20260112.1';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.1';
+import { createToast } from './modules/toast.js?v=20260112.1';
+import { createLogger } from './modules/logger.js?v=20260112.1';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.1';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.1';
 
 // ==============================================
 // Utility Functions
@@ -6825,6 +6825,20 @@ const CommandPalette = (function() {
                 desc: '打开 account.html',
                 icon: 'icon-user',
                 run: () => safeNavigate('account.html'),
+            },
+            {
+                id: 'go-diagnostics',
+                title: '打开诊断中心',
+                desc: '打开 account.html#diagnostics',
+                icon: 'icon-shield',
+                run: () => safeNavigate('account.html#diagnostics'),
+            },
+            {
+                id: 'open-error-report',
+                title: '打开错误报告',
+                desc: '打开 ErrorShield 报告面板',
+                icon: 'icon-shield',
+                run: () => ErrorShield?.open?.(),
             },
             {
                 id: 'toggle-theme',

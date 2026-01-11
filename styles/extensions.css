@@ -2474,6 +2474,312 @@ html[data-theme="dark"] .account-a11y__scale {
   opacity: 0.8;
 }
 
+/* Account: 诊断中心（Observability UI） */
+.account-diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.account-diagnostics__hint {
+  margin: 0;
+}
+
+.diagnostics-kpis {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 576px) {
+  .diagnostics-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 992px) {
+  .diagnostics-kpis {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.diag-kpi {
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: var(--spacing-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="dark"] .diag-kpi {
+  background: rgba(15, 23, 42, 0.56);
+  border-color: rgba(148, 163, 184, 0.20);
+}
+
+.diag-kpi__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.diag-kpi__value {
+  font-size: 1.6rem;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.02em;
+  margin-top: 0.2rem;
+  color: var(--color-text-dark);
+}
+
+.diag-kpi__sub {
+  font-size: var(--font-size-xs);
+  margin-top: 0.2rem;
+}
+
+.diagnostics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.diagnostics-actions--compact {
+  margin-top: var(--spacing-xs);
+}
+
+.diagnostics-panel {
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+html[data-theme="dark"] .diagnostics-panel {
+  background: rgba(15, 23, 42, 0.46);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.diagnostics-panel__summary {
+  cursor: pointer;
+  padding: 0.55rem 0;
+  font-weight: var(--font-weight-bold);
+  list-style: none;
+}
+
+.diagnostics-panel__summary::-webkit-details-marker {
+  display: none;
+}
+
+.diagnostics-panel__body {
+  padding: 0.35rem 0 var(--spacing-xs);
+}
+
+.diag-table {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xs);
+}
+
+@media (min-width: 768px) {
+  .diag-table {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.diag-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0.55rem 0.75rem;
+}
+
+html[data-theme="dark"] .diag-kv {
+  background: rgba(2, 6, 23, 0.25);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.diag-kv__k {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.diag-kv__v {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.diag-row {
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+html[data-theme="dark"] .diag-row {
+  background: rgba(2, 6, 23, 0.22);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.diag-row__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.diag-row__title {
+  font-weight: var(--font-weight-bold);
+}
+
+.diag-row__meta {
+  font-size: var(--font-size-xs);
+}
+
+.diag-row__message {
+  margin-top: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.diag-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.diag-toolbar__item {
+  border-radius: 999px;
+}
+
+.diag-log {
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0.45rem 0.65rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+html[data-theme="dark"] .diag-log {
+  background: rgba(2, 6, 23, 0.22);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.diag-log__summary {
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-sm);
+  align-items: start;
+  list-style: none;
+}
+
+.diag-log__summary::-webkit-details-marker {
+  display: none;
+}
+
+.diag-log__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.diag-log__time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--font-size-xs);
+  opacity: 0.75;
+}
+
+.diag-log__message {
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.diag-pre {
+  margin: 0.55rem 0 0;
+  border-radius: var(--border-radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0.65rem 0.75rem;
+  overflow: auto;
+  max-height: 320px;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+html[data-theme="dark"] .diag-pre {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.diag-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary-dark);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.22);
+}
+
+.diag-pill--warn {
+  background: rgba(255, 176, 32, 0.16);
+  color: var(--color-accent-dark);
+  border-color: rgba(255, 176, 32, 0.25);
+}
+
+.diag-pill--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+html[data-theme="dark"] .diag-pill--error {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+.diag-telemetry-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .diag-telemetry-row {
+    grid-template-columns: 1fr auto auto;
+  }
+}
+
+.diag-endpoint-input {
+  width: 100%;
+  border-radius: var(--border-radius-lg);
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-dark);
+}
+
+html[data-theme="dark"] .diag-endpoint-input {
+  background: rgba(2, 6, 23, 0.35);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.diag-telemetry-meta {
+  font-size: var(--font-size-xs);
+}
+
 /* ==============================================
    Neo-Quark 视觉升级
    ============================================== */
