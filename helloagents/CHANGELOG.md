@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [20260112.4] - 2026-01-12
+
+### 新增
+- Tooling：新增 `scripts/modules/diagnostics.js` 与 `scripts/modules/command-palette.js`（从 `scripts/main.js` 抽离，按需动态加载）
+
+### 变更
+- Runtime：诊断/命令面板改为懒加载 bootstrap（保持 `Ctrl/Cmd+K`、`/` 与 `?health=1` 行为一致，同时降低首屏解析成本）
+- 工程守护：`sw.js` precache、`scripts/validate.mjs`、`npm run check` 覆盖新增模块
+- 版本：统一缓存穿透版本号 bump 到 `20260112.4`
+
 ## [20260112.3] - 2026-01-12
 
 ### 新增

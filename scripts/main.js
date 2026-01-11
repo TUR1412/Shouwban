@@ -1,13 +1,13 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.3';
-import { createStorageKit } from './runtime/storage.js?v=20260112.3';
-import { createPerfKit } from './runtime/perf.js?v=20260112.3';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.3';
-import { createToast } from './modules/toast.js?v=20260112.3';
-import { createLogger } from './modules/logger.js?v=20260112.3';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.3';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.3';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.3';
+import { createStateHub } from './runtime/state.js?v=20260112.4';
+import { createStorageKit } from './runtime/storage.js?v=20260112.4';
+import { createPerfKit } from './runtime/perf.js?v=20260112.4';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.4';
+import { createToast } from './modules/toast.js?v=20260112.4';
+import { createLogger } from './modules/logger.js?v=20260112.4';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.4';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.4';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.4';
 
 // ==============================================
 // Utility Functions
@@ -6334,257 +6334,62 @@ const CrossTabSync = (function() {
 })();
 
 // ==============================================
-// Diagnostics / System Health Panorama (Console)
-// - 输出 FPS / LongTask / 内存趋势 / DOM 节点数 等关键信号
-// - 默认不启用（零开销），可通过：
-//   1) URL 参数：?health=1
-//   2) Command Palette：Ctrl/Cmd+K → 系统健康全景图
+// Tooling (Lazy Modules)
+// - 将 Diagnostics / Command Palette 拆为独立模块并按需加载，降低首屏解析成本
+// - Root static：继承入口 `?v=` 做缓存穿透；Vite：走常规 import 由打包器接管
 // ==============================================
+const LazyTooling = (function() {
+    function getRuntimeVersionFromEntry() {
+        try {
+            const url = new URL(import.meta.url);
+            const v = url.searchParams.get('v') || '';
+            return String(v || "");
+        } catch {
+            return "";
+        }
+    }
+
+    const runtimeVersion = getRuntimeVersionFromEntry();
+    const isViteEnv = Boolean(import.meta && import.meta.env);
+
+    function withVersionQuery(p) {
+        if (!runtimeVersion) return p;
+        const q = encodeURIComponent(runtimeVersion);
+        return p + "?v=" + q;
+    }
+
+    function importModule(modulePath) {
+        const p = String(modulePath || "");
+        if (!p) return Promise.resolve(null);
+
+        if (isViteEnv) return import(modulePath);
+        return import(/* @vite-ignore */ withVersionQuery(modulePath));
+    }
+
+    return { runtimeVersion, isViteEnv, importModule };
+})();
+
 const Diagnostics = (function() {
-    const state = {
-        running: false,
-        rafId: 0,
-        frameCount: 0,
-        lastFrameTs: 0,
-        lastFpsTs: 0,
-        fps: 0,
-        frameDeltaAvg: 0,
-        frameDeltaMax: 0,
-        longTaskCount: 0,
-        longTaskTotal: 0,
-        longTaskMax: 0,
-        lagAvg: 0,
-        lagMax: 0,
-        lagTimer: 0,
-        lastLagTs: 0,
-        memSamples: [],
-        watchTimer: 0,
-        observers: [],
-    };
+    let api = null;
+    let loading = null;
 
-    function now() {
-        try {
-            return performance && typeof performance.now === 'function' ? performance.now() : Date.now();
-        } catch {
-            return Date.now();
-        }
+    async function ensure() {
+        if (api) return api;
+        if (loading) return loading;
+
+        loading = LazyTooling.importModule('./modules/diagnostics.js')
+            .then((mod) => {
+                const factory = mod && mod.createDiagnostics;
+                api = typeof factory === 'function' ? factory() : null;
+                try { api?.init?.(); } catch { /* ignore */ }
+                return api;
+            })
+            .catch(() => null);
+
+        return loading;
     }
 
-    function safeRound(n) {
-        const x = Number(n);
-        return Number.isFinite(x) ? Math.round(x) : 0;
-    }
-
-    function getMemory() {
-        // performance.memory: Chromium-only (non-standard)
-        try {
-            const m = performance && performance.memory ? performance.memory : null;
-            if (!m) return null;
-            const used = Number(m.usedJSHeapSize);
-            const total = Number(m.totalJSHeapSize);
-            const limit = Number(m.jsHeapSizeLimit);
-            if (!Number.isFinite(used)) return null;
-            return {
-                usedMB: Math.round(used / 1024 / 1024),
-                totalMB: Number.isFinite(total) ? Math.round(total / 1024 / 1024) : 0,
-                limitMB: Number.isFinite(limit) ? Math.round(limit / 1024 / 1024) : 0,
-            };
-        } catch {
-            return null;
-        }
-    }
-
-    function sampleMemory() {
-        const m = getMemory();
-        if (!m) return;
-        const ts = Date.now();
-        state.memSamples.push({ ts, usedMB: m.usedMB });
-        // Keep last ~5 minutes (1 sample / 5s)
-        const cutoff = ts - 5 * 60 * 1000;
-        while (state.memSamples.length > 0 && state.memSamples[0].ts < cutoff) {
-            state.memSamples.shift();
-        }
-    }
-
-    function frameLoop(ts) {
-        state.rafId = 0;
-        if (!state.running) return;
-
-        const t = Number(ts) || now();
-        if (state.lastFrameTs > 0) {
-            const delta = t - state.lastFrameTs;
-            state.frameDeltaAvg = state.frameDeltaAvg ? state.frameDeltaAvg * 0.9 + delta * 0.1 : delta;
-            state.frameDeltaMax = Math.max(state.frameDeltaMax, delta);
-        }
-        state.lastFrameTs = t;
-        state.frameCount += 1;
-
-        if (!state.lastFpsTs) state.lastFpsTs = t;
-        const elapsed = t - state.lastFpsTs;
-        if (elapsed >= 1000) {
-            state.fps = Math.round((state.frameCount * 1000) / elapsed);
-            state.frameCount = 0;
-            state.lastFpsTs = t;
-            state.frameDeltaMax = 0;
-        }
-
-        state.rafId = requestAnimationFrame(frameLoop);
-    }
-
-    function startFrameLoop() {
-        if (state.rafId) return;
-        state.lastFrameTs = 0;
-        state.lastFpsTs = 0;
-        state.frameCount = 0;
-        state.rafId = requestAnimationFrame(frameLoop);
-    }
-
-    function startEventLoopLag() {
-        if (state.lagTimer) return;
-        state.lastLagTs = Date.now();
-        state.lagTimer = window.setInterval(() => {
-            const nowTs = Date.now();
-            const expected = state.lastLagTs + 500;
-            const lag = Math.max(0, nowTs - expected);
-            state.lastLagTs = nowTs;
-            state.lagAvg = state.lagAvg ? state.lagAvg * 0.9 + lag * 0.1 : lag;
-            state.lagMax = Math.max(state.lagMax, lag);
-            sampleMemory();
-        }, 500);
-    }
-
-    function startLongTaskObserver() {
-        try {
-            if (typeof PerformanceObserver === 'undefined') return;
-            const supported = PerformanceObserver.supportedEntryTypes || [];
-            if (!supported.includes('longtask')) return;
-
-            const obs = new PerformanceObserver((list) => {
-                const entries = list.getEntries ? list.getEntries() : [];
-                entries.forEach((e) => {
-                    const dur = Number(e.duration) || 0;
-                    state.longTaskCount += 1;
-                    state.longTaskTotal += dur;
-                    state.longTaskMax = Math.max(state.longTaskMax, dur);
-                });
-            });
-            obs.observe({ type: 'longtask', buffered: true });
-            state.observers.push(obs);
-        } catch {
-            // ignore
-        }
-    }
-
-    function stopObservers() {
-        const list = Array.isArray(state.observers) ? state.observers : [];
-        list.forEach((obs) => {
-            try { obs.disconnect(); } catch { /* ignore */ }
-        });
-        state.observers = [];
-    }
-
-    function start() {
-        if (state.running) return;
-        state.running = true;
-        startFrameLoop();
-        startEventLoopLag();
-        startLongTaskObserver();
-    }
-
-    function stop() {
-        state.running = false;
-        if (state.rafId) {
-            try { cancelAnimationFrame(state.rafId); } catch { /* ignore */ }
-            state.rafId = 0;
-        }
-        if (state.lagTimer) {
-            try { clearInterval(state.lagTimer); } catch { /* ignore */ }
-            state.lagTimer = 0;
-        }
-        state.lagMax = 0;
-        stopObservers();
-        unwatch();
-    }
-
-    function snapshot() {
-        const mem = getMemory();
-        const usedMB = mem?.usedMB ?? null;
-        const domNodes = (() => {
-            try {
-                return document.getElementsByTagName('*').length;
-            } catch {
-                return 0;
-            }
-        })();
-
-        const url = (() => {
-            try { return window.location.href; } catch { return ''; }
-        })();
-
-        return {
-            url,
-            time: new Date().toISOString(),
-            fps: state.fps,
-            frameMsAvg: safeRound(state.frameDeltaAvg),
-            longTaskCount: state.longTaskCount,
-            longTaskMaxMs: safeRound(state.longTaskMax),
-            eventLoopLagAvgMs: safeRound(state.lagAvg),
-            eventLoopLagMaxMs: safeRound(state.lagMax),
-            domNodes,
-            heapUsedMB: usedMB,
-        };
-    }
-
-    function print(options = {}) {
-        const opts = options && typeof options === 'object' ? options : {};
-        const s = snapshot();
-        const title = `系统健康全景图 · FPS ${s.fps} · LongTask ${s.longTaskCount}`;
-
-        try {
-            if (opts.clear) console.clear();
-        } catch {
-            // ignore
-        }
-
-        console.groupCollapsed(title);
-        console.table(s);
-
-        if (Array.isArray(state.memSamples) && state.memSamples.length >= 2) {
-            const first = state.memSamples[0];
-            const last = state.memSamples[state.memSamples.length - 1];
-            const delta = Number(last.usedMB) - Number(first.usedMB);
-            const durationSec = Math.max(1, Math.round((last.ts - first.ts) / 1000));
-            console.log(`内存趋势（${durationSec}s）：${first.usedMB}MB → ${last.usedMB}MB（Δ ${delta}MB）`);
-        } else if (s.heapUsedMB == null) {
-            console.log('内存：当前浏览器不支持 performance.memory（无法采样 JS Heap）。');
-        }
-
-        console.log('提示：在商品列表页添加 ?stress=100000&health=1 可验证“虚拟滚动 + 监控”。');
-        console.groupEnd();
-    }
-
-    function watch(options = {}) {
-        const opts = options && typeof options === 'object' ? options : {};
-        const intervalMs = Math.max(1000, Number(opts.intervalMs) || 5000);
-        const clear = Boolean(opts.clear);
-
-        start();
-        if (state.watchTimer) {
-            try { clearInterval(state.watchTimer); } catch { /* ignore */ }
-            state.watchTimer = 0;
-        }
-
-        state.watchTimer = window.setInterval(() => print({ clear }), intervalMs);
-        print({ clear });
-    }
-
-    function unwatch() {
-        if (!state.watchTimer) return;
-        try { clearInterval(state.watchTimer); } catch { /* ignore */ }
-        state.watchTimer = 0;
-    }
-
-    function shouldAutoStart() {
+    function isHealthEnabled() {
         try {
             const url = new URL(window.location.href);
             const v = url.searchParams.get('health');
@@ -6595,46 +6400,39 @@ const Diagnostics = (function() {
     }
 
     function init() {
-        // Expose as an opt-in dev tool
+        // Expose proxy for console usage without forcing module load.
         try {
-            if (!globalThis.ShouwbanDiagnostics) globalThis.ShouwbanDiagnostics = api;
+            if (!globalThis.ShouwbanDiagnostics) globalThis.ShouwbanDiagnostics = Diagnostics;
         } catch {
             // ignore
         }
 
-        if (shouldAutoStart()) {
-            watch({ intervalMs: 5000, clear: false });
+        // Auto-start only when explicitly enabled via URL param.
+        if (isHealthEnabled()) {
+            void ensure().then((d) => {
+                try { d?.watch?.({ intervalMs: 5000, clear: false }); } catch { /* ignore */ }
+            });
         }
     }
 
-    const api = { init, start, stop, snapshot, print, watch, unwatch };
-    return api;
+    function start() { void ensure().then((d) => d?.start?.()); }
+    function stop() { void ensure().then((d) => d?.stop?.()); }
+    function print(options) { void ensure().then((d) => d?.print?.(options)); }
+    function watch(options) { void ensure().then((d) => d?.watch?.(options)); }
+    function unwatch() { void ensure().then((d) => d?.unwatch?.()); }
+
+    function snapshot() {
+        // Keep a sync signature for console usage: return cached snapshot when available.
+        try { return api?.snapshot?.() || null; } catch { return null; }
+    }
+
+    return { init, start, stop, snapshot, print, watch, unwatch };
 })();
 
-// ==============================================
-// Command Palette (Ctrl/Cmd + K)
-// - 现代产品常见的“命令面板”交互：快速跳转/搜索/切换主题
-// - 纯前端实现：不依赖第三方库
-// ==============================================
 const CommandPalette = (function() {
-    const dialogId = 'cmdk-dialog';
-    const supportsDialog = typeof HTMLDialogElement !== 'undefined';
-
-    let dialog = null;
-    let input = null;
-    let list = null;
-    let desc = null;
-    let results = [];
-    let activeIndex = 0;
-
-    function getShortcutText() {
-        try {
-            const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || '');
-            return isMac ? '⌘ K' : 'Ctrl K';
-        } catch {
-            return 'Ctrl K';
-        }
-    }
+    let api = null;
+    let loading = null;
+    let bound = false;
 
     function isEditableTarget(target) {
         const el = target && target.nodeType === 1 ? target : null;
@@ -6644,346 +6442,42 @@ const CommandPalette = (function() {
         return Boolean(el.isContentEditable);
     }
 
-    function safeNavigate(href) {
-        const url = String(href || '').trim();
-        if (!url) return;
-        window.location.href = url;
-    }
+    async function ensure() {
+        if (api) return api;
+        if (loading) return loading;
 
-    function getBaseCommands() {
-        return [
-            {
-                id: 'go-home',
-                title: '返回首页',
-                desc: '打开 index.html',
-                icon: 'icon-arrow-left',
-                run: () => safeNavigate('index.html'),
-            },
-            {
-                id: 'go-products',
-                title: '浏览所有商品',
-                desc: '打开 products.html',
-                icon: 'icon-grid',
-                run: () => safeNavigate('products.html'),
-            },
-            {
-                id: 'go-cart',
-                title: '打开购物车',
-                desc: '打开 cart.html',
-                icon: 'icon-cart',
-                run: () => safeNavigate('cart.html'),
-            },
-            {
-                id: 'go-favorites',
-                title: '打开收藏',
-                desc: '打开 favorites.html',
-                icon: 'icon-heart',
-                run: () => safeNavigate('favorites.html'),
-            },
-            {
-                id: 'go-compare',
-                title: '打开对比',
-                desc: '打开 compare.html',
-                icon: 'icon-scale',
-                run: () => safeNavigate('compare.html'),
-            },
-            {
-                id: 'go-orders',
-                title: '打开订单中心',
-                desc: '打开 orders.html',
-                icon: 'icon-receipt',
-                run: () => safeNavigate('orders.html'),
-            },
-            {
-                id: 'go-account',
-                title: '打开会员中心',
-                desc: '打开 account.html',
-                icon: 'icon-user',
-                run: () => safeNavigate('account.html'),
-            },
-            {
-                id: 'go-diagnostics',
-                title: '打开诊断中心',
-                desc: '打开 account.html#diagnostics',
-                icon: 'icon-shield',
-                run: () => safeNavigate('account.html#diagnostics'),
-            },
-            {
-                id: 'open-error-report',
-                title: '打开错误报告',
-                desc: '打开 ErrorShield 报告面板',
-                icon: 'icon-shield',
-                run: () => ErrorShield?.open?.(),
-            },
-            {
-                id: 'toggle-theme',
-                title: '切换主题',
-                desc: '深色 / 浅色模式',
-                icon: 'icon-moon',
-                run: () => Theme?.toggleTheme?.(),
-            },
-            {
-                id: 'health-panorama',
-                title: '系统健康全景图',
-                desc: '输出 FPS / LongTask / 内存趋势',
-                icon: 'icon-shield',
-                run: () => Diagnostics?.print?.(),
-            },
-            {
-                id: 'health-watch',
-                title: '开始健康监控（5s）',
-                desc: '每 5 秒输出一次健康快照',
-                icon: 'icon-bell',
-                run: () => Diagnostics?.watch?.({ intervalMs: 5000, clear: false }),
-            },
-            {
-                id: 'health-unwatch',
-                title: '停止健康监控',
-                desc: '停止定时输出（保留采样）',
-                icon: 'icon-x',
-                run: () => Diagnostics?.unwatch?.(),
-            },
-            {
-                id: 'copy-link',
-                title: '复制当前页面链接',
-                desc: '复制 URL 到剪贴板',
-                icon: 'icon-link',
-                run: async () => {
-                    const ok = await Utils.copyText(window.location.href);
-                    Toast?.show?.(ok ? '链接已复制' : '复制失败', ok ? 'success' : 'error', 1600);
-                },
-            },
-        ];
-    }
-
-    function normalizeQuery(value) {
-        return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    }
-
-    function buildResults(query) {
-        const q = normalizeQuery(query);
-        const base = getBaseCommands();
-
-        if (!q) {
-            return base;
-        }
-
-        const lower = q.toLowerCase();
-        const filtered = base.filter((c) => {
-            const hay = `${c.title} ${c.desc}`.toLowerCase();
-            return hay.includes(lower);
-        });
-
-        // Always provide a search action as the last fallback.
-        filtered.push({
-            id: 'search-products',
-            title: `搜索商品：${q}`,
-            desc: '在商品列表页查看搜索结果',
-            icon: 'icon-search',
-            run: () => safeNavigate(`products.html?query=${encodeURIComponent(q)}`),
-        });
-
-        return filtered;
-    }
-
-    function render() {
-        if (!list || !input) return;
-        const query = input.value;
-        results = buildResults(query);
-        activeIndex = Math.min(activeIndex, Math.max(0, results.length - 1));
-
-        if (desc) {
-            desc.textContent = results.length
-                ? `回车执行 · ↑↓ 选择 · Esc 关闭 · ${getShortcutText()} 打开`
-                : `没有匹配项 · ${getShortcutText()} 打开`;
-        }
-
-        list.innerHTML = results
-            .map((item, idx) => {
-                const selected = idx === activeIndex ? 'true' : 'false';
-                const icon = item.icon ? Icons.svgHtml(item.icon) : '';
-                const title = Utils.escapeHtml(item.title);
-                const sub = Utils.escapeHtml(item.desc || '');
-                return `
-                    <button type="button" class="cmdk-item" role="option" aria-selected="${selected}" data-cmdk-index="${idx}">
-                        <span class="cmdk-item__left">
-                            ${icon}
-                            <span class="cmdk-item__text">
-                                <span class="cmdk-item__title">${title}</span>
-                                ${sub ? `<span class="cmdk-item__desc">${sub}</span>` : ''}
-                            </span>
-                        </span>
-                        <span class="cmdk-item__hint">↵</span>
-                    </button>
-                `.trim();
+        loading = LazyTooling.importModule('./modules/command-palette.js')
+            .then((mod) => {
+                const factory = mod && mod.createCommandPalette;
+                api = typeof factory === 'function'
+                    ? factory(
+                        { Utils, Icons, Toast, Theme, Diagnostics, ErrorShield },
+                        { bindGlobalHotkeys: false },
+                    )
+                    : null;
+                return api;
             })
-            .join('');
-    }
+            .catch(() => null);
 
-    async function runActive() {
-        const item = results[activeIndex];
-        if (!item || typeof item.run !== 'function') return;
-        try {
-            close();
-            await item.run();
-        } catch (e) {
-            console.warn('CommandPalette: run failed', e);
-            Toast?.show?.('命令执行失败', 'error', 1600);
-        }
-    }
-
-    function move(delta) {
-        if (!results.length) return;
-        activeIndex = (activeIndex + delta + results.length) % results.length;
-        render();
-        // Ensure selected item is visible
-        try {
-            const el = list?.querySelector?.(`.cmdk-item[data-cmdk-index="${activeIndex}"]`);
-            el?.scrollIntoView?.({ block: 'nearest' });
-        } catch {
-            // ignore
-        }
-    }
-
-    function onListClick(event) {
-        const btn = event.target?.closest?.('.cmdk-item[data-cmdk-index]');
-        if (!btn) return;
-        const idx = Number(btn.dataset.cmdkIndex);
-        if (!Number.isFinite(idx)) return;
-        activeIndex = idx;
-        runActive();
-    }
-
-    function onDialogKeydown(event) {
-        if (!event) return;
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            close();
-            return;
-        }
-        if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            move(1);
-            return;
-        }
-        if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            move(-1);
-            return;
-        }
-        if (event.key === 'Enter') {
-            // Allow IME composition; avoid triggering while composing.
-            if (event.isComposing) return;
-            event.preventDefault();
-            runActive();
-        }
-    }
-
-    function ensureDialog() {
-        if (dialog) return dialog;
-
-        // Fallback: focus header search when dialog isn't supported.
-        if (!supportsDialog) return null;
-
-        dialog = document.createElement('dialog');
-        dialog.id = dialogId;
-        dialog.className = 'glass-dialog cmdk-dialog';
-        dialog.innerHTML = `
-            <div class="glass-dialog__card cmdk-card">
-                <div class="glass-dialog__header cmdk-header">
-                    <h3 class="glass-dialog__title cmdk-title">命令面板</h3>
-                    <p class="glass-dialog__subtitle text-muted cmdk-subtitle">快速跳转 / 搜索 / 操作</p>
-                </div>
-
-                <div class="cmdk-input-row">
-                    <input class="glass-dialog__input cmdk-input" type="search" placeholder="输入关键词或命令…（例如：购物车 / 切换主题 / 初音）" autocomplete="off" spellcheck="false" enterkeyhint="search" />
-                </div>
-
-                <div class="cmdk-meta text-muted" data-cmdk-desc></div>
-
-                <div class="cmdk-list" role="listbox" aria-label="命令列表" data-cmdk-list></div>
-
-                <div class="glass-dialog__actions cmdk-actions">
-                    <button type="button" class="cta-button-secondary" data-cmdk-close>关闭</button>
-                </div>
-            </div>
-        `.trim();
-
-        document.body.appendChild(dialog);
-
-        input = dialog.querySelector('.cmdk-input');
-        list = dialog.querySelector('[data-cmdk-list]');
-        desc = dialog.querySelector('[data-cmdk-desc]');
-
-        dialog.addEventListener('keydown', onDialogKeydown);
-        list?.addEventListener?.('click', onListClick);
-
-        const closeBtn = dialog.querySelector('[data-cmdk-close]');
-        closeBtn?.addEventListener?.('click', close);
-
-        input?.addEventListener?.('input', () => {
-            activeIndex = 0;
-            render();
-        });
-
-        // Click backdrop to close (native dialog doesn't emit backdrop click; approximate)
-        dialog.addEventListener('click', (e) => {
-            if (e.target === dialog) close();
-        });
-
-        return dialog;
+        return loading;
     }
 
     function open(prefill = '') {
-        // Fallback: open header search bar.
-        if (!supportsDialog) {
-            const searchBtn = document.querySelector('.header__action-link[aria-label="搜索"]');
-            const searchBar = document.querySelector('.header__search-bar');
-            const searchInput = document.querySelector('.header__search-input');
-            try {
-                if (searchBar && !searchBar.classList.contains('is-open')) {
-                    searchBtn?.click?.();
-                }
-                searchInput?.focus?.();
-                if (prefill) searchInput.value = prefill;
-            } catch {
-                // ignore
-            }
-            return;
-        }
-
-        const dlg = ensureDialog();
-        if (!dlg) return;
-
-        try {
-            if (!dlg.open) dlg.showModal();
-        } catch {
-            // ignore
-        }
-
-        if (input) input.value = normalizeQuery(prefill);
-        activeIndex = 0;
-        render();
-        input?.focus?.();
-        input?.select?.();
+        void ensure().then((p) => {
+            try { p?.open?.(prefill); } catch { /* ignore */ }
+        });
     }
 
     function close() {
-        if (!dialog) return;
-        try {
-            if (dialog.open) dialog.close();
-        } catch {
-            // ignore
-        }
+        if (!api) return;
+        try { api.close?.(); } catch { /* ignore */ }
     }
 
     function handleGlobalKeydown(event) {
         if (!event) return;
         if (event.defaultPrevented) return;
 
-        // Avoid stealing shortcuts while typing, except Escape (handled inside dialog).
         if (isEditableTarget(event.target)) {
-            // Allow Ctrl/Cmd+K even when in input for power users
             const isCmdK = (event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K');
             if (!isCmdK) return;
         }
@@ -6995,7 +6489,6 @@ const CommandPalette = (function() {
             return;
         }
 
-        // "/" 快捷打开（类 GitHub），但不在输入框中触发
         if (!isEditableTarget(event.target) && event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
             event.preventDefault();
             open();
@@ -7003,6 +6496,8 @@ const CommandPalette = (function() {
     }
 
     function init() {
+        if (bound) return;
+        bound = true;
         document.addEventListener('keydown', handleGlobalKeydown);
     }
 
@@ -7154,6 +6649,10 @@ const App = {
         Promotion.init();
         QuickAdd.init();
 
+        // Tooling：懒加载 bootstrap（不强制加载模块，仅绑定快捷键/暴露控制台入口）
+        CommandPalette.init();
+        Diagnostics.init();
+
         // 非关键增强：延后到空闲时，降低首屏主线程压力（Open/Closed：增量扩展 init 时序）
         idle(() => {
             try { Telemetry.init(); } catch { /* ignore */ }
@@ -7166,12 +6665,6 @@ const App = {
             try { PWAInstall.init(); } catch { /* ignore */ }
             try { CrossTabSync.init(); } catch { /* ignore */ }
         }, 900);
-
-        // 诊断与命令面板：更晚初始化（避免抢占首屏）
-        idle(() => {
-            try { CommandPalette.init(); } catch { /* ignore */ }
-            try { Diagnostics.init(); } catch { /* ignore */ }
-        }, 1500);
 
         // 页面级初始化：模块按需加载（真正代码分割）
         PageModules.initPage(page, pageModulePromise, PageModules.createRuntimeContext());

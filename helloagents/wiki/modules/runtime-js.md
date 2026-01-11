@@ -179,6 +179,7 @@
 
 目标：提供“浏览器控制台健康全景图”，用于快速定位掉帧/长任务/内存上升趋势。
 
+- 模块：`scripts/modules/diagnostics.js`（由 `scripts/main.js` 懒加载 bootstrap，默认不占首屏解析成本）
 - 入口（任意其一）：
   - URL：`?health=1`（自动开始每 5 秒输出一次快照）
   - 命令面板：`Ctrl/Cmd + K` → `系统健康全景图` / `开始健康监控（5s）`
@@ -191,6 +192,7 @@
 ## 命令面板
 - 快捷键：`Ctrl/Cmd + K` 或 `/`
 - 目标：减少鼠标操作成本，提供“商业软件级”的效率交互
+- 模块：`scripts/modules/command-palette.js`（由 `scripts/main.js` 仅绑定快捷键，触发时再动态加载 UI）
 - 内置命令：`打开诊断中心`（`account.html#diagnostics`）与 `打开错误报告`（`ErrorShield.open()`）
 
 ## Accessibility（无障碍与偏好）
