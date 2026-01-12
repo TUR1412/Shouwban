@@ -1168,6 +1168,8 @@ const Cinematic = (function() {
     function bindTapFeedback() {
         if (!isMotionReady()) return;
 
+        const pressedByPointerId = new Map();
+
         const isInteractive = (el) => {
             if (!el) return false;
             if (el.matches?.('button, a')) return true;
@@ -1183,11 +1185,33 @@ const Cinematic = (function() {
             return el;
         };
 
+        const rememberPressed = (event, el) => {
+            const pointerId = event?.pointerId;
+            if (typeof pointerId === 'number') pressedByPointerId.set(pointerId, el);
+            try {
+                if (typeof el?.setPointerCapture === 'function' && typeof pointerId === 'number') {
+                    el.setPointerCapture(pointerId);
+                }
+            } catch {
+                // ignore
+            }
+        };
+
+        const resolvePressed = (event) => {
+            const pointerId = event?.pointerId;
+            if (typeof pointerId !== 'number') return null;
+            const el = pressedByPointerId.get(pointerId) || null;
+            pressedByPointerId.delete(pointerId);
+            return el;
+        };
+
         document.addEventListener(
             'pointerdown',
             (event) => {
                 const el = getTarget(event);
                 if (!el) return;
+                if (event?.pointerType === 'mouse' && typeof event?.button === 'number' && event.button !== 0) return;
+                rememberPressed(event, el);
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
                 animate(el, { scale: [1, 0.98] }, { duration: 0.12, easing: [0.22, 1, 0.36, 1] })?.finished?.finally?.(() => {
@@ -1197,14 +1221,47 @@ const Cinematic = (function() {
             { passive: true },
         );
 
+        const springOut = (el) => {
+            const lib = getMotionLib();
+            if (!lib || typeof lib.spring !== 'function') return null;
+            try {
+                return lib.spring(el, { scale: [0.98, 1] }, { stiffness: 420, damping: 36, mass: 1, maxDurationMs: 520 });
+            } catch {
+                return null;
+            }
+        };
+
         document.addEventListener(
             'pointerup',
             (event) => {
-                const el = getTarget(event);
+                const stored = resolvePressed(event);
+                const el = stored || getTarget(event);
                 if (!el) return;
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                animate(el, { scale: [0.98, 1] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] })?.finished?.finally?.(() => {
+                const springAnim = springOut(el);
+                const anim =
+                    springAnim ||
+                    animate(el, { scale: [0.98, 1] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+                anim?.finished?.finally?.(() => {
+                    el.style.willChange = '';
+                });
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointercancel',
+            (event) => {
+                const el = resolvePressed(event);
+                if (!el) return;
+                cancelRunningAnimations(el);
+                el.style.willChange = 'transform';
+                const springAnim = springOut(el);
+                const anim =
+                    springAnim ||
+                    animate(el, { scale: [0.98, 1] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+                anim?.finished?.finally?.(() => {
                     el.style.willChange = '';
                 });
             },

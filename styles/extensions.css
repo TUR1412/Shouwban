@@ -197,8 +197,13 @@ html[data-cinematic="on"]
     .compare-btn,
     .alert-btn,
     .restock-btn,
+    .toast__action,
+    .back-to-top,
     .header__action-link,
-    .header__menu-toggle
+    .header__menu-toggle,
+    .header__nav-link,
+    .error-shield__close,
+    .lightbox__nav
   ):active {
   transform: none;
 }
