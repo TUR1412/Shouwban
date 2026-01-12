@@ -12,6 +12,17 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.15] - 2026-01-12
+
+### 新增
+- UI：Dialog 物理级入场：`glass-dialog` 与 `::backdrop` 在 `prefers-reduced-motion: no-preference` 下启用 pop-in + fade-in（渐进增强，不改业务逻辑）
+- UI：商品媒体 Hover Zoom：产品卡片与 PDP 主图在 `hover/pointer: fine` 下增加轻微缩放与饱和度微交互（以 transform/filter 为主，60FPS 友好）
+
+### 变更
+- UI：Toast 入场动效升级：加入轻微缩放与 blur→clear 过渡，统一到 Quartz motion token，并在 `prefers-reduced-motion` 下自动降级
+- UI：Dialog Backdrop：统一为 Quartz 的更深遮罩与更强 blur/saturate（更接近系统级层级感）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.15`
+
 ## [20260112.14] - 2026-01-12
 
 ### 修复

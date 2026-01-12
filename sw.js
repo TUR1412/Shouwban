@@ -1,11 +1,11 @@
 /* Service Worker (PWA)
-   - Cache version follows asset query: 20260112.14
+   - Cache version follows asset query: 20260112.15
    - Strategy:
      - HTML navigation: network-first, fallback to offline.html
      - Static assets: cache-first, runtime cache update
 */
 
-const CACHE_NAME = 'shouwban-20260112.14';
+const CACHE_NAME = 'shouwban-20260112.15';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -23,33 +23,33 @@ const PRECACHE_URLS = [
   '404.html',
   'offline.html',
 
-  'styles/main.css?v=20260112.14',
-  'styles/extensions.css?v=20260112.14',
-  'scripts/motion.js?v=20260112.14',
-  'scripts/core.js?v=20260112.14',
-  'scripts/main.js?v=20260112.14',
-  'scripts/runtime/state.js?v=20260112.14',
-  'scripts/runtime/storage.js?v=20260112.14',
-  'scripts/runtime/perf.js?v=20260112.14',
-  'scripts/modules/accessibility.js?v=20260112.14',
-  'scripts/modules/toast.js?v=20260112.14',
-  'scripts/modules/logger.js?v=20260112.14',
-  'scripts/modules/error-shield.js?v=20260112.14',
-  'scripts/modules/perf-vitals.js?v=20260112.14',
-  'scripts/modules/telemetry.js?v=20260112.14',
-  'scripts/modules/seo.js?v=20260112.14',
-  'scripts/modules/diagnostics.js?v=20260112.14',
-  'scripts/modules/command-palette.js?v=20260112.14',
-  'scripts/pages/homepage.js?v=20260112.14',
-  'scripts/pages/product-listing.js?v=20260112.14',
-  'scripts/pages/product-detail.js?v=20260112.14',
-  'scripts/pages/checkout.js?v=20260112.14',
-  'scripts/pages/static-page.js?v=20260112.14',
-  'scripts/pages/offline.js?v=20260112.14',
-  'scripts/pages/compare.js?v=20260112.14',
-  'scripts/pages/orders.js?v=20260112.14',
-  'scripts/pages/account.js?v=20260112.14',
-  'scripts/pages/order-success.js?v=20260112.14',
+  'styles/main.css?v=20260112.15',
+  'styles/extensions.css?v=20260112.15',
+  'scripts/motion.js?v=20260112.15',
+  'scripts/core.js?v=20260112.15',
+  'scripts/main.js?v=20260112.15',
+  'scripts/runtime/state.js?v=20260112.15',
+  'scripts/runtime/storage.js?v=20260112.15',
+  'scripts/runtime/perf.js?v=20260112.15',
+  'scripts/modules/accessibility.js?v=20260112.15',
+  'scripts/modules/toast.js?v=20260112.15',
+  'scripts/modules/logger.js?v=20260112.15',
+  'scripts/modules/error-shield.js?v=20260112.15',
+  'scripts/modules/perf-vitals.js?v=20260112.15',
+  'scripts/modules/telemetry.js?v=20260112.15',
+  'scripts/modules/seo.js?v=20260112.15',
+  'scripts/modules/diagnostics.js?v=20260112.15',
+  'scripts/modules/command-palette.js?v=20260112.15',
+  'scripts/pages/homepage.js?v=20260112.15',
+  'scripts/pages/product-listing.js?v=20260112.15',
+  'scripts/pages/product-detail.js?v=20260112.15',
+  'scripts/pages/checkout.js?v=20260112.15',
+  'scripts/pages/static-page.js?v=20260112.15',
+  'scripts/pages/offline.js?v=20260112.15',
+  'scripts/pages/compare.js?v=20260112.15',
+  'scripts/pages/orders.js?v=20260112.15',
+  'scripts/pages/account.js?v=20260112.15',
+  'scripts/pages/order-success.js?v=20260112.15',
 
   'assets/favicon.svg',
   'assets/icons.svg',

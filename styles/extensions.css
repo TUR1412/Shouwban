@@ -3561,17 +3561,59 @@ html[data-theme="dark"] .listing-meta__action {
   }
 }
 
+/* Product media: subtle hover zoom (image only) */
+.product-card__image img,
+.product-gallery-pdp__main-image img {
+  transition:
+    transform var(--motion-base) var(--ease-emphasized),
+    filter var(--motion-base) var(--ease-emphasized);
+  transform: translateZ(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover .product-card__image img {
+    transform: scale(1.03);
+    filter: saturate(1.05) contrast(1.02);
+    will-change: transform, filter;
+  }
+
+  .product-gallery-pdp__main-image:hover img {
+    transform: scale(1.015);
+    filter: saturate(1.03) contrast(1.02);
+    will-change: transform, filter;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card__image img,
+  .product-gallery-pdp__main-image img {
+    transition: none;
+  }
+}
+
 /* Toast: sharper density */
 .toast {
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(15, 23, 42, 0.10);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   backdrop-filter: blur(16px) saturate(160%);
+  transform: translateY(-10px) scale(0.98);
+  filter: blur(2px);
+  transition:
+    opacity var(--motion-base) var(--ease-emphasized),
+    transform var(--motion-base) var(--ease-emphasized),
+    filter var(--motion-base) var(--ease-emphasized);
+  will-change: transform, opacity;
 }
 
 html[data-theme="dark"] .toast {
   background: rgba(10, 12, 18, 0.72);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+.toast.is-visible {
+  transform: translateY(0) scale(1);
+  filter: none;
 }
 
 .toast__action:focus-visible,
@@ -3580,7 +3622,23 @@ html[data-theme="dark"] .toast {
   box-shadow: var(--focus-ring);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    filter: none;
+  }
+}
+
 /* Dialog: consistent glass */
+.glass-dialog::backdrop {
+  background: rgba(2, 6, 23, 0.52);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+html[data-theme="dark"] .glass-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+
 .glass-dialog__card {
   background: rgba(255, 255, 255, 0.70);
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -3592,6 +3650,44 @@ html[data-theme="dark"] .toast {
 html[data-theme="dark"] .glass-dialog__card {
   background: rgba(10, 12, 18, 0.72);
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .glass-dialog[open]::backdrop {
+    animation: shouwban-backdrop-fade-in var(--motion-base) var(--ease-standard)
+      both;
+  }
+
+  .glass-dialog[open] .glass-dialog__card {
+    animation: shouwban-dialog-pop-in var(--motion-base) var(--ease-emphasized)
+      both;
+    transform-origin: center;
+    will-change: transform, opacity;
+  }
+}
+
+@keyframes shouwban-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shouwban-dialog-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(0) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Homepage hero / curation (key first-impression surfaces) */

@@ -29,6 +29,7 @@
 | 202601120635 | runtime-error-capture-jsonld-upsert | Runtime/SEO/质量守护 | ✅已完成 | `2026-01/202601120635_runtime-error-capture-jsonld-upsert/` |
 | 202601121230 | quartz-ui-reskin | UI/动效/视觉 | ✅已完成 | `2026-01/202601121230_quartz-ui-reskin/` |
 | 202601130626 | quartz-ui-polish | UI/动效/视觉 | ✅已完成 | `2026-01/202601130626_quartz-ui-polish/` |
+| 202601130645 | quartz-motion-microinteractions | UI/动效/视觉 | ✅已完成 | `2026-01/202601130645_quartz-motion-microinteractions/` |
 
 ## 按月归档
 
@@ -58,3 +59,4 @@
 - [202601120635_runtime-error-capture-jsonld-upsert](2026-01/202601120635_runtime-error-capture-jsonld-upsert/) - PageModules 错误闭环 + 页面 JSON-LD upsert 收敛
 - [202601121230_quartz-ui-reskin](2026-01/202601121230_quartz-ui-reskin/) - Quartz UI Reskin（Apple/Vercel）+ Motion.spring 微交互
 - [202601130626_quartz-ui-polish](2026-01/202601130626_quartz-ui-polish/) - Quartz UI 精修（High Contrast / Theme Color / Motion.spring transform）
+- [202601130645_quartz-motion-microinteractions](2026-01/202601130645_quartz-motion-microinteractions/) - Quartz Motion 微交互升级（Dialog/Toast 物理入场 + Product hover zoom）
