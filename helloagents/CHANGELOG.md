@@ -12,6 +12,14 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.16] - 2026-01-12
+
+### 修复
+- A11y：补齐 View Transitions 的“减少动效”兜底：当 `html[data-motion="reduce"]` 时，禁用共享元素命名并关闭 View Transition pseudo-elements 动画，避免导航过渡违背用户偏好
+
+### 变更
+- 版本：统一缓存穿透版本号 bump 到 `20260112.16`
+
 ## [20260112.15] - 2026-01-12
 
 ### 新增

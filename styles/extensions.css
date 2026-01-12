@@ -65,6 +65,34 @@ html[data-contrast="high"] :focus-visible {
     }
   }
 
+  /* A11y: 用户显式“减少动效”（html[data-motion="reduce"]）也需要关闭导航过渡
+     - 由于 @view-transition 的 navigation 无法按 selector 条件化，
+       这里通过禁用 View Transition pseudo-elements 的动画 + 取消共享元素命名来兜底
+     - 渐进增强：仅影响支持 View Transition 的浏览器
+  */
+  html[data-motion="reduce"] .header__logo a,
+  html[data-motion="reduce"] .cart-summary,
+  html[data-motion="reduce"] .order-summary {
+    view-transition-name: none;
+  }
+
+  html[data-motion="reduce"]::view-transition-old(root),
+  html[data-motion="reduce"]::view-transition-new(root),
+  html[data-motion="reduce"]::view-transition-old(vt-logo),
+  html[data-motion="reduce"]::view-transition-new(vt-logo),
+  html[data-motion="reduce"]::view-transition-group(vt-logo),
+  html[data-motion="reduce"]::view-transition-old(vt-product-image),
+  html[data-motion="reduce"]::view-transition-new(vt-product-image),
+  html[data-motion="reduce"]::view-transition-group(vt-product-image),
+  html[data-motion="reduce"]::view-transition-group(vt-product-title),
+  html[data-motion="reduce"]::view-transition-group(vt-product-price),
+  html[data-motion="reduce"]::view-transition-old(vt-summary),
+  html[data-motion="reduce"]::view-transition-new(vt-summary),
+  html[data-motion="reduce"]::view-transition-group(vt-summary) {
+    animation-duration: 0.001ms !important;
+    animation-name: none !important;
+  }
+
   /* 全局“镜头切换”：轻微缩放 + 轻微虚化，避免生硬硬切 */
   ::view-transition-old(root),
   ::view-transition-new(root) {
