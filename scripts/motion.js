@@ -206,28 +206,16 @@
     }
   }
 
-  function resolveSpringPairNumber(element, key, raw, fallbackFrom, fallbackTo) {
+  function resolveSpringPairNumber(raw, fallbackFrom, fallbackTo) {
+    const fromFallback = toNumber(fallbackFrom, 0);
     if (Array.isArray(raw) && raw.length > 0) {
-      const from = toNumber(raw[0], fallbackFrom);
-      const to = toNumber(raw[raw.length - 1], fallbackTo);
+      const from = toNumber(raw[0], fromFallback);
+      const to = toNumber(raw[raw.length - 1], from);
       return { from, to };
     }
 
-    const to = toNumber(raw, fallbackTo);
-    let from = fallbackFrom;
-
-    // Prefer current computed transform as "from" when possible.
-    try {
-      const t = readTransformParts(element);
-      if (key === 'x') from = toNumber(t.x, fallbackFrom);
-      if (key === 'y') from = toNumber(t.y, fallbackFrom);
-      if (key === 'scale') from = toNumber(t.scale, fallbackFrom);
-      if (key === 'rotate') from = toNumber(t.rotate, fallbackFrom);
-    } catch {
-      // ignore
-    }
-
-    return { from, to };
+    const to = toNumber(raw, toNumber(fallbackTo, fromFallback));
+    return { from: fromFallback, to };
   }
 
   function resolveSpringPairPx(element, prop, raw) {
@@ -332,17 +320,19 @@
     const hasRotate = 'rotate' in keyframes;
     const shouldTransform = hasX || hasY || hasScale || hasRotate;
 
-    const xPair = shouldTransform
-      ? resolveSpringPairNumber(element, 'x', keyframes.x, 0, 0)
+    const baseTransform = shouldTransform ? readTransformParts(element) : null;
+    const baseX = baseTransform ? baseTransform.x : 0;
+    const baseY = baseTransform ? baseTransform.y : 0;
+    const baseScale = baseTransform ? baseTransform.scale : 1;
+    const baseRotate = baseTransform ? baseTransform.rotate : 0;
+
+    const xPair = hasX ? resolveSpringPairNumber(keyframes.x, baseX, baseX) : null;
+    const yPair = hasY ? resolveSpringPairNumber(keyframes.y, baseY, baseY) : null;
+    const scalePair = hasScale
+      ? resolveSpringPairNumber(keyframes.scale, baseScale, baseScale)
       : null;
-    const yPair = shouldTransform
-      ? resolveSpringPairNumber(element, 'y', keyframes.y, 0, 0)
-      : null;
-    const scalePair = shouldTransform
-      ? resolveSpringPairNumber(element, 'scale', keyframes.scale, 1, 1)
-      : null;
-    const rotatePair = shouldTransform
-      ? resolveSpringPairNumber(element, 'rotate', keyframes.rotate, 0, 0)
+    const rotatePair = hasRotate
+      ? resolveSpringPairNumber(keyframes.rotate, baseRotate, baseRotate)
       : null;
 
     const widthPair =
@@ -368,10 +358,10 @@
       const frame = {};
 
       if (shouldTransform) {
-        const x = xPair ? xPair.from + (xPair.to - xPair.from) * p : 0;
-        const y = yPair ? yPair.from + (yPair.to - yPair.from) * p : 0;
-        const scale = scalePair ? scalePair.from + (scalePair.to - scalePair.from) * p : 1;
-        const rotate = rotatePair ? rotatePair.from + (rotatePair.to - rotatePair.from) * p : 0;
+        const x = xPair ? xPair.from + (xPair.to - xPair.from) * p : baseX;
+        const y = yPair ? yPair.from + (yPair.to - yPair.from) * p : baseY;
+        const scale = scalePair ? scalePair.from + (scalePair.to - scalePair.from) * p : baseScale;
+        const rotate = rotatePair ? rotatePair.from + (rotatePair.to - rotatePair.from) * p : baseRotate;
         frame.transform = buildTransform(x, y, scale, rotate);
       }
 

@@ -12,6 +12,16 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.14] - 2026-01-12
+
+### 修复
+- Motion：修复 `Motion.spring()` 在只动画部分 transform 分量（例如仅 `x/width`）时会把未声明分量强制归零/归一的问题；现在会保持既有 transform 分量不变（更符合物理直觉，避免跳变）
+
+### 变更
+- UI：Quartz 视觉精修：补齐 `--transition-fast/--transition-base`，高对比模式下对齐 `--glass-bg` 与 `--focus-ring`，并补充 Header 导航下划线 hover 微交互与滚动条皮肤（不影响业务逻辑）
+- PWA：统一 `manifest.webmanifest` 与各页面 `<meta name="theme-color">` 的默认配色到 `#0A84FF`
+- 版本：统一缓存穿透版本号 bump 到 `20260112.14`
+
 ## [20260112.13] - 2026-01-12
 
 ### 新增

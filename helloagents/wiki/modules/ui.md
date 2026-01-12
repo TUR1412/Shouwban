@@ -52,6 +52,8 @@
 - Motion：在 `scripts/motion.js` 增量扩展 `Motion.spring()`（阻尼弹簧关键帧生成，WAAPI 渐进增强），用于物理级微交互（例如首页策展 Tab 指示器）。
 - A11y：沿用 `html[data-motion="reduce"]` 与系统 `prefers-reduced-motion`，确保动效降级可控；Focus ring 统一提升可见性并尊重高对比模式。
 
+- 精修：修复 `Motion.spring()` 在仅动画部分 transform 分量（如仅 `x/width`）时的“未声明分量归零/归一”跳变；补齐 `--transition-fast/--transition-base` 与高对比 `--glass-bg/--focus-ring`，并补充 Header 导航 underline hover 微交互、滚动条皮肤与 Tabs 指示器 `will-change`（纯视觉/动效层，不影响核心业务逻辑）。
+
 ### 高级筛选 Dialog（PLP）
 `styles/extensions.css` 增加以下结构类以配合 `ProductListing` 的高级筛选对话框：
 - `.filter-dialog` / `.filter-dialog__content`
@@ -97,3 +99,4 @@
 - [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）与可执行操作入口  
 - [202601120341_seo-canonical-structured-data](../../history/2026-01/202601120341_seo-canonical-structured-data/) - SEO（canonical / Product JSON-LD）与首页 Hero LCP 提示（渐进增强）
 - [202601121230_quartz-ui-reskin](../../history/2026-01/202601121230_quartz-ui-reskin/) - Quartz UI Reskin（Apple/Vercel）+ Motion.spring 微交互
+- [202601130626_quartz-ui-polish](../../history/2026-01/202601130626_quartz-ui-polish/) - Quartz UI 精修（High Contrast / Theme Color / Motion.spring transform）
