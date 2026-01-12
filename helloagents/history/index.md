@@ -27,6 +27,7 @@
 | 202601120556 | seo-organization-jsonld | SEO/Organization/结构化数据 | ✅已完成 | `2026-01/202601120556_seo-organization-jsonld/` |
 | 202601120618 | seo-jsonld-entity-linking | SEO/JSON-LD/实体关联 | ✅已完成 | `2026-01/202601120618_seo-jsonld-entity-linking/` |
 | 202601120635 | runtime-error-capture-jsonld-upsert | Runtime/SEO/质量守护 | ✅已完成 | `2026-01/202601120635_runtime-error-capture-jsonld-upsert/` |
+| 202601121230 | quartz-ui-reskin | UI/动效/视觉 | ✅已完成 | `2026-01/202601121230_quartz-ui-reskin/` |
 
 ## 按月归档
 
@@ -54,3 +55,4 @@
 - [202601120556_seo-organization-jsonld](2026-01/202601120556_seo-organization-jsonld/) - Organization JSON-LD（站点级主体信息）
 - [202601120618_seo-jsonld-entity-linking](2026-01/202601120618_seo-jsonld-entity-linking/) - JSON-LD 实体关联（Organization/WebSite/Product 统一 @id）
 - [202601120635_runtime-error-capture-jsonld-upsert](2026-01/202601120635_runtime-error-capture-jsonld-upsert/) - PageModules 错误闭环 + 页面 JSON-LD upsert 收敛
+- [202601121230_quartz-ui-reskin](2026-01/202601121230_quartz-ui-reskin/) - Quartz UI Reskin（Apple/Vercel）+ Motion.spring 微交互

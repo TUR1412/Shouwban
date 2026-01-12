@@ -46,6 +46,12 @@
 - 新字体栈与更高对比度的标题排版
 - 新增组件皮肤：库存面板、套装卡片、关注中心、会员卡片、订单旅程
 
+## 视觉升级（Quartz UI Reskin）
+- 目标：对标 Apple / Vercel 的“中性底色 + 精准层级 + 硬件质感”审美，尽量减少 “ 花哨” 干扰，把视觉与交互聚焦到可读性与可信赖的反馈上。
+- Token：在 `styles/extensions.css` 追加 Quartz 设计 token（颜色/阴影/圆角/动效曲线），并统一覆盖关键容器（卡片/对话框/Toast/筛选条/面包屑等）的玻璃与边框表述。
+- Motion：在 `scripts/motion.js` 增量扩展 `Motion.spring()`（阻尼弹簧关键帧生成，WAAPI 渐进增强），用于物理级微交互（例如首页策展 Tab 指示器）。
+- A11y：沿用 `html[data-motion="reduce"]` 与系统 `prefers-reduced-motion`，确保动效降级可控；Focus ring 统一提升可见性并尊重高对比模式。
+
 ### 高级筛选 Dialog（PLP）
 `styles/extensions.css` 增加以下结构类以配合 `ProductListing` 的高级筛选对话框：
 - `.filter-dialog` / `.filter-dialog__content`
@@ -88,5 +94,6 @@
 - [202601112230_accessibility-preferences](../../history/2026-01/202601112230_accessibility-preferences/) - 无障碍偏好中心（减少动效/高对比/字体缩放）
 - [202601112345_actionable-toast-undo](../../history/2026-01/202601112345_actionable-toast-undo/) - 可操作 Toast 与购物车撤销交互
 - [202601120023_observability-standards](../../history/2026-01/202601120023_observability-standards/) - ErrorShield 错误面板（Glass Dialog）与可观测性 UI 基座
-- [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）与可执行操作入口
+- [202601120102_diagnostics-center](../../history/2026-01/202601120102_diagnostics-center/) - 会员中心诊断中心（日志/错误/性能快照/Telemetry）与可执行操作入口  
 - [202601120341_seo-canonical-structured-data](../../history/2026-01/202601120341_seo-canonical-structured-data/) - SEO（canonical / Product JSON-LD）与首页 Hero LCP 提示（渐进增强）
+- [202601121230_quartz-ui-reskin](../../history/2026-01/202601121230_quartz-ui-reskin/) - Quartz UI Reskin（Apple/Vercel）+ Motion.spring 微交互

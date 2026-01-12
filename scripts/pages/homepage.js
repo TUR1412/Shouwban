@@ -111,24 +111,84 @@ export function init(ctx = {}) {
           if (!parentRect) return;
           const x = rect.left - parentRect.left;
           const width = rect.width;
-  
+
+          function readIndicatorState() {
+              try {
+                  const cs = getComputedStyle(curationIndicator);
+                  const w = Number.parseFloat(cs.width);
+                  const transform = cs.transform;
+
+                  let tx = 0;
+                  if (transform && transform !== 'none') {
+                      const Matrix =
+                          window.DOMMatrixReadOnly ||
+                          window.WebKitCSSMatrix ||
+                          window.DOMMatrix ||
+                          null;
+                      if (Matrix) {
+                          const m = new Matrix(transform);
+                          tx = Number(m.m41) || 0;
+                      }
+                  }
+
+                  return {
+                      x: Number.isFinite(tx) ? tx : 0,
+                      width: Number.isFinite(w) ? w : 0,
+                  };
+              } catch {
+                  return { x: 0, width: 0 };
+              }
+          }
+
+          const prev = readIndicatorState();
+          const fromXRaw = Number(curationIndicator.dataset?.indicatorX);
+          const fromWRaw = Number(curationIndicator.dataset?.indicatorW);
+          const fromX = Number.isFinite(fromXRaw) ? fromXRaw : prev.x;
+          const fromW = Number.isFinite(fromWRaw) ? fromWRaw : prev.width;
+          const safeFromX = Number.isFinite(fromX) ? fromX : x;
+          const safeFromW = Number.isFinite(fromW) && fromW > 0 ? fromW : width;
+
+          try {
+              if (curationIndicator.dataset) {
+                  curationIndicator.dataset.indicatorX = String(x);
+                  curationIndicator.dataset.indicatorW = String(width);
+              }
+          } catch {
+              // ignore
+          }
+
           if (Utils.prefersReducedMotion()) {
               curationIndicator.style.width = `${width}px`;
-              curationIndicator.style.transform = `translateX(${x}px)`;
+              curationIndicator.style.transform = `translate3d(${x}px, 0, 0)`;
               return;
           }
-  
+
           const motion = globalThis.Motion;
-          if (motion && typeof motion.animate === 'function') {
+          try {
+              curationIndicator.getAnimations?.().forEach((a) => a.cancel());
+          } catch {
+              // ignore
+          }
+
+          // Prefer physics spring when available (Motion.spring).
+          if (motion && typeof motion.spring === 'function') {
               try {
-                  curationIndicator.getAnimations?.().forEach((a) => a.cancel());
+                  motion.spring(
+                      curationIndicator,
+                      { x: [safeFromX, x], width: [safeFromW, width] },
+                      { stiffness: 360, damping: 34, mass: 1, maxDuration: 0.8 },
+                  );
+                  return;
               } catch {
                   // ignore
               }
+          }
+
+          if (motion && typeof motion.animate === 'function') {
               try {
                   motion.animate(
                       curationIndicator,
-                      { width: `${width}px`, transform: `translateX(${x}px)` },
+                      { x: [safeFromX, x], width: [`${safeFromW}px`, `${width}px`] },
                       { duration: 0.42, easing: [0.22, 1, 0.36, 1] },
                   );
                   return;
@@ -136,9 +196,9 @@ export function init(ctx = {}) {
                   // ignore
               }
           }
-  
+
           curationIndicator.style.width = `${width}px`;
-          curationIndicator.style.transform = `translateX(${x}px)`;
+          curationIndicator.style.transform = `translate3d(${x}px, 0, 0)`;
       }
   
       function initHeroChoreography() {

@@ -12,6 +12,17 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.13] - 2026-01-12
+
+### 新增
+- UI：Quartz UI Reskin（Apple/Vercel 风格）—— 在 `styles/extensions.css` 落地新一组中性 token（颜色/阴影/圆角/动效曲线）并覆盖关键容器皮肤
+- Motion：`scripts/motion.js` 增量扩展 `Motion.spring()`（阻尼弹簧关键帧生成，WAAPI 渐进增强），用于物理级微交互
+- 交互：首页策展 Tabs 指示器优先使用 `Motion.spring()`（无支持时自动回退到 `Motion.animate()` / CSS transition）
+- 文档：重制双语 README（聚焦 Quartz UI 与微交互体系）
+
+### 变更
+- 版本：统一缓存穿透版本号 bump 到 `20260112.13`
+
 ## [20260112.12] - 2026-01-12
 
 ### 新增
