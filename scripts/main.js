@@ -780,7 +780,7 @@ const Cinematic = (function() {
     function markMotionActive() {
         try {
             if (!isMotionReady()) return;
-            document.documentElement.dataset.motion = 'on';
+            document.documentElement.dataset.cinematic = 'on';
         } catch {
             // ignore
         }

@@ -175,6 +175,35 @@ html[data-contrast="high"] :focus-visible {
 }
 
 /* ==============================================
+   Cinematic Press Feedback (Progressive)
+   - 当 Motion.js 的按压反馈启用时，避免 CSS :active transform 覆盖 hover transform
+   - 目标：消除“hover + press 叠加时跳一下”的违和感
+   ============================================== */
+html[data-cinematic="on"]
+  :where(
+    .cta-button,
+    .product-card__button,
+    .checkout-button,
+    .place-order-button,
+    .cta-button-secondary,
+    .filter-toggle,
+    .filter-chip,
+    .listing-meta__action,
+    .product-card__quick-add,
+    .product-card__compare,
+    .product-card__alert,
+    .favorite-btn,
+    .share-btn,
+    .compare-btn,
+    .alert-btn,
+    .restock-btn,
+    .header__action-link,
+    .header__menu-toggle
+  ):active {
+  transform: none;
+}
+
+/* ==============================================
    Performance: content-visibility (progressive)
    - 对长列表/大块内容启用“跳过屏外渲染”
    - 仅在支持的浏览器生效，不影响旧浏览器
