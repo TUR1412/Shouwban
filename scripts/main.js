@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.16';
-import { createStorageKit } from './runtime/storage.js?v=20260112.16';
-import { createPerfKit } from './runtime/perf.js?v=20260112.16';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.16';
-import { createToast } from './modules/toast.js?v=20260112.16';
-import { createLogger } from './modules/logger.js?v=20260112.16';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.16';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.16';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.16';
-import { createSeo } from './modules/seo.js?v=20260112.16';
+import { createStateHub } from './runtime/state.js?v=20260112.17';
+import { createStorageKit } from './runtime/storage.js?v=20260112.17';
+import { createPerfKit } from './runtime/perf.js?v=20260112.17';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.17';
+import { createToast } from './modules/toast.js?v=20260112.17';
+import { createLogger } from './modules/logger.js?v=20260112.17';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.17';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.17';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.17';
+import { createSeo } from './modules/seo.js?v=20260112.17';
 
 // ==============================================
 // Utility Functions
@@ -654,22 +654,56 @@ const UXMotion = (function() {
         layer.appendChild(wrapper);
         document.body.appendChild(layer);
 
-        const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
-        const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+        const dx = (to.left + to.width / 2) - (from.left + from.width / 2);     
+        const dy = (to.top + to.height / 2) - (from.top + from.height / 2);     
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const lift = Math.min(180, Math.max(68, distance * 0.11)) * (dy < 0 ? 0.45 : 1);
+        const spin = dx >= 0 ? 10 : -10;
+
+        const p1 = 0.38;
+        const p2 = 0.76;
+        const dx1 = dx * p1;
+        const dy1 = dy * p1 - lift;
+        const dx2 = dx * p2;
+        const dy2 = dy * p2 - lift * 0.32;
 
         const keyframes = [
-            { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, filter: 'blur(0px)' },
-            { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.18)`, opacity: 0.2, filter: 'blur(0.6px)' },
+            { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1, filter: 'blur(0px)' },
+            { transform: `translate(calc(-50% + ${dx1}px), calc(-50% + ${dy1}px)) scale(0.86) rotate(${spin}deg)`, opacity: 0.92, filter: 'blur(0.15px)' },
+            { transform: `translate(calc(-50% + ${dx2}px), calc(-50% + ${dy2}px)) scale(0.48) rotate(${Math.round(-spin * 0.6)}deg)`, opacity: 0.55, filter: 'blur(0.35px)' },
+            { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.18) rotate(0deg)`, opacity: 0.18, filter: 'blur(0.6px)' },
         ];
 
-        const duration = 560;
+        const duration = 620;
         try {
             const anim = wrapper.animate(keyframes, {
                 duration,
-                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
                 fill: 'forwards',
             });
-            anim.onfinish = () => layer.remove();
+            anim.onfinish = () => {
+                try { layer.remove(); } catch { /* ignore */ }
+
+                // Feedback: gently pulse the cart entry to complete the mental model.
+                try {
+                    const Motion = globalThis.Motion;
+                    if (Motion && typeof Motion.animate === 'function') {
+                        Motion.animate(
+                            targetLink,
+                            { scale: [1, 1.08, 1] },
+                            { duration: 0.36, easing: [0.22, 1, 0.36, 1] },
+                        );
+                    } else if (typeof targetLink.animate === 'function') {
+                        targetLink.animate(
+                            [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
+                            { duration: 360, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+                        );
+                    }
+                } catch {
+                    // ignore
+                }
+            };
         } catch {
             // Fallback: cleanup without animation
             setTimeout(() => layer.remove(), duration);

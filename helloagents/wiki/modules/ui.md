@@ -56,6 +56,7 @@
 
 - 动效：Dialog/Toast 物理级入场与产品媒体 Hover Zoom：`glass-dialog` pop-in + backdrop fade-in、Toast 轻微缩放+blur→clear、产品卡片与 PDP 主图 hover zoom（均在 `prefers-reduced-motion` 下自动降级）。
 - A11y：Cross-Document View Transitions 同时尊重系统 `prefers-reduced-motion` 与用户显式 `html[data-motion="reduce"]`（reduce 时禁用共享元素命名并关闭 View Transition pseudo-elements 动画）。
+- 动效引擎：`Motion.animate()` 的 transform 简写（`x/y/scale/rotate`）保留未声明分量，避免 hover/press 等叠加交互时 transform 被重置；`flyToCart` 升级为抛物线飞入 + 购物车入口 pulse。
 
 ### 高级筛选 Dialog（PLP）
 `styles/extensions.css` 增加以下结构类以配合 `ProductListing` 的高级筛选对话框：
@@ -105,3 +106,4 @@
 - [202601130626_quartz-ui-polish](../../history/2026-01/202601130626_quartz-ui-polish/) - Quartz UI 精修（High Contrast / Theme Color / Motion.spring transform）
 - [202601130645_quartz-motion-microinteractions](../../history/2026-01/202601130645_quartz-motion-microinteractions/) - Quartz Motion 微交互升级（Dialog/Toast 物理入场 + Product hover zoom）
 - [202601130703_vt-reduced-motion-guardrail](../../history/2026-01/202601130703_vt-reduced-motion-guardrail/) - View Transitions 减少动效兜底（html[data-motion="reduce"]）
+- [202601130719_motion-transform-flytocart](../../history/2026-01/202601130719_motion-transform-flytocart/) - Motion.animate transform 保持分量 + flyToCart 抛物线微交互

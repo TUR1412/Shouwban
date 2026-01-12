@@ -12,6 +12,15 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.17] - 2026-01-12
+
+### 修复
+- Motion：`Motion.animate()` 的 transform 简写（`x/y/scale/rotate`）现在会保留未声明分量，并对标量值采用 from→to 逻辑，避免 hover/press 等叠加交互时出现 transform 被重置的跳变
+
+### 变更
+- 交互：`flyToCart` 升级为抛物线飞入 + 购物车入口轻微 pulse（更符合物理直觉，且自动尊重减少动效偏好）
+- 版本：统一缓存穿透版本号 bump 到 `20260112.17`
+
 ## [20260112.16] - 2026-01-12
 
 ### 修复

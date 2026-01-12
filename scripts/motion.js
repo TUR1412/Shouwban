@@ -82,7 +82,14 @@
     const ty = toNumber(y, 0);
     const sc = toNumber(scale, 1);
     const rot = toNumber(rotate, 0);
-    return `translate3d(${tx}px, ${ty}px, 0) scale(${sc}) rotate(${rot}deg)`;
+    return `translate3d(${tx}px, ${ty}px, 0) scale(${sc}) rotate(${rot}deg)`;   
+  }
+
+  function resolveTransformComponent(raw, index, baseValue) {
+    if (raw == null) return baseValue;
+    if (Array.isArray(raw)) return pickKeyframeValue(raw, index);
+    // 标量：首帧使用当前 transform 分量，后续帧使用目标值（与其他属性的 from->to 逻辑一致）
+    return index === 0 ? baseValue : raw;
   }
 
   function normalizeKeyframes(element, keyframes) {
@@ -96,10 +103,14 @@
       'x' in kf || 'y' in kf || 'scale' in kf || 'rotate' in kf;
     const hasExplicitTransform = 'transform' in kf;
 
+    const baseTransform = hasTransformShorthand && !hasExplicitTransform
+      ? readTransformParts(element)
+      : null;
+
     let frameCount = 0;
     keys.forEach((key) => {
       const v = kf[key];
-      if (Array.isArray(v)) frameCount = Math.max(frameCount, v.length);
+      if (Array.isArray(v)) frameCount = Math.max(frameCount, v.length);        
       else frameCount = Math.max(frameCount, 2);
     });
     if (frameCount <= 0) frameCount = 2;
@@ -111,10 +122,10 @@
       // Transform shorthand -> transform keyframes
       if (!hasExplicitTransform && hasTransformShorthand) {
         frame.transform = buildTransform(
-          pickKeyframeValue(kf.x, i),
-          pickKeyframeValue(kf.y, i),
-          pickKeyframeValue(kf.scale, i),
-          pickKeyframeValue(kf.rotate, i),
+          resolveTransformComponent(kf.x, i, baseTransform ? baseTransform.x : 0),
+          resolveTransformComponent(kf.y, i, baseTransform ? baseTransform.y : 0),
+          resolveTransformComponent(kf.scale, i, baseTransform ? baseTransform.scale : 1),
+          resolveTransformComponent(kf.rotate, i, baseTransform ? baseTransform.rotate : 0),
         );
       }
 
