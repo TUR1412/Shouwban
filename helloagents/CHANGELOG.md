@@ -12,6 +12,13 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.7] - 2026-01-13
+
+### 变更
+- UI：Spotlight 扩展到面包屑导航链接 `.breadcrumb__link` 与购物车移除按钮 `.remove-btn`，让关键“导航/删除”场景也拥有一致的 Quartz 光学反馈语言（渐进增强，不触碰业务逻辑）
+- UI：移除按钮 hover 反馈收敛为更克制的 scale（1.06）并叠加柔和的 error-tint 背景，保持“危险操作”的语义但更贴近 Apple/Vercel 的精致度
+- 版本：统一缓存穿透版本号 bump 到 `20260113.7`
+
 ## [20260113.6] - 2026-01-13
 
 ### 变更

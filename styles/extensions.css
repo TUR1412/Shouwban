@@ -3820,6 +3820,7 @@ html[data-theme="dark"] .header__menu-toggle {
   .toast__close,
   .back-to-top,
   .quantity-selector__button,
+  .remove-btn,
   .error-shield__close,
   .lightbox__nav
 ) {
@@ -3831,6 +3832,7 @@ html[data-theme="dark"] .header__menu-toggle {
   .toast__close,
   .back-to-top,
   .quantity-selector__button,
+  .remove-btn,
   .error-shield__close,
   .lightbox__nav
 )::before {
@@ -3853,10 +3855,29 @@ html[data-theme="dark"] .header__menu-toggle {
   .toast__close,
   .back-to-top,
   .quantity-selector__button,
+  .remove-btn,
   .error-shield__close,
   .lightbox__nav
 ):disabled::before {
   opacity: 0 !important;
+}
+
+/* Cart remove: keep "destructive" intent but refine to Quartz icon control */
+.cart-item__remove .remove-btn {
+  border-radius: 12px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cart-item__remove .remove-btn:hover {
+    transform: scale(1.06);
+    background: rgba(255, 82, 124, 0.08);
+  }
+}
+
+.cart-item__remove .remove-btn:focus-visible {
+  border-radius: 12px;
 }
 
 html[data-theme="dark"] .cta-button-secondary,
@@ -4291,6 +4312,83 @@ html[data-theme="dark"] .curation-tabs {
 @media (hover: hover) and (pointer: fine) {
   .pagination__link:hover::before {
     opacity: 1;
+  }
+}
+
+/* Breadcrumb links: pill spotlight + subtle underline */
+.breadcrumb__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  overflow: hidden;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.breadcrumb__link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-pill-size)
+      at var(--spotlight-x, 45%) var(--spotlight-y, 15%),
+    rgba(255, 255, 255, var(--spotlight-pill-alpha)),
+    transparent var(--spotlight-pill-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.breadcrumb__link::after {
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0.30rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    currentColor 18%,
+    currentColor 82%,
+    transparent
+  );
+  opacity: 0;
+  transform: scaleX(0.70);
+  transform-origin: center;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.breadcrumb__link:hover {
+  text-decoration: none;
+}
+
+.breadcrumb__link:focus-visible {
+  border-radius: 999px;
+}
+
+.breadcrumb__link:focus-visible::before,
+.breadcrumb__link:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .breadcrumb__link:hover::before {
+    opacity: 1;
+  }
+
+  .breadcrumb__link:hover::after {
+    opacity: 0.6;
+    transform: scaleX(1);
   }
 }
 

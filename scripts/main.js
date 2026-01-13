@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.6';
-import { createStorageKit } from './runtime/storage.js?v=20260113.6';
-import { createPerfKit } from './runtime/perf.js?v=20260113.6';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.6';
-import { createToast } from './modules/toast.js?v=20260113.6';
-import { createLogger } from './modules/logger.js?v=20260113.6';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.6';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.6';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.6';
-import { createSeo } from './modules/seo.js?v=20260113.6';
+import { createStateHub } from './runtime/state.js?v=20260113.7';
+import { createStorageKit } from './runtime/storage.js?v=20260113.7';
+import { createPerfKit } from './runtime/perf.js?v=20260113.7';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.7';
+import { createToast } from './modules/toast.js?v=20260113.7';
+import { createLogger } from './modules/logger.js?v=20260113.7';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.7';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.7';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.7';
+import { createSeo } from './modules/seo.js?v=20260113.7';
 
 // ==============================================
 // Utility Functions
@@ -1143,7 +1143,7 @@ const Cinematic = (function() {
         bindSpotlights._bound = true;
 
         const buttonSelector =
-            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .filter-option, .pagination__link, .header__action-link, .header__menu-toggle, .header__nav-link, .header__dropdown-item a, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn, .toast__action, .toast__close, .back-to-top, .quantity-selector__button, .error-shield__close, .lightbox__nav';
+            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .filter-option, .pagination__link, .header__action-link, .header__menu-toggle, .header__nav-link, .header__dropdown-item a, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn, .toast__action, .toast__close, .back-to-top, .quantity-selector__button, .error-shield__close, .lightbox__nav, .breadcrumb__link, .remove-btn';
         const surfaceSelector =
             '.product-card, .cart-summary, .order-summary, .checkout-form, .filter-sort-bar, .breadcrumb-nav, .product-gallery-pdp, .product-info-pdp, .bento-card, .hero__glass, .stat-card, .drop-card, .recommendation-card, .rewards-block, .account-card, .address-card, .alert-row, .glass-dialog__card, .header__search-suggestions';
 
