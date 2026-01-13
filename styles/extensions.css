@@ -3922,6 +3922,66 @@ html[data-theme="dark"] .header__menu-toggle {
   border-radius: 12px;
 }
 
+/* View toggle: segmented control (progressive enhancement via :has) */
+@supports selector(.view-toggle:has(.view-toggle__btn)) {
+  .view-toggle {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .view-toggle::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.62)
+    );
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow:
+      0 10px 26px rgba(15, 23, 42, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.66);
+    transform: translateX(var(--view-toggle-x, 0px));
+    transition: transform var(--motion-fast) var(--ease-emphasized);
+  }
+
+  .view-toggle:has(.view-toggle__btn.is-active[data-view="grid"]) {
+    --view-toggle-x: 0px;
+  }
+
+  .view-toggle:has(.view-toggle__btn.is-active[data-view="list"]) {
+    --view-toggle-x: calc(36px + 0.35rem);
+  }
+
+  .view-toggle__btn {
+    position: relative;
+    z-index: 1;
+  }
+
+  .view-toggle__btn.is-active {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  html[data-theme="dark"] .view-toggle::before {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.06)
+    );
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 18px 52px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+}
+
 html[data-theme="dark"] .cta-button-secondary,
 html[data-theme="dark"] .filter-toggle,
 html[data-theme="dark"] .filter-chip,

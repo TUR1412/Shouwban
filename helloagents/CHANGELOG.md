@@ -12,6 +12,12 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.9] - 2026-01-13
+
+### 变更
+- UI：为列表视图切换 `.view-toggle` 引入“分段控件（Segmented Control）”级的滑动选中底板（CSS `:has()` 渐进增强），在不改动交互逻辑的前提下让切换反馈更接近 iOS / Apple 质感；不支持 `:has()` 的浏览器自动回退到既有样式
+- 版本：统一缓存穿透版本号 bump 到 `20260113.9`
+
 ## [20260113.8] - 2026-01-13
 
 ### 变更
