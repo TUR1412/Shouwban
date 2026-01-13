@@ -12,6 +12,13 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.5] - 2026-01-13
+
+### 变更
+- UI：Spotlight 扩展覆盖 Toast / Back-to-top / 数量步进按钮等高频控制点，并新增 `--spotlight-icon-*` token 以更贴合小尺寸控件的光学表现（渐进增强，不改业务逻辑）
+- UI：`bindSpotlights()` 增加上述控件 selector，使动态光斑在更多交互点保持一致的“硬件级反馈”语言（rAF 节流，60FPS 友好）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.5`
+
 ## [20260113.4] - 2026-01-13
 
 ### 变更

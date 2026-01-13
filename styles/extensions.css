@@ -26,12 +26,17 @@ html {
   --spotlight-header-size: 520px 200px;
   --spotlight-header-alpha: 0.35;
   --spotlight-header-stop: 62%;
+
+  --spotlight-icon-size: 420px 180px;
+  --spotlight-icon-alpha: 0.30;
+  --spotlight-icon-stop: 62%;
 }
 
 html[data-theme="dark"] {
   --spotlight-surface-alpha: 0.12;
   --spotlight-pill-alpha: 0.16;
   --spotlight-header-alpha: 0.18;
+  --spotlight-icon-alpha: 0.16;
 }
 
 /* A11y: 字体缩放（仅影响 rem 系统；用 px 避免 root rem 递归） */
@@ -3733,7 +3738,8 @@ html[data-theme="dark"] .header__menu-toggle {
   .share-btn,
   .compare-btn,
   .alert-btn,
-  .restock-btn
+  .restock-btn,
+  .toast__action
 ) {
   position: relative;
   overflow: hidden;
@@ -3747,7 +3753,8 @@ html[data-theme="dark"] .header__menu-toggle {
   .share-btn,
   .compare-btn,
   .alert-btn,
-  .restock-btn
+  .restock-btn,
+  .toast__action
 )::before {
   content: '';
   position: absolute;
@@ -3760,6 +3767,36 @@ html[data-theme="dark"] .header__menu-toggle {
       at var(--spotlight-x, 40%) var(--spotlight-y, 20%),
     rgba(255, 255, 255, var(--spotlight-pill-alpha)),
     transparent var(--spotlight-pill-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+/* Utility / icon controls: smaller spotlight profile */
+:where(
+  .toast__close,
+  .back-to-top,
+  .quantity-selector__button
+) {
+  position: relative;
+  overflow: hidden;
+}
+
+:where(
+  .toast__close,
+  .back-to-top,
+  .quantity-selector__button
+)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-icon-size)
+      at var(--spotlight-x, 50%) var(--spotlight-y, 20%),
+    rgba(255, 255, 255, var(--spotlight-icon-alpha)),
+    transparent var(--spotlight-icon-stop)
   );
   transition: opacity var(--motion-fast) var(--ease-standard);
 }
@@ -3788,7 +3825,16 @@ html[data-theme="dark"] .listing-meta__action {
   .share-btn,
   .compare-btn,
   .alert-btn,
-  .restock-btn
+  .restock-btn,
+  .toast__action
+):focus-visible::before {
+  opacity: 1;
+}
+
+:where(
+  .toast__close,
+  .back-to-top,
+  .quantity-selector__button
 ):focus-visible::before {
   opacity: 1;
 }
@@ -3818,7 +3864,16 @@ html[data-theme="dark"] .listing-meta__action {
     .share-btn,
     .compare-btn,
     .alert-btn,
-    .restock-btn
+    .restock-btn,
+    .toast__action
+  ):hover::before {
+    opacity: 1;
+  }
+
+  :where(
+    .toast__close,
+    .back-to-top,
+    .quantity-selector__button
   ):hover::before {
     opacity: 1;
   }
