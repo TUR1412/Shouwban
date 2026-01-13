@@ -12,6 +12,18 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260112.18] - 2026-01-12
+
+### 新增
+- UI：Cinematic 按压反馈升级为 spring 回弹（优先 `Motion.spring()`，无支持则回退到 `Motion.animate()`），并补齐 `pointercancel` 兜底以避免“按下后未弹回”的小概率卡态
+
+### 修复
+- A11y/UI：将 Cinematic 动效启用标记从 `html[data-motion="on"]` 调整为 `html[data-cinematic="on"]`，避免与 `html[data-motion="reduce"]` 的“减少动效”偏好冲突
+- UI：在 `html[data-cinematic="on"]` 下扩展禁用 CSS `:active { transform: ... }` 的覆盖范围，避免 hover + press 叠加时 transform 跳变（由 Motion 统一接管按压反馈）
+
+### 变更
+- 版本：统一缓存穿透版本号 bump 到 `20260112.18`
+
 ## [20260112.17] - 2026-01-12
 
 ### 修复

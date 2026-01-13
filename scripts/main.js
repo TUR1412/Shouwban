@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.17';
-import { createStorageKit } from './runtime/storage.js?v=20260112.17';
-import { createPerfKit } from './runtime/perf.js?v=20260112.17';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.17';
-import { createToast } from './modules/toast.js?v=20260112.17';
-import { createLogger } from './modules/logger.js?v=20260112.17';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.17';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.17';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.17';
-import { createSeo } from './modules/seo.js?v=20260112.17';
+import { createStateHub } from './runtime/state.js?v=20260112.18';
+import { createStorageKit } from './runtime/storage.js?v=20260112.18';
+import { createPerfKit } from './runtime/perf.js?v=20260112.18';
+import { createAccessibility } from './modules/accessibility.js?v=20260112.18';
+import { createToast } from './modules/toast.js?v=20260112.18';
+import { createLogger } from './modules/logger.js?v=20260112.18';
+import { createErrorShield } from './modules/error-shield.js?v=20260112.18';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.18';
+import { createTelemetry } from './modules/telemetry.js?v=20260112.18';
+import { createSeo } from './modules/seo.js?v=20260112.18';
 
 // ==============================================
 // Utility Functions
