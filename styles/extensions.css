@@ -238,6 +238,7 @@ html[data-cinematic="on"]
     .breadcrumb__link,
     .remove-btn,
     .view-toggle__btn,
+    .curation-tab,
     .error-shield__close,
     .lightbox__nav
   ):active {
@@ -4268,14 +4269,41 @@ html[data-theme="dark"] .curation-tabs {
 }
 
 .curation-tab {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
   transition:
     transform var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
 }
 
+.curation-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-pill-size)
+      at var(--spotlight-x, 45%) var(--spotlight-y, 18%),
+    rgba(255, 255, 255, var(--spotlight-pill-alpha)),
+    transparent var(--spotlight-pill-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.curation-tab:focus-visible::before {
+  opacity: 1;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .curation-tab:hover {
     transform: translateY(-1px);
+  }
+
+  .curation-tab:hover::before {
+    opacity: 1;
   }
 }
 

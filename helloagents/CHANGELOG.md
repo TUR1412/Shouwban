@@ -12,6 +12,13 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.10] - 2026-01-13
+
+### 变更
+- UI：策展 Tabs `.curation-tab` 纳入 Quartz Spotlight（hover/focus 动态光斑），与现有 indicator 叠加形成更细腻的“硬件级反馈”层次（渐进增强，不触碰业务逻辑）
+- UI：Cinematic `bindSpotlights()` selector 扩展到 `.curation-tab`，并补齐 press `:active { transform: none; }` guardrail 覆盖，避免 hover/press transform 冲突
+- 版本：统一缓存穿透版本号 bump 到 `20260113.10`
+
 ## [20260113.9] - 2026-01-13
 
 ### 变更
