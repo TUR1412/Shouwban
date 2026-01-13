@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.1';
-import { createStorageKit } from './runtime/storage.js?v=20260113.1';
-import { createPerfKit } from './runtime/perf.js?v=20260113.1';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.1';
-import { createToast } from './modules/toast.js?v=20260113.1';
-import { createLogger } from './modules/logger.js?v=20260113.1';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.1';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.1';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.1';
-import { createSeo } from './modules/seo.js?v=20260113.1';
+import { createStateHub } from './runtime/state.js?v=20260113.2';
+import { createStorageKit } from './runtime/storage.js?v=20260113.2';
+import { createPerfKit } from './runtime/perf.js?v=20260113.2';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.2';
+import { createToast } from './modules/toast.js?v=20260113.2';
+import { createLogger } from './modules/logger.js?v=20260113.2';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.2';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.2';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.2';
+import { createSeo } from './modules/seo.js?v=20260113.2';
 
 // ==============================================
 // Utility Functions
@@ -1136,6 +1136,117 @@ const Cinematic = (function() {
         );
     }
 
+    function bindSpotlight() {
+        if (!isMotionReady()) return;
+
+        const selector =
+            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action';
+        let active = null;
+        let rafId = 0;
+        let lastClientX = 0;
+        let lastClientY = 0;
+
+        const shouldIgnore = (event) => {
+            const pt = String(event?.pointerType || '');
+            if (pt && pt !== 'mouse') return true;
+            return false;
+        };
+
+        const getTarget = (event) => {
+            const target = event?.target;
+            return target?.closest?.(selector) || null;
+        };
+
+        const clearSpotlight = (el) => {
+            if (!el || !el.style) return;
+            try {
+                el.style.removeProperty('--spotlight-x');
+                el.style.removeProperty('--spotlight-y');
+            } catch {
+                // ignore
+            }
+        };
+
+        const update = () => {
+            rafId = 0;
+            const el = active;
+            if (!el || typeof el.getBoundingClientRect !== 'function') return;
+
+            const rect = el.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+
+            const x = Math.max(0, Math.min(rect.width, lastClientX - rect.left));
+            const y = Math.max(0, Math.min(rect.height, lastClientY - rect.top));
+
+            try {
+                el.style.setProperty('--spotlight-x', `${Math.round(x)}px`);
+                el.style.setProperty('--spotlight-y', `${Math.round(y)}px`);
+            } catch {
+                // ignore
+            }
+        };
+
+        const schedule = () => {
+            if (rafId) return;
+            rafId = requestAnimationFrame(update);
+        };
+
+        document.addEventListener(
+            'pointerover',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                const el = getTarget(event);
+                if (!el) return;
+                const related = event.relatedTarget;
+                if (related && el.contains(related)) return;
+                active = el;
+                lastClientX = event.clientX;
+                lastClientY = event.clientY;
+                schedule();
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointerout',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                const el = getTarget(event);
+                if (!el) return;
+                const related = event.relatedTarget;
+                if (related && el.contains(related)) return;
+                if (active !== el) return;
+                active = null;
+                clearSpotlight(el);
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointermove',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                if (!active) return;
+                lastClientX = event.clientX;
+                lastClientY = event.clientY;
+                schedule();
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointercancel',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                const el = active;
+                if (!el) return;
+                active = null;
+                clearSpotlight(el);
+            },
+            { passive: true },
+        );
+    }
+
     function toggleBlock(element, options = {}) {
         if (!element) return false;
         if (!isMotionReady()) return false;
@@ -1318,6 +1429,7 @@ const Cinematic = (function() {
         pageEnter();
         bindTapFeedback();
         bindHoverLift();
+        bindSpotlight();
     }
 
     return { init, toggleBlock, toggleDisplay, pulse, shimmerOnce, staggerEnter, enhanceFadeInUp };

@@ -12,6 +12,15 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.2] - 2026-01-13
+
+### 新增
+- UI：按钮/胶囊组件引入“动态 Spotlight 高光”—— hover 时高光光斑跟随鼠标位置（CSS `::before` + `--spotlight-x/--spotlight-y`），在减少动效时保持静态表现（渐进增强，不改业务逻辑）
+
+### 变更
+- UI：Cinematic 增加 `bindSpotlight()`（pointermove + rAF 节流）为 Quartz 按钮提供更精细的光学反馈
+- 版本：统一缓存穿透版本号 bump 到 `20260113.2`
+
 ## [20260113.1] - 2026-01-13
 
 ### 变更
