@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.10';
-import { createStorageKit } from './runtime/storage.js?v=20260113.10';
-import { createPerfKit } from './runtime/perf.js?v=20260113.10';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.10';
-import { createToast } from './modules/toast.js?v=20260113.10';
-import { createLogger } from './modules/logger.js?v=20260113.10';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.10';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.10';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.10';
-import { createSeo } from './modules/seo.js?v=20260113.10';
+import { createStateHub } from './runtime/state.js?v=20260113.11';
+import { createStorageKit } from './runtime/storage.js?v=20260113.11';
+import { createPerfKit } from './runtime/perf.js?v=20260113.11';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.11';
+import { createToast } from './modules/toast.js?v=20260113.11';
+import { createLogger } from './modules/logger.js?v=20260113.11';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.11';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.11';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.11';
+import { createSeo } from './modules/seo.js?v=20260113.11';
 
 // ==============================================
 // Utility Functions
@@ -1067,7 +1067,7 @@ const Cinematic = (function() {
     function bindHoverLift() {
         if (!isMotionReady()) return;
 
-        const selector = '.account-card, .address-card, .alert-row, .summary-item, .order-success__panel, .order-success__item';
+        const selector = '.account-card, .address-card, .alert-row, .summary-item, .order-success__panel, .order-success__item, .order-card';
         const lifted = new WeakSet();
 
         const spring = (element, keyframes, options) => {
@@ -1145,7 +1145,7 @@ const Cinematic = (function() {
         const buttonSelector =
             '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .filter-option, .pagination__link, .header__action-link, .header__menu-toggle, .header__nav-link, .header__dropdown-item a, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn, .toast__action, .toast__close, .back-to-top, .quantity-selector__button, .error-shield__close, .lightbox__nav, .breadcrumb__link, .remove-btn, .view-toggle__btn, .curation-tab, .add-to-cart-btn';
         const surfaceSelector =
-            '.product-card, .cart-summary, .order-summary, .checkout-form, .filter-sort-bar, .breadcrumb-nav, .product-gallery-pdp, .product-info-pdp, .bento-card, .hero__glass, .stat-card, .drop-card, .recommendation-card, .rewards-block, .account-card, .address-card, .alert-row, .glass-dialog__card, .header__search-suggestions';
+            '.product-card, .cart-summary, .order-summary, .checkout-form, .filter-sort-bar, .breadcrumb-nav, .compare-table-wrap, .order-card, .product-gallery-pdp, .product-info-pdp, .bento-card, .hero__glass, .stat-card, .drop-card, .recommendation-card, .rewards-block, .account-card, .address-card, .alert-row, .glass-dialog__card, .header__search-suggestions';
 
         let activeButton = null;
         let activeSurface = null;

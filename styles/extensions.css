@@ -1756,6 +1756,7 @@ html[data-theme="dark"] .payment-option:hover {
 }
 
 .compare-table-wrap {
+  position: relative;
   overflow-x: auto;
   border-radius: var(--border-radius-md);
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.55));
@@ -1807,6 +1808,20 @@ html[data-theme="dark"] .payment-option:hover {
   border-radius: var(--border-radius-base);
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(0, 0, 0, 0.06);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .compare-table td:hover .compare-table__img {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow:
+      0 0 0 3px rgba(var(--color-primary-rgb), 0.14),
+      var(--shadow-sm);
+    border-color: rgba(var(--color-primary-rgb), 0.26);
+  }
 }
 
 .compare-table__title {
@@ -1840,6 +1855,7 @@ html[data-theme="dark"] .payment-option:hover {
 }
 
 .order-card {
+  position: relative;
   background: var(--glass-bg, rgba(255, 255, 255, 0.72));
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.55));
   border-radius: var(--border-radius-md);
@@ -2335,6 +2351,8 @@ html[data-theme="dark"] {
     .checkout-form,
     .filter-sort-bar,
     .breadcrumb-nav,
+    .compare-table-wrap,
+    .order-card,
     .product-gallery-pdp,
     .product-info-pdp,
     .bento-card,
@@ -2367,6 +2385,8 @@ html[data-theme="dark"] {
   .checkout-form,
   .filter-sort-bar,
   .breadcrumb-nav,
+  .compare-table-wrap,
+  .order-card,
   .product-gallery-pdp,
   .product-info-pdp,
   .bento-card,
@@ -2403,6 +2423,8 @@ html[data-theme="dark"] {
   .checkout-form,
   .filter-sort-bar,
   .breadcrumb-nav,
+  .compare-table-wrap,
+  .order-card,
   .product-gallery-pdp,
   .product-info-pdp,
   .bento-card,
@@ -2428,6 +2450,8 @@ html[data-theme="dark"] {
     .checkout-form,
     .filter-sort-bar,
     .breadcrumb-nav,
+    .compare-table-wrap,
+    .order-card,
     .product-gallery-pdp,
     .product-info-pdp,
     .bento-card,

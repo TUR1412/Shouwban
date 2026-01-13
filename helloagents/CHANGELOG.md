@@ -12,6 +12,14 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.11] - 2026-01-13
+
+### 变更
+- UI：Surface Spotlight 扩展到对比表容器 `.compare-table-wrap` 与订单卡 `.order-card`（hover/focus-within 动态光斑），强化玻璃表面“光学层次”
+- 交互：Cinematic Hover Lift 扩展到 `.order-card`，订单列表 hover 反馈更贴近物理直觉（spring 优先，60FPS 友好）
+- UI：对比表预览图 `.compare-table__img` 加入轻微 hover zoom + ring（仅 hover: fine pointer，减少动效时自然降级）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.11`
+
 ## [20260113.10] - 2026-01-13
 
 ### 变更
