@@ -2273,6 +2273,128 @@ html[data-theme="dark"] {
   }
 }
 
+/* ==============================================
+   Quartz Surface Spotlight (Progressive)
+   - 动态光斑随鼠标位置移动（JS 写入 --spotlight-x / --spotlight-y）
+   - 与 evolve-surface 的渐变边框叠加，增强“光学层次”
+   - 减少动效时会自然降级：Cinematic 不启用（JS 不写入），且 transition 被 A11y 兜底压到近乎 0ms
+   ============================================== */
+:where(
+  .product-card,
+  .cart-summary,
+  .order-summary,
+  .checkout-form,
+  .filter-sort-bar,
+  .breadcrumb-nav,
+  .product-gallery-pdp,
+  .product-info-pdp,
+  .bento-card,
+  .hero__glass,
+  .stat-card,
+  .drop-card,
+  .recommendation-card,
+  .rewards-block,
+  .account-card,
+  .address-card,
+  .alert-row,
+  .glass-dialog__card,
+  .header__search-suggestions
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    720px 320px
+      at var(--spotlight-x, 50%) var(--spotlight-y, 20%),
+    rgba(255, 255, 255, 0.30),
+    transparent 60%
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+html[data-theme="dark"]
+  :where(
+    .product-card,
+    .cart-summary,
+    .order-summary,
+    .checkout-form,
+    .filter-sort-bar,
+    .breadcrumb-nav,
+    .product-gallery-pdp,
+    .product-info-pdp,
+    .bento-card,
+    .hero__glass,
+    .stat-card,
+    .drop-card,
+    .recommendation-card,
+    .rewards-block,
+    .account-card,
+    .address-card,
+    .alert-row,
+    .glass-dialog__card,
+    .header__search-suggestions
+  )::after {
+  background: radial-gradient(
+    720px 320px
+      at var(--spotlight-x, 50%) var(--spotlight-y, 20%),
+    rgba(255, 255, 255, 0.12),
+    transparent 60%
+  );
+}
+
+:where(
+  .product-card,
+  .cart-summary,
+  .order-summary,
+  .checkout-form,
+  .filter-sort-bar,
+  .breadcrumb-nav,
+  .product-gallery-pdp,
+  .product-info-pdp,
+  .bento-card,
+  .hero__glass,
+  .stat-card,
+  .drop-card,
+  .recommendation-card,
+  .rewards-block,
+  .account-card,
+  .address-card,
+  .alert-row,
+  .glass-dialog__card,
+  .header__search-suggestions
+):focus-within::after {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(
+    .product-card,
+    .cart-summary,
+    .order-summary,
+    .checkout-form,
+    .filter-sort-bar,
+    .breadcrumb-nav,
+    .product-gallery-pdp,
+    .product-info-pdp,
+    .bento-card,
+    .hero__glass,
+    .stat-card,
+    .drop-card,
+    .recommendation-card,
+    .rewards-block,
+    .account-card,
+    .address-card,
+    .alert-row,
+    .glass-dialog__card,
+    .header__search-suggestions
+  ):hover::after {
+    opacity: 1;
+  }
+}
+
 .product-card:hover,
 .bento-card:hover,
 .recommendation-card:hover,

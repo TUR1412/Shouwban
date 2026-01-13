@@ -12,6 +12,15 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.3] - 2026-01-13
+
+### 新增
+- UI：关键玻璃容器引入“动态 Surface Spotlight”—— hover/focus 时光斑随鼠标位置移动（CSS `::after` + `--spotlight-x/--spotlight-y`），与渐变边框叠加增强光学层次（渐进增强，不改业务逻辑）
+
+### 变更
+- UI：Cinematic 增加 `bindSurfaceSpotlight()`，为卡片/对话框/摘要面板等容器提供统一的动态高光追踪（pointermove + rAF 节流）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.3`
+
 ## [20260113.2] - 2026-01-13
 
 ### 新增
