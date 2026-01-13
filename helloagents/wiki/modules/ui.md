@@ -91,7 +91,7 @@
 ## 无障碍与偏好（A11y）
 `styles/extensions.css` 提供用户级偏好映射（配合 `scripts/modules/accessibility.js`）：
 - `html[data-motion="reduce"]`：减少动效（兜底关闭 CSS animation/transition，并与 `prefers-reduced-motion` 协同）
-- `html[data-cinematic="on"]`：Cinematic 动效启用标记（Motion 可用且未开启减少动效时设置；用于避免 CSS `:active { transform: ... }` 与按压动画冲突，并由 Motion 统一接管 press feedback）
+- `html[data-cinematic="on"]`：Cinematic 动效启用标记（Motion 可用且未开启减少动效时设置；用于避免 CSS `:active { transform: ... }` 与按压动画冲突，并由 Motion 统一接管 press feedback / hover lift 等微交互）
 - `html[data-contrast="high"]`：高对比模式（增强 glass/bg/border 与 focus ring 可读性）
 - `--a11y-font-scale`：字体缩放（100%~125%）
 

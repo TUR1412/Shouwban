@@ -12,6 +12,12 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.1] - 2026-01-13
+
+### 变更
+- UI：Cinematic Hover Lift 改为优先 `Motion.spring()`（hover in/out 更符合物理直觉，保持 60FPS 友好），无支持时回退到 `Motion.animate()`；仅作用于账号/订单等卡片类容器（不涉及业务逻辑）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.1`
+
 ## [20260112.18] - 2026-01-12
 
 ### 新增

@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260112.18';
-import { createStorageKit } from './runtime/storage.js?v=20260112.18';
-import { createPerfKit } from './runtime/perf.js?v=20260112.18';
-import { createAccessibility } from './modules/accessibility.js?v=20260112.18';
-import { createToast } from './modules/toast.js?v=20260112.18';
-import { createLogger } from './modules/logger.js?v=20260112.18';
-import { createErrorShield } from './modules/error-shield.js?v=20260112.18';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260112.18';
-import { createTelemetry } from './modules/telemetry.js?v=20260112.18';
-import { createSeo } from './modules/seo.js?v=20260112.18';
+import { createStateHub } from './runtime/state.js?v=20260113.1';
+import { createStorageKit } from './runtime/storage.js?v=20260113.1';
+import { createPerfKit } from './runtime/perf.js?v=20260113.1';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.1';
+import { createToast } from './modules/toast.js?v=20260113.1';
+import { createLogger } from './modules/logger.js?v=20260113.1';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.1';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.1';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.1';
+import { createSeo } from './modules/seo.js?v=20260113.1';
 
 // ==============================================
 // Utility Functions
@@ -1070,6 +1070,24 @@ const Cinematic = (function() {
         const selector = '.account-card, .address-card, .alert-row, .summary-item, .order-success__panel, .order-success__item';
         const lifted = new WeakSet();
 
+        const spring = (element, keyframes, options) => {
+            const lib = getMotionLib();
+            if (!lib || typeof lib.spring !== 'function') return null;
+            try {
+                return lib.spring(element, keyframes, options);
+            } catch {
+                return null;
+            }
+        };
+
+        const liftIn = (element) =>
+            spring(element, { y: [0, -3], scale: [1, 1.01] }, { stiffness: 320, damping: 34, mass: 1, maxDurationMs: 420 }) ||
+            animate(element, { y: [0, -3], scale: [1, 1.01] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+
+        const liftOut = (element) =>
+            spring(element, { y: [-3, 0], scale: [1.01, 1] }, { stiffness: 320, damping: 34, mass: 1, maxDurationMs: 460 }) ||
+            animate(element, { y: [-3, 0], scale: [1.01, 1] }, { duration: 0.22, easing: [0.22, 1, 0.36, 1] });
+
         const shouldIgnore = (event) => {
             const pt = String(event?.pointerType || '');
             if (pt && pt !== 'mouse') return true;
@@ -1093,7 +1111,7 @@ const Cinematic = (function() {
                 lifted.add(el);
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                animate(el, { y: [0, -3], scale: [1, 1.01] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+                liftIn(el);
             },
             { passive: true },
         );
@@ -1110,7 +1128,7 @@ const Cinematic = (function() {
                 lifted.delete(el);
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                animate(el, { y: [-3, 0], scale: [1.01, 1] }, { duration: 0.22, easing: [0.22, 1, 0.36, 1] })?.finished?.finally?.(() => {
+                liftOut(el)?.finished?.finally?.(() => {
                     el.style.willChange = '';
                 });
             },
