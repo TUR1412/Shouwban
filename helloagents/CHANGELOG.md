@@ -12,6 +12,14 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.12] - 2026-01-13
+
+### 变更
+- UI：Header 搜索建议 `.header__search-suggestion` 纳入 Quartz Spotlight（hover/focus/active 动态光斑），与 Header 导航/下拉保持一致的“硬件级反馈”语言（渐进增强，不触碰业务逻辑）
+- UI：订单卡 `.order-card` 增加开合微动效（open 时 body 渐进 reveal）与价格区 chevron 指示（随 open 旋转），并尊重 `prefers-reduced-motion` 与 `html[data-motion="reduce"]`
+- UI：对比表 `.compare-table` 增加行级 hover highlight（同时覆盖 sticky 行标题单元格），提升表格扫描与对比效率（仅 hover: fine pointer）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.12`
+
 ## [20260113.11] - 2026-01-13
 
 ### 变更

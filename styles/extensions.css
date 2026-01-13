@@ -235,6 +235,7 @@ html[data-cinematic="on"]
     .header__action-link,
     .header__menu-toggle,
     .header__nav-link,
+    .header__search-suggestion,
     .breadcrumb__link,
     .remove-btn,
     .view-toggle__btn,
@@ -1801,6 +1802,23 @@ html[data-theme="dark"] .payment-option:hover {
   font-weight: var(--font-weight-bold);
 }
 
+.compare-table tbody tr > th[scope="row"],
+.compare-table tbody tr > td {
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .compare-table tbody tr:hover > th[scope="row"],
+  .compare-table tbody tr:hover > td {
+    background: rgba(var(--color-primary-rgb), 0.05);
+  }
+
+  html[data-theme="dark"] .compare-table tbody tr:hover > th[scope="row"],
+  html[data-theme="dark"] .compare-table tbody tr:hover > td {
+    background: rgba(var(--color-primary-rgb), 0.12);
+  }
+}
+
 .compare-table__img {
   width: 92px;
   height: 92px;
@@ -1892,13 +1910,51 @@ html[data-theme="dark"] .payment-option:hover {
 }
 
 .order-card__summary-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-weight: var(--font-weight-extrabold);
   color: var(--color-primary-dark);
+}
+
+.order-card__summary-right::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.55;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard);
+}
+
+.order-card[open] .order-card__summary-right::after {
+  transform: rotate(-135deg);
+  opacity: 0.85;
 }
 
 .order-card__body {
   padding: var(--spacing-md);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@keyframes order-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduce"]) .order-card[open] .order-card__body {
+    animation: order-card-reveal var(--motion-base) var(--ease-emphasized) both;
+  }
 }
 
 .order-card__actions {
@@ -4437,6 +4493,39 @@ html[data-theme="dark"] .curation-tabs {
 
 @media (hover: hover) and (pointer: fine) {
   .header__dropdown-item a:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Header search suggestions: match the header spotlight language */
+.header__search-suggestion {
+  position: relative;
+  overflow: hidden;
+}
+
+.header__search-suggestion::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-header-size)
+      at var(--spotlight-x, 45%) var(--spotlight-y, 15%),
+    rgba(255, 255, 255, var(--spotlight-header-alpha)),
+    transparent var(--spotlight-header-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.header__search-suggestion.is-active::before,
+.header__search-suggestion:focus-visible::before {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header__search-suggestion:hover::before {
     opacity: 1;
   }
 }

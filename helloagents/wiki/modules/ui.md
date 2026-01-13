@@ -52,9 +52,10 @@
 - 目标：对标 Apple / Vercel 的“中性底色 + 精准层级 + 硬件质感”审美，尽量减少 “ 花哨” 干扰，把视觉与交互聚焦到可读性与可信赖的反馈上。
 - Token：在 `styles/extensions.css` 追加 Quartz 设计 token（颜色/阴影/圆角/动效曲线），并统一覆盖关键容器（卡片/对话框/Toast/筛选条/面包屑等）的玻璃与边框表述。
 - Motion：在 `scripts/motion.js` 增量扩展 `Motion.spring()`（阻尼弹簧关键帧生成，WAAPI 渐进增强），用于物理级微交互（例如首页策展 Tab 指示器）。
-- Spotlight：按钮/胶囊与关键玻璃容器的高光层支持跟随鼠标位置的动态光斑（CSS `::before/::after` + `--spotlight-x/--spotlight-y`），并通过 `--spotlight-*` token 统一管理尺寸/强度；已覆盖 `.filter-option`、`.pagination__link`、`.breadcrumb__link`、`.remove-btn`、`.add-to-cart-btn`、`.view-toggle__btn` 等高频交互点，在减少动效时保持静态（渐进增强，不影响业务逻辑）。
+- Spotlight：按钮/胶囊与关键玻璃容器的高光层支持跟随鼠标位置的动态光斑（CSS `::before/::after` + `--spotlight-x/--spotlight-y`），并通过 `--spotlight-*` token 统一管理尺寸/强度；已覆盖 `.filter-option`、`.pagination__link`、`.breadcrumb__link`、`.header__search-suggestion`、`.remove-btn`、`.add-to-cart-btn`、`.view-toggle__btn` 等高频交互点，在减少动效时保持静态（渐进增强，不影响业务逻辑）。
 - Spotlight（扩展）：策展 Tab（`.curation-tab`）加入动态光斑与 hover/focus 光学高光，保持与 Quartz 按钮/胶囊一致的“硬件级反馈”语言。
 - Surface Spotlight（扩展）：对比表容器 `.compare-table-wrap` 与订单卡 `.order-card` 纳入 Surface Spotlight（`::after` + `--spotlight-x/--spotlight-y`），让对比/订单页的玻璃表面反馈与首页/购物车保持一致。
+- 信息密度页精修：对比表 `.compare-table` 增加 tbody 行 hover 高亮（覆盖 sticky row header 单元格），订单卡 `.order-card` 在 `details[open]` 时渐进 reveal body + chevron 旋转提示（均在 `prefers-reduced-motion` / `html[data-motion="reduce"]` 下自动降级）。
 - Segmented Control：对 `.view-toggle` 追加 `:has()` 渐进增强的滑动选中底板，让“切换视图”更接近 iOS 的分段控件反馈；不支持 `:has()` 的浏览器自动回退到既有样式（不影响业务逻辑）。
 - A11y：沿用 `html[data-motion="reduce"]` 与系统 `prefers-reduced-motion`，确保动效降级可控；Focus ring 统一提升可见性并尊重高对比模式。
 
