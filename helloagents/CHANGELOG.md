@@ -12,6 +12,14 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.6] - 2026-01-13
+
+### 变更
+- UI：Spotlight 扩展到筛选项 `.filter-option`、分页 `.pagination__link`、Header 下拉菜单 `.header__dropdown-item a`，并补齐 ErrorShield/Lightbox 的图标按钮光学高光（保持一致的 Quartz “硬件级反馈”语言）
+- UI：`bindSpotlights()` 增强 target 归一化（TextNode → parentElement），避免文本链接/菜单项命中不稳定导致高光丢失
+- 交互：Cinematic Press Feedback 改为“按当前 scale 相对压下再回弹”，解决 hover/状态自带缩放时按压会跳变的问题（例如 PDP 缩略图），并继续尊重减少动效偏好
+- 版本：统一缓存穿透版本号 bump 到 `20260113.6`
+
 ## [20260113.5] - 2026-01-13
 
 ### 变更

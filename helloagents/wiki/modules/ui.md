@@ -22,6 +22,7 @@
 - `--glass-*`：毛玻璃参数（blur/saturate/bg/border）
 - `--border-gradient / --border-gradient-soft`：动态渐变边框基座
 - `--spotlight-*`：Spotlight 光斑 token（尺寸/强度/stop 等），与 `--spotlight-x/--spotlight-y`（运行时写入位置）配合提供统一“动态高光”语言
+- `--spotlight-icon-*`：小尺寸控件的 Spotlight token（用于 close/back-to-top/导航按钮等更“紧凑”的光学高光）
 - `--a11y-font-scale`：字体缩放系数（映射到全站 rem 字阶，范围受控）
 
 ### 12 列响应式栅格

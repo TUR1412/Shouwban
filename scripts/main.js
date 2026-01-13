@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.5';
-import { createStorageKit } from './runtime/storage.js?v=20260113.5';
-import { createPerfKit } from './runtime/perf.js?v=20260113.5';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.5';
-import { createToast } from './modules/toast.js?v=20260113.5';
-import { createLogger } from './modules/logger.js?v=20260113.5';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.5';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.5';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.5';
-import { createSeo } from './modules/seo.js?v=20260113.5';
+import { createStateHub } from './runtime/state.js?v=20260113.6';
+import { createStorageKit } from './runtime/storage.js?v=20260113.6';
+import { createPerfKit } from './runtime/perf.js?v=20260113.6';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.6';
+import { createToast } from './modules/toast.js?v=20260113.6';
+import { createLogger } from './modules/logger.js?v=20260113.6';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.6';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.6';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.6';
+import { createSeo } from './modules/seo.js?v=20260113.6';
 
 // ==============================================
 // Utility Functions
@@ -1143,7 +1143,7 @@ const Cinematic = (function() {
         bindSpotlights._bound = true;
 
         const buttonSelector =
-            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .header__action-link, .header__menu-toggle, .header__nav-link, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn, .toast__action, .toast__close, .back-to-top, .quantity-selector__button';
+            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .filter-option, .pagination__link, .header__action-link, .header__menu-toggle, .header__nav-link, .header__dropdown-item a, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn, .toast__action, .toast__close, .back-to-top, .quantity-selector__button, .error-shield__close, .lightbox__nav';
         const surfaceSelector =
             '.product-card, .cart-summary, .order-summary, .checkout-form, .filter-sort-bar, .breadcrumb-nav, .product-gallery-pdp, .product-info-pdp, .bento-card, .hero__glass, .stat-card, .drop-card, .recommendation-card, .rewards-block, .account-card, .address-card, .alert-row, .glass-dialog__card, .header__search-suggestions';
 
@@ -1213,11 +1213,16 @@ const Cinematic = (function() {
             rafId = requestAnimationFrame(update);
         };
 
+        const normalizeTarget = (t) => {
+            if (!t) return null;
+            if (t.nodeType === 1) return t;
+            return t.parentElement || null;
+        };
+
         const remember = (event, t) => {
             if (typeof event?.clientX === 'number') lastClientX = event.clientX;
             if (typeof event?.clientY === 'number') lastClientY = event.clientY;
-            if (t && t.nodeType === 1) lastTarget = t;
-            else lastTarget = null;
+            lastTarget = normalizeTarget(t);
             schedule();
         };
 
@@ -1322,25 +1327,68 @@ const Cinematic = (function() {
         if (!isMotionReady()) return;
 
         const pressedByPointerId = new Map();
+        const pressFactor = 0.98;
+
+        const readCurrentScale = (el) => {
+            if (!el || typeof getComputedStyle !== 'function') return 1;
+            try {
+                const t = getComputedStyle(el).transform;
+                if (!t || t === 'none') return 1;
+
+                if (typeof DOMMatrixReadOnly === 'function') {
+                    const m = new DOMMatrixReadOnly(t);
+                    const scaleX = Math.hypot(m.a, m.b);
+                    const scaleY = Math.hypot(m.c, m.d);
+                    const scale = (scaleX + scaleY) / 2;
+                    return Number.isFinite(scale) && scale > 0 ? scale : 1;
+                }
+
+                const match2d = t.match(/matrix\(([^)]+)\)/);
+                if (match2d) {
+                    const parts = match2d[1]
+                        .split(',')
+                        .map((v) => Number.parseFloat(v.trim()))
+                        .filter((n) => Number.isFinite(n));
+                    if (parts.length >= 4) {
+                        const [a, b, c, d] = parts;
+                        const scaleX = Math.hypot(a, b);
+                        const scaleY = Math.hypot(c, d);
+                        const scale = (scaleX + scaleY) / 2;
+                        return Number.isFinite(scale) && scale > 0 ? scale : 1;
+                    }
+                }
+            } catch {
+                return 1;
+            }
+            return 1;
+        };
 
         const isInteractive = (el) => {
             if (!el) return false;
             if (el.matches?.('button, a')) return true;
-            if (el.classList?.contains?.('header__action-link')) return true;
+            if (el.classList?.contains?.('header__action-link')) return true;   
+            if (el.classList?.contains?.('filter-option')) return true;
+            if (el.classList?.contains?.('product-gallery-pdp__thumbnail')) return true;
             return false;
         };
 
         const getTarget = (event) => {
             const t = event?.target;
-            const el = t?.closest?.('button, a, .header__action-link');
+            const el = t?.closest?.('button, a, .header__action-link, .filter-option, .product-gallery-pdp__thumbnail');
             if (!isInteractive(el)) return null;
             if (el.matches?.('[aria-disabled=\"true\"], [disabled]')) return null;
+            if (el.classList?.contains?.('filter-option') && el.querySelector?.('input[disabled], input[aria-disabled=\"true\"]')) return null;
             return el;
         };
 
-        const rememberPressed = (event, el) => {
+        const rememberPressed = (event, el, baseScale) => {
             const pointerId = event?.pointerId;
-            if (typeof pointerId === 'number') pressedByPointerId.set(pointerId, el);
+            if (typeof pointerId === 'number') {
+                pressedByPointerId.set(pointerId, {
+                    el,
+                    baseScale: Number.isFinite(baseScale) && baseScale > 0 ? baseScale : 1,
+                });
+            }
             try {
                 if (typeof el?.setPointerCapture === 'function' && typeof pointerId === 'number') {
                     el.setPointerCapture(pointerId);
@@ -1353,9 +1401,9 @@ const Cinematic = (function() {
         const resolvePressed = (event) => {
             const pointerId = event?.pointerId;
             if (typeof pointerId !== 'number') return null;
-            const el = pressedByPointerId.get(pointerId) || null;
+            const entry = pressedByPointerId.get(pointerId) || null;
             pressedByPointerId.delete(pointerId);
-            return el;
+            return entry;
         };
 
         document.addEventListener(
@@ -1364,21 +1412,31 @@ const Cinematic = (function() {
                 const el = getTarget(event);
                 if (!el) return;
                 if (event?.pointerType === 'mouse' && typeof event?.button === 'number' && event.button !== 0) return;
-                rememberPressed(event, el);
+                const baseScale = readCurrentScale(el);
+                rememberPressed(event, el, baseScale);
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                animate(el, { scale: [1, 0.98] }, { duration: 0.12, easing: [0.22, 1, 0.36, 1] })?.finished?.finally?.(() => {
+                animate(
+                    el,
+                    { scale: [baseScale, baseScale * pressFactor] },
+                    { duration: 0.12, easing: [0.22, 1, 0.36, 1] },
+                )?.finished?.finally?.(() => {
                     el.style.willChange = '';
                 });
             },
             { passive: true },
         );
 
-        const springOut = (el) => {
+        const springOut = (el, baseScale) => {
             const lib = getMotionLib();
             if (!lib || typeof lib.spring !== 'function') return null;
             try {
-                return lib.spring(el, { scale: [0.98, 1] }, { stiffness: 420, damping: 36, mass: 1, maxDurationMs: 520 });
+                const b = Number.isFinite(baseScale) && baseScale > 0 ? baseScale : 1;
+                return lib.spring(
+                    el,
+                    { scale: [b * pressFactor, b] },
+                    { stiffness: 420, damping: 36, mass: 1, maxDurationMs: 520 },
+                );
             } catch {
                 return null;
             }
@@ -1388,14 +1446,19 @@ const Cinematic = (function() {
             'pointerup',
             (event) => {
                 const stored = resolvePressed(event);
-                const el = stored || getTarget(event);
+                const el = stored?.el || null;
                 if (!el) return;
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                const springAnim = springOut(el);
+                const baseScale = stored?.baseScale;
+                const springAnim = springOut(el, baseScale);
                 const anim =
                     springAnim ||
-                    animate(el, { scale: [0.98, 1] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+                    animate(
+                        el,
+                        { scale: [(Number(baseScale) || 1) * pressFactor, Number(baseScale) || 1] },
+                        { duration: 0.18, easing: [0.22, 1, 0.36, 1] },
+                    );
                 anim?.finished?.finally?.(() => {
                     el.style.willChange = '';
                 });
@@ -1406,14 +1469,20 @@ const Cinematic = (function() {
         document.addEventListener(
             'pointercancel',
             (event) => {
-                const el = resolvePressed(event);
+                const stored = resolvePressed(event);
+                const el = stored?.el || null;
                 if (!el) return;
                 cancelRunningAnimations(el);
                 el.style.willChange = 'transform';
-                const springAnim = springOut(el);
+                const baseScale = stored?.baseScale;
+                const springAnim = springOut(el, baseScale);
                 const anim =
                     springAnim ||
-                    animate(el, { scale: [0.98, 1] }, { duration: 0.18, easing: [0.22, 1, 0.36, 1] });
+                    animate(
+                        el,
+                        { scale: [(Number(baseScale) || 1) * pressFactor, Number(baseScale) || 1] },
+                        { duration: 0.18, easing: [0.22, 1, 0.36, 1] },
+                    );
                 anim?.finished?.finally?.(() => {
                     el.style.willChange = '';
                 });
