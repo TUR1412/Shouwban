@@ -12,6 +12,13 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.13] - 2026-01-13
+
+### 变更
+- UI：账户页 `details` 组件（地址表单 `.account-form`、诊断面板 `.diagnostics-panel`）统一补齐“可点击行”级微交互：summary 光学 Spotlight、open chevron 指示与展开渐进 reveal（均尊重 `prefers-reduced-motion` / `html[data-motion="reduce"]`，不触碰业务逻辑）
+- UI：Cinematic `bindSpotlights()` selector 扩展到 `.account-form__summary` / `.diagnostics-panel__summary`，让动态光斑追踪与 Quartz 交互语言保持一致（rAF 节流，60FPS 友好）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.13`
+
 ## [20260113.12] - 2026-01-13
 
 ### 变更

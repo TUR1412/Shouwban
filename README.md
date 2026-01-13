@@ -28,6 +28,7 @@
 ### 你会看到什么
 - **Quartz UI 视觉系统**：中性底色 + 玻璃拟态 + 精准阴影层级（更像 Apple/Vercel 的“硬件质感”）。
 - **微交互（Micro-interactions）**：hover / press / focus / loading 的统一动效语言（以 transform/opacity 为主，60FPS 友好）。
+- **Details 行级微交互**：账户页 `details`（地址表单 / 诊断面板）补齐 summary Spotlight + chevron 指示 + 展开 reveal，让“可点击行”反馈更一致。
 - **物理级动效引擎（渐进增强）**：`scripts/motion.js` 新增 `Motion.spring()`，用于“弹簧”式关键帧生成（WAAPI）。
 - **MPA View Transitions（渐进增强）**：跨页导航过渡与共享元素连续性（不支持的浏览器自动降级）。
 - **三态主题**：Light → Dark → Genesis（暗色基座 + 变体 token）。
@@ -65,6 +66,7 @@
 ### What you get
 - **Quartz UI**: neutral palettes + glass surfaces + precise elevation (Apple/Vercel-like “hardware feel”).
 - **Micro-interactions**: a consistent motion language for hover/press/focus/loading (transform/opacity first, 60FPS-friendly).
+- **Details row interactions**: account-page `details` (address form / diagnostics panels) with Spotlight + chevron + reveal for consistent “clickable row” feedback.
 - **Physics-grade motion (progressive enhancement)**: `scripts/motion.js` adds `Motion.spring()` to generate damped-spring keyframes (WAAPI).
 - **MPA View Transitions**: navigation transitions & shared-element continuity with graceful fallback.
 - **3-state Theme**: Light → Dark → Genesis (dark base + variant tokens).

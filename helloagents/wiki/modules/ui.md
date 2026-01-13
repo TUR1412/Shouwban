@@ -56,6 +56,7 @@
 - Spotlight（扩展）：策展 Tab（`.curation-tab`）加入动态光斑与 hover/focus 光学高光，保持与 Quartz 按钮/胶囊一致的“硬件级反馈”语言。
 - Surface Spotlight（扩展）：对比表容器 `.compare-table-wrap` 与订单卡 `.order-card` 纳入 Surface Spotlight（`::after` + `--spotlight-x/--spotlight-y`），让对比/订单页的玻璃表面反馈与首页/购物车保持一致。
 - 信息密度页精修：对比表 `.compare-table` 增加 tbody 行 hover 高亮（覆盖 sticky row header 单元格），订单卡 `.order-card` 在 `details[open]` 时渐进 reveal body + chevron 旋转提示（均在 `prefers-reduced-motion` / `html[data-motion="reduce"]` 下自动降级）。
+- Details 微交互（扩展）：账户页 `details`（地址表单 `.account-form`、诊断面板 `.diagnostics-panel`）补齐 summary Spotlight、open chevron 指示与展开渐进 reveal，形成更一致的“可点击行”反馈语言（同样尊重减少动效偏好，不影响业务逻辑）。
 - Segmented Control：对 `.view-toggle` 追加 `:has()` 渐进增强的滑动选中底板，让“切换视图”更接近 iOS 的分段控件反馈；不支持 `:has()` 的浏览器自动回退到既有样式（不影响业务逻辑）。
 - A11y：沿用 `html[data-motion="reduce"]` 与系统 `prefers-reduced-motion`，确保动效降级可控；Focus ring 统一提升可见性并尊重高对比模式。
 
