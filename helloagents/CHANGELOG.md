@@ -12,6 +12,14 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.8] - 2026-01-13
+
+### 变更
+- UI：Spotlight 扩展到 PDP 主 CTA `.add-to-cart-btn` 与列表视图切换 `.view-toggle__btn`，让“购买/切换视图”等高频入口也具备一致的 Quartz 光学反馈（渐进增强，不触碰业务逻辑）
+- UI：补齐图标控件 Spotlight 的 hover/focus 规则（覆盖 `.remove-btn` / `.view-toggle__btn`），确保动态光斑不仅写入位置变量，也能在交互态可见
+- UI：主按钮 Spotlight 追加 focus-visible 显示（键盘可用性更强），并扩展 Cinematic `:active { transform: none; }` guardrail 覆盖新控件，避免 hover/press 叠加跳变
+- 版本：统一缓存穿透版本号 bump 到 `20260113.8`
+
 ## [20260113.7] - 2026-01-13
 
 ### 变更

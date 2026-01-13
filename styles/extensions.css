@@ -213,10 +213,13 @@ html[data-cinematic="on"]
     .product-card__button,
     .checkout-button,
     .place-order-button,
+    .add-to-cart-btn,
     .cta-button-secondary,
     .filter-toggle,
     .filter-chip,
     .listing-meta__action,
+    .filter-option,
+    .pagination__link,
     .product-card__quick-add,
     .product-card__compare,
     .product-card__alert,
@@ -226,10 +229,15 @@ html[data-cinematic="on"]
     .alert-btn,
     .restock-btn,
     .toast__action,
+    .toast__close,
     .back-to-top,
+    .quantity-selector__button,
     .header__action-link,
     .header__menu-toggle,
     .header__nav-link,
+    .breadcrumb__link,
+    .remove-btn,
+    .view-toggle__btn,
     .error-shield__close,
     .lightbox__nav
   ):active {
@@ -3683,7 +3691,8 @@ html[data-theme="dark"] .header__menu-toggle {
 .cta-button,
 .product-card__button,
 .checkout-button,
-.place-order-button {
+.place-order-button,
+.add-to-cart-btn {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 1), rgba(124, 58, 237, 0.92));
@@ -3697,7 +3706,8 @@ html[data-theme="dark"] .header__menu-toggle {
 .cta-button::before,
 .product-card__button::before,
 .checkout-button::before,
-.place-order-button::before {
+.place-order-button::before,
+.add-to-cart-btn::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -3713,11 +3723,20 @@ html[data-theme="dark"] .header__menu-toggle {
   pointer-events: none;
 }
 
+.cta-button:focus-visible::before,
+.product-card__button:focus-visible::before,
+.checkout-button:focus-visible::before,
+.place-order-button:focus-visible::before,
+.add-to-cart-btn:focus-visible::before {
+  opacity: 1;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .cta-button:hover,
   .product-card__button:hover,
   .checkout-button:hover,
-  .place-order-button:hover {
+  .place-order-button:hover,
+  .add-to-cart-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 26px 80px rgba(var(--color-primary-rgb), 0.28);
     filter: saturate(1.06);
@@ -3726,7 +3745,8 @@ html[data-theme="dark"] .header__menu-toggle {
   .cta-button:hover::before,
   .product-card__button:hover::before,
   .checkout-button:hover::before,
-  .place-order-button:hover::before {
+  .place-order-button:hover::before,
+  .add-to-cart-btn:hover::before {
     opacity: 1;
   }
 }
@@ -3734,8 +3754,27 @@ html[data-theme="dark"] .header__menu-toggle {
 .cta-button:active,
 .product-card__button:active,
 .checkout-button:active,
-.place-order-button:active {
+.place-order-button:active,
+.add-to-cart-btn:active {
   transform: translateY(0) scale(0.98);
+}
+
+.add-to-cart-btn {
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.add-to-cart-btn:disabled,
+.add-to-cart-btn[aria-disabled="true"],
+.add-to-cart-btn.is-disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  filter: grayscale(0.15) saturate(0.85);
 }
 
 /* Secondary buttons / pills */
@@ -3819,6 +3858,7 @@ html[data-theme="dark"] .header__menu-toggle {
 :where(
   .toast__close,
   .back-to-top,
+  .view-toggle__btn,
   .quantity-selector__button,
   .remove-btn,
   .error-shield__close,
@@ -3831,6 +3871,7 @@ html[data-theme="dark"] .header__menu-toggle {
 :where(
   .toast__close,
   .back-to-top,
+  .view-toggle__btn,
   .quantity-selector__button,
   .remove-btn,
   .error-shield__close,
@@ -3854,6 +3895,7 @@ html[data-theme="dark"] .header__menu-toggle {
 :where(
   .toast__close,
   .back-to-top,
+  .view-toggle__btn,
   .quantity-selector__button,
   .remove-btn,
   .error-shield__close,
@@ -3913,7 +3955,9 @@ html[data-theme="dark"] .listing-meta__action {
 :where(
   .toast__close,
   .back-to-top,
+  .view-toggle__btn,
   .quantity-selector__button,
+  .remove-btn,
   .error-shield__close,
   .lightbox__nav
 ):focus-visible::before {
@@ -3954,7 +3998,9 @@ html[data-theme="dark"] .listing-meta__action {
   :where(
     .toast__close,
     .back-to-top,
+    .view-toggle__btn,
     .quantity-selector__button,
+    .remove-btn,
     .error-shield__close,
     .lightbox__nav
   ):hover::before {
