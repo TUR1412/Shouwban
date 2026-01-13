@@ -9,6 +9,29 @@ html {
 
 :root {
   --a11y-font-scale: 1;
+
+  /* Quartz Spotlight tokens (shared by Button & Surface Spotlight) */
+  --spotlight-surface-size: 720px 320px;
+  --spotlight-surface-alpha: 0.30;
+  --spotlight-surface-stop: 60%;
+
+  --spotlight-button-size: 600px 220px;
+  --spotlight-button-alpha: 0.55;
+  --spotlight-button-stop: 60%;
+
+  --spotlight-pill-size: 560px 220px;
+  --spotlight-pill-alpha: 0.45;
+  --spotlight-pill-stop: 62%;
+
+  --spotlight-header-size: 520px 200px;
+  --spotlight-header-alpha: 0.35;
+  --spotlight-header-stop: 62%;
+}
+
+html[data-theme="dark"] {
+  --spotlight-surface-alpha: 0.12;
+  --spotlight-pill-alpha: 0.16;
+  --spotlight-header-alpha: 0.18;
 }
 
 /* A11y: 字体缩放（仅影响 rem 系统；用 px 避免 root rem 递归） */
@@ -2307,42 +2330,12 @@ html[data-theme="dark"] {
   pointer-events: none;
   opacity: 0;
   background: radial-gradient(
-    720px 320px
+    var(--spotlight-surface-size)
       at var(--spotlight-x, 50%) var(--spotlight-y, 20%),
-    rgba(255, 255, 255, 0.30),
-    transparent 60%
+    rgba(255, 255, 255, var(--spotlight-surface-alpha)),
+    transparent var(--spotlight-surface-stop)
   );
   transition: opacity var(--motion-fast) var(--ease-standard);
-}
-
-html[data-theme="dark"]
-  :where(
-    .product-card,
-    .cart-summary,
-    .order-summary,
-    .checkout-form,
-    .filter-sort-bar,
-    .breadcrumb-nav,
-    .product-gallery-pdp,
-    .product-info-pdp,
-    .bento-card,
-    .hero__glass,
-    .stat-card,
-    .drop-card,
-    .recommendation-card,
-    .rewards-block,
-    .account-card,
-    .address-card,
-    .alert-row,
-    .glass-dialog__card,
-    .header__search-suggestions
-  )::after {
-  background: radial-gradient(
-    720px 320px
-      at var(--spotlight-x, 50%) var(--spotlight-y, 20%),
-    rgba(255, 255, 255, 0.12),
-    transparent 60%
-  );
 }
 
 :where(
@@ -3577,6 +3570,8 @@ html[data-theme="dark"] .header {
 
 .header__action-link,
 .header__menu-toggle {
+  position: relative;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(15, 23, 42, 0.10);
   transition:
@@ -3585,6 +3580,23 @@ html[data-theme="dark"] .header {
     background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard);
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.header__action-link::before,
+.header__menu-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-header-size)
+      at var(--spotlight-x, 40%) var(--spotlight-y, 15%),
+    rgba(255, 255, 255, var(--spotlight-header-alpha)),
+    transparent var(--spotlight-header-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
 }
 
 html[data-theme="dark"] .header__action-link,
@@ -3601,11 +3613,21 @@ html[data-theme="dark"] .header__menu-toggle {
     border-color: rgba(var(--color-primary-rgb), 0.22);
     box-shadow: 0 14px 40px rgba(15, 23, 42, 0.10);
   }
+
+  .header__action-link:hover::before,
+  .header__menu-toggle:hover::before {
+    opacity: 1;
+  }
 }
 
 .header__action-link:active,
 .header__menu-toggle:active {
   transform: scale(0.97);
+}
+
+.header__action-link:focus-visible::before,
+.header__menu-toggle:focus-visible::before {
+  opacity: 1;
 }
 
 /* Buttons: more "hardware" feel */
@@ -3633,10 +3655,10 @@ html[data-theme="dark"] .header__menu-toggle {
   border-radius: inherit;
   opacity: 0;
   background: radial-gradient(
-    600px 220px
+    var(--spotlight-button-size)
       at var(--spotlight-x, 20%) var(--spotlight-y, 10%),
-    rgba(255, 255, 255, 0.55),
-    transparent 60%
+    rgba(255, 255, 255, var(--spotlight-button-alpha)),
+    transparent var(--spotlight-button-stop)
   );
   transition: opacity var(--motion-base) var(--ease-standard);
   pointer-events: none;
@@ -3693,13 +3715,53 @@ html[data-theme="dark"] .header__menu-toggle {
   border-radius: inherit;
   opacity: 0;
   background: radial-gradient(
-    560px 220px
+    var(--spotlight-pill-size)
       at var(--spotlight-x, 40%) var(--spotlight-y, 20%),
-    rgba(255, 255, 255, 0.45),
-    transparent 62%
+    rgba(255, 255, 255, var(--spotlight-pill-alpha)),
+    transparent var(--spotlight-pill-stop)
   );
   transition: opacity var(--motion-fast) var(--ease-standard);
   pointer-events: none;
+}
+
+/* Product action buttons: match the pill spotlight language */
+:where(
+  .product-card__quick-add,
+  .product-card__compare,
+  .product-card__alert,
+  .favorite-btn,
+  .share-btn,
+  .compare-btn,
+  .alert-btn,
+  .restock-btn
+) {
+  position: relative;
+  overflow: hidden;
+}
+
+:where(
+  .product-card__quick-add,
+  .product-card__compare,
+  .product-card__alert,
+  .favorite-btn,
+  .share-btn,
+  .compare-btn,
+  .alert-btn,
+  .restock-btn
+)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-pill-size)
+      at var(--spotlight-x, 40%) var(--spotlight-y, 20%),
+    rgba(255, 255, 255, var(--spotlight-pill-alpha)),
+    transparent var(--spotlight-pill-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
 }
 
 html[data-theme="dark"] .cta-button-secondary,
@@ -3711,22 +3773,23 @@ html[data-theme="dark"] .listing-meta__action {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
 }
 
-html[data-theme="dark"] .cta-button-secondary::before,
-html[data-theme="dark"] .filter-toggle::before,
-html[data-theme="dark"] .filter-chip::before,
-html[data-theme="dark"] .listing-meta__action::before {
-  background: radial-gradient(
-    560px 220px
-      at var(--spotlight-x, 40%) var(--spotlight-y, 20%),
-    rgba(255, 255, 255, 0.16),
-    transparent 62%
-  );
-}
-
 .cta-button-secondary:focus-visible::before,
 .filter-toggle:focus-visible::before,
 .filter-chip:focus-visible::before,
 .listing-meta__action:focus-visible::before {
+  opacity: 1;
+}
+
+:where(
+  .product-card__quick-add,
+  .product-card__compare,
+  .product-card__alert,
+  .favorite-btn,
+  .share-btn,
+  .compare-btn,
+  .alert-btn,
+  .restock-btn
+):focus-visible::before {
   opacity: 1;
 }
 
@@ -3744,6 +3807,19 @@ html[data-theme="dark"] .listing-meta__action::before {
   .filter-toggle:hover::before,
   .filter-chip:hover::before,
   .listing-meta__action:hover::before {
+    opacity: 1;
+  }
+
+  :where(
+    .product-card__quick-add,
+    .product-card__compare,
+    .product-card__alert,
+    .favorite-btn,
+    .share-btn,
+    .compare-btn,
+    .alert-btn,
+    .restock-btn
+  ):hover::before {
     opacity: 1;
   }
 }
@@ -3968,10 +4044,27 @@ html[data-theme="dark"] .curation-tabs {
 /* Header navigation micro-interactions */
 .header__nav-link {
   position: relative;
+  overflow: hidden;
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard);
+}
+
+.header__nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    var(--spotlight-header-size)
+      at var(--spotlight-x, 50%) var(--spotlight-y, 10%),
+    rgba(255, 255, 255, var(--spotlight-header-alpha)),
+    transparent var(--spotlight-header-stop)
+  );
+  transition: opacity var(--motion-fast) var(--ease-standard);
 }
 
 .header__nav-link::after {
@@ -4003,6 +4096,10 @@ html[data-theme="dark"] .curation-tabs {
     transform: translateY(-1px);
   }
 
+  .header__nav-link:hover::before {
+    opacity: 1;
+  }
+
   .header__nav-link:hover::after {
     opacity: 1;
     transform: scaleX(1);
@@ -4011,6 +4108,10 @@ html[data-theme="dark"] .curation-tabs {
 
 .header__nav-link:active {
   transform: translateY(0);
+}
+
+.header__nav-link:focus-visible::before {
+  opacity: 1;
 }
 
 /* Scrollbar (progressive enhancement) */

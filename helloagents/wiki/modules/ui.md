@@ -21,6 +21,7 @@
 - `--shadow-elev-1..5`：动态阴影层级（含轻微品牌色光晕）
 - `--glass-*`：毛玻璃参数（blur/saturate/bg/border）
 - `--border-gradient / --border-gradient-soft`：动态渐变边框基座
+- `--spotlight-*`：Spotlight 光斑 token（尺寸/强度/stop 等），与 `--spotlight-x/--spotlight-y`（运行时写入位置）配合提供统一“动态高光”语言
 - `--a11y-font-scale`：字体缩放系数（映射到全站 rem 字阶，范围受控）
 
 ### 12 列响应式栅格
@@ -50,7 +51,7 @@
 - 目标：对标 Apple / Vercel 的“中性底色 + 精准层级 + 硬件质感”审美，尽量减少 “ 花哨” 干扰，把视觉与交互聚焦到可读性与可信赖的反馈上。
 - Token：在 `styles/extensions.css` 追加 Quartz 设计 token（颜色/阴影/圆角/动效曲线），并统一覆盖关键容器（卡片/对话框/Toast/筛选条/面包屑等）的玻璃与边框表述。
 - Motion：在 `scripts/motion.js` 增量扩展 `Motion.spring()`（阻尼弹簧关键帧生成，WAAPI 渐进增强），用于物理级微交互（例如首页策展 Tab 指示器）。
-- Spotlight：按钮/胶囊与关键玻璃容器的高光层支持跟随鼠标位置的动态光斑（CSS `::before/::after` + `--spotlight-x/--spotlight-y`），并在减少动效时保持静态（渐进增强，不影响业务逻辑）。
+- Spotlight：按钮/胶囊与关键玻璃容器的高光层支持跟随鼠标位置的动态光斑（CSS `::before/::after` + `--spotlight-x/--spotlight-y`），并通过 `--spotlight-*` token 统一管理尺寸/强度；在减少动效时保持静态（渐进增强，不影响业务逻辑）。
 - A11y：沿用 `html[data-motion="reduce"]` 与系统 `prefers-reduced-motion`，确保动效降级可控；Focus ring 统一提升可见性并尊重高对比模式。
 
 - 精修：修复 `Motion.spring()` 在仅动画部分 transform 分量（如仅 `x/width`）时的“未声明分量归零/归一”跳变；补齐 `--transition-fast/--transition-base` 与高对比 `--glass-bg/--focus-ring`，并补充 Header 导航 underline hover 微交互、滚动条皮肤与 Tabs 指示器 `will-change`（纯视觉/动效层，不影响核心业务逻辑）。

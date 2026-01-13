@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.3';
-import { createStorageKit } from './runtime/storage.js?v=20260113.3';
-import { createPerfKit } from './runtime/perf.js?v=20260113.3';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.3';
-import { createToast } from './modules/toast.js?v=20260113.3';
-import { createLogger } from './modules/logger.js?v=20260113.3';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.3';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.3';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.3';
-import { createSeo } from './modules/seo.js?v=20260113.3';
+import { createStateHub } from './runtime/state.js?v=20260113.4';
+import { createStorageKit } from './runtime/storage.js?v=20260113.4';
+import { createPerfKit } from './runtime/perf.js?v=20260113.4';
+import { createAccessibility } from './modules/accessibility.js?v=20260113.4';
+import { createToast } from './modules/toast.js?v=20260113.4';
+import { createLogger } from './modules/logger.js?v=20260113.4';
+import { createErrorShield } from './modules/error-shield.js?v=20260113.4';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.4';
+import { createTelemetry } from './modules/telemetry.js?v=20260113.4';
+import { createSeo } from './modules/seo.js?v=20260113.4';
 
 // ==============================================
 // Utility Functions
@@ -1136,136 +1136,28 @@ const Cinematic = (function() {
         );
     }
 
-    function bindSpotlight() {
+    function bindSpotlights() {
         if (!isMotionReady()) return;
 
-        const selector =
-            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action';
-        let active = null;
-        let rafId = 0;
-        let lastClientX = 0;
-        let lastClientY = 0;
+        if (bindSpotlights._bound) return;
+        bindSpotlights._bound = true;
 
-        const shouldIgnore = (event) => {
-            const pt = String(event?.pointerType || '');
-            if (pt && pt !== 'mouse') return true;
-            return false;
-        };
-
-        const getTarget = (event) => {
-            const target = event?.target;
-            return target?.closest?.(selector) || null;
-        };
-
-        const clearSpotlight = (el) => {
-            if (!el || !el.style) return;
-            try {
-                el.style.removeProperty('--spotlight-x');
-                el.style.removeProperty('--spotlight-y');
-            } catch {
-                // ignore
-            }
-        };
-
-        const update = () => {
-            rafId = 0;
-            const el = active;
-            if (!el || typeof el.getBoundingClientRect !== 'function') return;
-
-            const rect = el.getBoundingClientRect();
-            if (!rect.width || !rect.height) return;
-
-            const x = Math.max(0, Math.min(rect.width, lastClientX - rect.left));
-            const y = Math.max(0, Math.min(rect.height, lastClientY - rect.top));
-
-            try {
-                el.style.setProperty('--spotlight-x', `${Math.round(x)}px`);
-                el.style.setProperty('--spotlight-y', `${Math.round(y)}px`);
-            } catch {
-                // ignore
-            }
-        };
-
-        const schedule = () => {
-            if (rafId) return;
-            rafId = requestAnimationFrame(update);
-        };
-
-        document.addEventListener(
-            'pointerover',
-            (event) => {
-                if (shouldIgnore(event)) return;
-                const el = getTarget(event);
-                if (!el) return;
-                const related = event.relatedTarget;
-                if (related && el.contains(related)) return;
-                active = el;
-                lastClientX = event.clientX;
-                lastClientY = event.clientY;
-                schedule();
-            },
-            { passive: true },
-        );
-
-        document.addEventListener(
-            'pointerout',
-            (event) => {
-                if (shouldIgnore(event)) return;
-                const el = getTarget(event);
-                if (!el) return;
-                const related = event.relatedTarget;
-                if (related && el.contains(related)) return;
-                if (active !== el) return;
-                active = null;
-                clearSpotlight(el);
-            },
-            { passive: true },
-        );
-
-        document.addEventListener(
-            'pointermove',
-            (event) => {
-                if (shouldIgnore(event)) return;
-                if (!active) return;
-                lastClientX = event.clientX;
-                lastClientY = event.clientY;
-                schedule();
-            },
-            { passive: true },
-        );
-
-        document.addEventListener(
-            'pointercancel',
-            (event) => {
-                if (shouldIgnore(event)) return;
-                const el = active;
-                if (!el) return;
-                active = null;
-                clearSpotlight(el);
-            },
-            { passive: true },
-        );
-    }
-
-    function bindSurfaceSpotlight() {
-        if (!isMotionReady()) return;
-
-        const selector =
+        const buttonSelector =
+            '.cta-button, .product-card__button, .checkout-button, .place-order-button, .cta-button-secondary, .filter-toggle, .filter-chip, .listing-meta__action, .header__action-link, .header__menu-toggle, .header__nav-link, .product-card__quick-add, .product-card__compare, .product-card__alert, .favorite-btn, .share-btn, .compare-btn, .alert-btn, .restock-btn';
+        const surfaceSelector =
             '.product-card, .cart-summary, .order-summary, .checkout-form, .filter-sort-bar, .breadcrumb-nav, .product-gallery-pdp, .product-info-pdp, .bento-card, .hero__glass, .stat-card, .drop-card, .recommendation-card, .rewards-block, .account-card, .address-card, .alert-row, .glass-dialog__card, .header__search-suggestions';
-        let active = null;
+
+        let activeButton = null;
+        let activeSurface = null;
         let rafId = 0;
         let lastClientX = 0;
         let lastClientY = 0;
+        let lastTarget = null;
 
         const shouldIgnore = (event) => {
             const pt = String(event?.pointerType || '');
             if (pt && pt !== 'mouse') return true;
             return false;
-        };
-
-        const getTarget = (event) => {
-            const target = event?.target;
-            return target?.closest?.(selector) || null;
         };
 
         const clearSpotlight = (el) => {
@@ -1278,16 +1170,15 @@ const Cinematic = (function() {
             }
         };
 
-        const update = () => {
-            rafId = 0;
-            const el = active;
-            if (!el || typeof el.getBoundingClientRect !== 'function') return;
+        const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
+        const writeSpotlight = (el) => {
+            if (!el || typeof el.getBoundingClientRect !== 'function') return;
             const rect = el.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
 
-            const x = Math.max(0, Math.min(rect.width, lastClientX - rect.left));
-            const y = Math.max(0, Math.min(rect.height, lastClientY - rect.top));
+            const x = clamp(lastClientX - rect.left, 0, rect.width);
+            const y = clamp(lastClientY - rect.top, 0, rect.height);
 
             try {
                 el.style.setProperty('--spotlight-x', `${Math.round(x)}px`);
@@ -1297,38 +1188,52 @@ const Cinematic = (function() {
             }
         };
 
+        const update = () => {
+            rafId = 0;
+            const target = lastTarget;
+            const nextButton = target?.closest?.(buttonSelector) || null;
+            const nextSurface = target?.closest?.(surfaceSelector) || null;
+
+            if (nextButton !== activeButton) {
+                if (activeButton) clearSpotlight(activeButton);
+                activeButton = nextButton;
+            }
+
+            if (nextSurface !== activeSurface) {
+                if (activeSurface) clearSpotlight(activeSurface);
+                activeSurface = nextSurface;
+            }
+
+            if (activeButton) writeSpotlight(activeButton);
+            if (activeSurface) writeSpotlight(activeSurface);
+        };
+
         const schedule = () => {
             if (rafId) return;
             rafId = requestAnimationFrame(update);
+        };
+
+        const remember = (event, t) => {
+            if (typeof event?.clientX === 'number') lastClientX = event.clientX;
+            if (typeof event?.clientY === 'number') lastClientY = event.clientY;
+            if (t && t.nodeType === 1) lastTarget = t;
+            else lastTarget = null;
+            schedule();
+        };
+
+        const clearAll = () => {
+            if (activeButton) clearSpotlight(activeButton);
+            if (activeSurface) clearSpotlight(activeSurface);
+            activeButton = null;
+            activeSurface = null;
+            lastTarget = null;
         };
 
         document.addEventListener(
             'pointerover',
             (event) => {
                 if (shouldIgnore(event)) return;
-                const el = getTarget(event);
-                if (!el) return;
-                const related = event.relatedTarget;
-                if (related && el.contains(related)) return;
-                active = el;
-                lastClientX = event.clientX;
-                lastClientY = event.clientY;
-                schedule();
-            },
-            { passive: true },
-        );
-
-        document.addEventListener(
-            'pointerout',
-            (event) => {
-                if (shouldIgnore(event)) return;
-                const el = getTarget(event);
-                if (!el) return;
-                const related = event.relatedTarget;
-                if (related && el.contains(related)) return;
-                if (active !== el) return;
-                active = null;
-                clearSpotlight(el);
+                remember(event, event?.target);
             },
             { passive: true },
         );
@@ -1337,10 +1242,16 @@ const Cinematic = (function() {
             'pointermove',
             (event) => {
                 if (shouldIgnore(event)) return;
-                if (!active) return;
-                lastClientX = event.clientX;
-                lastClientY = event.clientY;
-                schedule();
+                remember(event, event?.target);
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            'pointerout',
+            (event) => {
+                if (shouldIgnore(event)) return;
+                remember(event, event?.relatedTarget);
             },
             { passive: true },
         );
@@ -1349,13 +1260,15 @@ const Cinematic = (function() {
             'pointercancel',
             (event) => {
                 if (shouldIgnore(event)) return;
-                const el = active;
-                if (!el) return;
-                active = null;
-                clearSpotlight(el);
+                clearAll();
             },
             { passive: true },
         );
+
+        window.addEventListener('blur', clearAll);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible') clearAll();
+        });
     }
 
     function toggleBlock(element, options = {}) {
@@ -1540,8 +1453,7 @@ const Cinematic = (function() {
         pageEnter();
         bindTapFeedback();
         bindHoverLift();
-        bindSpotlight();
-        bindSurfaceSpotlight();
+        bindSpotlights();
     }
 
     return { init, toggleBlock, toggleDisplay, pulse, shimmerOnce, staggerEnter, enhanceFadeInUp };

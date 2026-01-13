@@ -12,6 +12,13 @@
 ### 变更
 - Lighthouse：`npm run lighthouse` 串联 `build → budget → lhci`，在 CI 中先做体积预算守护再执行 Lighthouse 回归
 
+## [20260113.4] - 2026-01-13
+
+### 变更
+- UI：合并按钮/容器 Spotlight 绑定为 `bindSpotlights()`（单组 pointer listeners + rAF 节流），并用 `--spotlight-*` token 统一管理尺寸/强度/暗色适配（渐进增强，不改业务逻辑）
+- UI：为 Header（导航/动作入口）与商品操作按钮补齐 Spotlight 高光层（hover/focus 动态光斑追踪，减少动效时静态降级，60FPS 友好）
+- 版本：统一缓存穿透版本号 bump 到 `20260113.4`
+
 ## [20260113.3] - 2026-01-13
 
 ### 新增
