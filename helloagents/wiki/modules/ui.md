@@ -103,6 +103,10 @@
 - `html[data-contrast="high"]`：高对比模式（增强 glass/bg/border 与 focus ring 可读性）
 - `--a11y-font-scale`：字体缩放（100%~125%）
 
+## 注意事项（布局稳定性）
+- 首页 `index.html` 属于手写 MPA 入口，需保证标签配对；多余闭合标签会触发浏览器容错解析差异，导致区块重叠/塌陷。
+- Header 移动端浮层（导航菜单、搜索栏、下拉菜单）应保持互斥；打开任一浮层时关闭其它浮层，避免 overlay 叠加遮挡。
+
 ## 变更历史
 - [202512260005_infinite-evolution-ui](../../history/2025-12/202512260005_infinite-evolution-ui/) - 视觉系统（玻璃/渐变/栅格）与 Skeleton/转场基础设施
 - [202601112017_quark-overhaul](../../history/2026-01/202601112017_quark-overhaul/) - Neo-Quark 视觉升级与新业务组件样式
@@ -116,3 +120,4 @@
 - [202601130645_quartz-motion-microinteractions](../../history/2026-01/202601130645_quartz-motion-microinteractions/) - Quartz Motion 微交互升级（Dialog/Toast 物理入场 + Product hover zoom）
 - [202601130703_vt-reduced-motion-guardrail](../../history/2026-01/202601130703_vt-reduced-motion-guardrail/) - View Transitions 减少动效兜底（html[data-motion="reduce"]）
 - [202601130719_motion-transform-flytocart](../../history/2026-01/202601130719_motion-transform-flytocart/) - Motion.animate transform 保持分量 + flyToCart 抛物线微交互
+- [202601181631_ui-overlap-hotfix](../../history/2026-01/202601181631_ui-overlap-hotfix/) - 首页 DOM 结构修复 + Header 互斥关闭（重叠/塌陷热修复）

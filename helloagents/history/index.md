@@ -32,6 +32,7 @@
 | 202601130645 | quartz-motion-microinteractions | UI/动效/视觉 | ✅已完成 | `2026-01/202601130645_quartz-motion-microinteractions/` |
 | 202601130703 | vt-reduced-motion-guardrail | A11y/动效/守护 | ✅已完成 | `2026-01/202601130703_vt-reduced-motion-guardrail/` |
 | 202601130719 | motion-transform-flytocart | UI/动效/交互 | ✅已完成 | `2026-01/202601130719_motion-transform-flytocart/` |
+| 202601181631 | ui-overlap-hotfix | UI/修复/稳定性 | ✅已完成 | `2026-01/202601181631_ui-overlap-hotfix/` |
 
 ## 按月归档
 
@@ -64,3 +65,4 @@
 - [202601130645_quartz-motion-microinteractions](2026-01/202601130645_quartz-motion-microinteractions/) - Quartz Motion 微交互升级（Dialog/Toast 物理入场 + Product hover zoom）
 - [202601130703_vt-reduced-motion-guardrail](2026-01/202601130703_vt-reduced-motion-guardrail/) - View Transitions 减少动效兜底（html[data-motion="reduce"]）
 - [202601130719_motion-transform-flytocart](2026-01/202601130719_motion-transform-flytocart/) - Motion.animate transform 保持分量 + flyToCart 抛物线微交互
+- [202601181631_ui-overlap-hotfix](2026-01/202601181631_ui-overlap-hotfix/) - 首页 DOM 结构修复 + Header 互斥关闭，解决重叠/塌陷

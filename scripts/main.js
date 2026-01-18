@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260113.13';
-import { createStorageKit } from './runtime/storage.js?v=20260113.13';
-import { createPerfKit } from './runtime/perf.js?v=20260113.13';
-import { createAccessibility } from './modules/accessibility.js?v=20260113.13';
-import { createToast } from './modules/toast.js?v=20260113.13';
-import { createLogger } from './modules/logger.js?v=20260113.13';
-import { createErrorShield } from './modules/error-shield.js?v=20260113.13';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260113.13';
-import { createTelemetry } from './modules/telemetry.js?v=20260113.13';
-import { createSeo } from './modules/seo.js?v=20260113.13';
+import { createStateHub } from './runtime/state.js?v=20260118.1';
+import { createStorageKit } from './runtime/storage.js?v=20260118.1';
+import { createPerfKit } from './runtime/perf.js?v=20260118.1';
+import { createAccessibility } from './modules/accessibility.js?v=20260118.1';
+import { createToast } from './modules/toast.js?v=20260118.1';
+import { createLogger } from './modules/logger.js?v=20260118.1';
+import { createErrorShield } from './modules/error-shield.js?v=20260118.1';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260118.1';
+import { createTelemetry } from './modules/telemetry.js?v=20260118.1';
+import { createSeo } from './modules/seo.js?v=20260118.1';
 
 // ==============================================
 // Utility Functions
@@ -2230,11 +2230,15 @@ const Header = (function() {
         if (!navigation || !menuToggle) return;
         const nextOpen = !navigation.classList.contains('is-open');
         if (nextOpen) {
+            // 防止与搜索栏/下拉菜单叠加，避免移动端出现“重叠/遮挡”。
+            closeSearch();
+            closeAllDropdowns();
             const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleBlock
                 ? Cinematic.toggleBlock(navigation, { open: true, className: 'is-open', y: -12 })
                 : false;
             if (!animated) navigation.classList.add('is-open');
         } else {
+            closeAllDropdowns();
             const animated = typeof Cinematic !== 'undefined' && Cinematic.toggleBlock
                 ? Cinematic.toggleBlock(navigation, { open: false, className: 'is-open', y: -12 })
                 : false;
