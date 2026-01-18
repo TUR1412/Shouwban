@@ -66,16 +66,17 @@ export function init(ctx = {}) {
           if (!featuredGrid) return;
   
           const run = () => {
+          const productListing = globalThis.ProductListing;
           // Enhanced Check: Ensure SharedData and ProductListing with its function are available
-          if (typeof SharedData === 'undefined' || !SharedData.getAllProducts ||
-              typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') {
+          if (!SharedData?.getAllProducts ||
+              !productListing || typeof productListing.createProductCardHTML !== 'function') {
               console.error("Homepage Error: SharedData or ProductListing module/functions unavailable.");
               featuredGrid.innerHTML = '<p class="product-listing__empty-message text-center">加载精选商品失败。</p>'; // Use class instead of inline style
               return;
           }
   
           const allProducts = SharedData.getAllProducts();
-          const createCardHTML = ProductListing.createProductCardHTML; // Corrected function name
+          const createCardHTML = productListing.createProductCardHTML;
   
           if (!allProducts || allProducts.length === 0) {
                featuredGrid.innerHTML = '<p class="product-listing__empty-message text-center">暂无精选商品展示。</p>'; // Use class
@@ -305,8 +306,9 @@ export function init(ctx = {}) {
               return;
           }
           const run = () => {
-              if (typeof ProductListing === 'undefined' || typeof ProductListing.createProductCardHTML !== 'function') return;
-              curationGrid.innerHTML = list.map((product) => ProductListing.createProductCardHTML(product)).join('');
+              const productListing = globalThis.ProductListing;
+              if (!productListing || typeof productListing.createProductCardHTML !== 'function') return;
+              curationGrid.innerHTML = list.map((product) => productListing.createProductCardHTML(product)).join('');
               if (typeof LazyLoad !== 'undefined' && LazyLoad.init) { LazyLoad.init(curationGrid); }
               if (typeof Favorites !== 'undefined' && Favorites.syncButtons) { Favorites.syncButtons(curationGrid); }
               if (typeof Compare !== 'undefined' && Compare.syncButtons) { Compare.syncButtons(curationGrid); }

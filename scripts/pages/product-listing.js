@@ -378,7 +378,13 @@ export function init(ctx = {}) {
       }
   
       function normalizeNumberOrNull(value, { min = 0, max = 999999 } = {}) {
-          const n = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+          const n = typeof value === 'number'
+              ? value
+              : (() => {
+                  const text = String(value ?? '').trim();
+                  if (!text) return Number.NaN; // 空输入视为未设置
+                  return Number(text);
+              })();
           if (!Number.isFinite(n)) return null;
           const clamped = Math.min(max, Math.max(min, n));
           return clamped;
@@ -408,8 +414,8 @@ export function init(ctx = {}) {
           if (Array.isArray(f.tags) && f.tags.length > 0) return true;
           if (Array.isArray(f.status) && f.status.length > 0) return true;
           if (Array.isArray(f.rarity) && f.rarity.length > 0) return true;
-          if (Number.isFinite(Number(f.priceMin)) || Number.isFinite(Number(f.priceMax))) return true;
-          if (Number.isFinite(Number(f.ratingMin))) return true;
+          if (Number.isFinite(f.priceMin) || Number.isFinite(f.priceMax)) return true;
+          if (Number.isFinite(f.ratingMin)) return true;
           return false;
       }
   
@@ -483,16 +489,16 @@ export function init(ctx = {}) {
               pills.push(`<span class="filter-pill">稀有：${Utils.escapeHtml(key)}</span>`);
           });
   
-          const hasMin = Number.isFinite(Number(f.priceMin));
-          const hasMax = Number.isFinite(Number(f.priceMax));
+          const hasMin = Number.isFinite(f.priceMin);
+          const hasMax = Number.isFinite(f.priceMax);
           if (hasMin || hasMax) {
               const minText = hasMin ? formatMoney(f.priceMin) : '不限';
               const maxText = hasMax ? formatMoney(f.priceMax) : '不限';
               pills.push(`<span class="filter-pill">价格：${Utils.escapeHtml(`${minText} - ${maxText}`)}</span>`);
           }
   
-          if (Number.isFinite(Number(f.ratingMin))) {
-              pills.push(`<span class="filter-pill">评分：≥${Utils.escapeHtml(String(Number(f.ratingMin).toFixed(1)))}</span>`);
+          if (Number.isFinite(f.ratingMin)) {
+              pills.push(`<span class="filter-pill">评分：≥${Utils.escapeHtml(String(f.ratingMin.toFixed(1)))}</span>`);
           }
   
           if (currentSort && currentSort !== 'default') {
@@ -751,9 +757,9 @@ export function init(ctx = {}) {
           const maxEl = dlg.querySelector('[data-filter-field="priceMax"]');
           const ratingEl = dlg.querySelector('[data-filter-field="ratingMin"]');
   
-          if (minEl) minEl.value = Number.isFinite(Number(f.priceMin)) ? String(Number(f.priceMin)) : '';
-          if (maxEl) maxEl.value = Number.isFinite(Number(f.priceMax)) ? String(Number(f.priceMax)) : '';
-          if (ratingEl) ratingEl.value = Number.isFinite(Number(f.ratingMin)) ? String(Number(f.ratingMin)) : '';
+          if (minEl) minEl.value = Number.isFinite(f.priceMin) ? String(f.priceMin) : '';
+          if (maxEl) maxEl.value = Number.isFinite(f.priceMax) ? String(f.priceMax) : '';
+          if (ratingEl) ratingEl.value = Number.isFinite(f.ratingMin) ? String(f.ratingMin) : '';
           return true;
       }
   
@@ -872,19 +878,19 @@ export function init(ctx = {}) {
                   if (!rarity || !f.rarity.includes(rarity)) return false;
               }
   
-              if (Number.isFinite(Number(f.priceMin))) {
+              if (Number.isFinite(f.priceMin)) {
                   const v = Number.isFinite(price) ? price : 0;
-                  if (v < Number(f.priceMin)) return false;
+                  if (v < f.priceMin) return false;
               }
   
-              if (Number.isFinite(Number(f.priceMax))) {
+              if (Number.isFinite(f.priceMax)) {
                   const v = Number.isFinite(price) ? price : 0;
-                  if (v > Number(f.priceMax)) return false;
+                  if (v > f.priceMax) return false;
               }
   
-              if (Number.isFinite(Number(f.ratingMin))) {
+              if (Number.isFinite(f.ratingMin)) {
                   const v = Number.isFinite(rating) ? rating : 0;
-                  if (v < Number(f.ratingMin)) return false;
+                  if (v < f.ratingMin) return false;
               }
   
               return true;

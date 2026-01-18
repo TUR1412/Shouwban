@@ -1,14 +1,14 @@
 // Main JavaScript for the figurine e-commerce website
-import { createStateHub } from './runtime/state.js?v=20260118.1';
-import { createStorageKit } from './runtime/storage.js?v=20260118.1';
-import { createPerfKit } from './runtime/perf.js?v=20260118.1';
-import { createAccessibility } from './modules/accessibility.js?v=20260118.1';
-import { createToast } from './modules/toast.js?v=20260118.1';
-import { createLogger } from './modules/logger.js?v=20260118.1';
-import { createErrorShield } from './modules/error-shield.js?v=20260118.1';
-import { createPerfVitals } from './modules/perf-vitals.js?v=20260118.1';
-import { createTelemetry } from './modules/telemetry.js?v=20260118.1';
-import { createSeo } from './modules/seo.js?v=20260118.1';
+import { createStateHub } from './runtime/state.js?v=20260118.2';
+import { createStorageKit } from './runtime/storage.js?v=20260118.2';
+import { createPerfKit } from './runtime/perf.js?v=20260118.2';
+import { createAccessibility } from './modules/accessibility.js?v=20260118.2';
+import { createToast } from './modules/toast.js?v=20260118.2';
+import { createLogger } from './modules/logger.js?v=20260118.2';
+import { createErrorShield } from './modules/error-shield.js?v=20260118.2';
+import { createPerfVitals } from './modules/perf-vitals.js?v=20260118.2';
+import { createTelemetry } from './modules/telemetry.js?v=20260118.2';
+import { createSeo } from './modules/seo.js?v=20260118.2';
 
 // ==============================================
 // Utility Functions
@@ -5767,6 +5767,132 @@ const BundleDeals = (function() {
         getBundleIdForProduct,
         syncWithCart,
     };
+})();
+
+// ==============================================
+// Product Card Template（跨页面复用）
+// - 修复：首页/详情页在 Vite dist 环境下 ProductListing 缺失导致的空白/报错
+// - 约定：通过 globalThis.ProductListing.createProductCardHTML 暴露给 page modules 调用
+// ==============================================
+(function ensureGlobalProductListing() {
+    function createProductCardHTML(product) {
+        const safeProduct = product || {};
+        const rawName = safeProduct.name || '[商品名称]';
+        const rawSeries = safeProduct.series || '[所属系列]';
+        const name = Utils.escapeHtml(rawName);
+        const series = Utils.escapeHtml(rawSeries);
+        const price = typeof safeProduct.price === 'number' ? safeProduct.price.toFixed(2) : 'N/A';
+        const image = (safeProduct.images && safeProduct.images.length > 0 ? safeProduct.images[0].thumb : 'assets/images/figurine-1.svg');
+        const id = safeProduct.id || '#';
+        const safeImage = Utils.escapeHtml(image);
+        const safeIdAttr = Utils.escapeHtml(id);
+        const safeAlt = Utils.escapeHtml(`${rawName} - ${rawSeries}`);
+        const encodedId = id !== '#' ? encodeURIComponent(id) : '';
+        const detailHref = id !== '#' ? `product-detail.html?id=${encodedId}` : '#';
+        const ratingValue = Number(safeProduct.rating);
+        const reviewCount = Number(safeProduct.reviewCount);
+        const status = typeof safeProduct.status === 'string' ? safeProduct.status.trim() : '';
+        const statusLabel = Utils.escapeHtml(status);
+
+        const originalPrice = Number(safeProduct.originalPrice);
+        let priceHTML = '';
+        if (typeof safeProduct.price === 'number') {
+            const originalHTML = Number.isFinite(originalPrice) && originalPrice > safeProduct.price
+                ? `<span class="product-card__price-original">￥${originalPrice.toFixed(2)}</span>`
+                : '';
+            priceHTML = `<p class="product-card__price">￥${price}${originalHTML}</p>`;
+        }
+
+        const ratingHTML = Number.isFinite(ratingValue)
+            ? `<span class="product-card__rating">${Icons.svgHtml('icon-star-filled')}${ratingValue.toFixed(1)}${Number.isFinite(reviewCount) && reviewCount > 0 ? `<small>(${reviewCount})</small>` : ''}</span>`
+            : '';
+        const statusHTML = status ? `<span class="product-card__status">${statusLabel}</span>` : '';
+
+        const badges = [];
+        const dateAdded = safeProduct.dateAdded ? Date.parse(safeProduct.dateAdded) : NaN;
+        const isNew = Number.isFinite(dateAdded) && (Date.now() - dateAdded) <= (1000 * 60 * 60 * 24 * 90);
+        if (isNew) {
+            badges.push('<span class="product-card__badge product-card__badge--new">NEW</span>');
+        }
+
+        if (Number.isFinite(originalPrice) && typeof safeProduct.price === 'number' && originalPrice > safeProduct.price) {
+            const save = Math.max(1, Math.round(originalPrice - safeProduct.price));
+            badges.push(`<span class="product-card__badge product-card__badge--sale">省￥${save}</span>`);
+        }
+
+        const inventoryStatus = InventoryPulse?.getStatus
+            ? InventoryPulse.getStatus(InventoryPulse.getInfo?.(safeProduct))
+            : null;
+        if (inventoryStatus?.tone === 'low') {
+            badges.push('<span class="product-card__badge product-card__badge--stock-low">库存紧张</span>');
+        } else if (inventoryStatus?.tone === 'out') {
+            badges.push('<span class="product-card__badge product-card__badge--stock-out">暂时缺货</span>');
+        } else if (inventoryStatus?.tone === 'preorder') {
+            badges.push('<span class="product-card__badge product-card__badge--preorder">预售中</span>');
+        }
+
+        const bundleHints = BundleDeals?.getBundlesForProduct
+            ? BundleDeals.getBundlesForProduct(id).length
+            : 0;
+        if (bundleHints > 0) {
+            badges.push('<span class="product-card__badge product-card__badge--bundle">套装</span>');
+        }
+
+        const badgesHTML = badges.length > 0 ? `<div class="product-card__badges">${badges.join('')}</div>` : '';
+        const favBtnHTML = id !== '#'
+            ? `<button class="favorite-btn" type="button" data-product-id="${safeIdAttr}" aria-label="加入收藏" aria-pressed="false">
+                    ${Icons.svgHtml('icon-heart')}
+               </button>`
+            : '';
+        const quickAddHTML = id !== '#'
+            ? `<button class="product-card__quick-add" type="button" data-product-id="${safeIdAttr}" aria-label="加入购物车">快速加入</button>`
+            : '';
+        const compareHTML = id !== '#'
+            ? `<button class="product-card__compare" type="button" data-product-id="${safeIdAttr}" aria-label="加入对比" aria-pressed="false">对比</button>`
+            : '';
+        const alertHTML = id !== '#'
+            ? `<button class="product-card__alert" type="button" data-price-alert data-product-id="${safeIdAttr}" aria-label="设置降价提醒" aria-pressed="false"><span class="product-card__alert-text">降价提醒</span></button>`
+            : '';
+
+        return `
+          <div class="product-card fade-in-up" data-product-id="${safeIdAttr}">
+              <div class="product-card__image">
+                  ${badgesHTML}
+                  <a href="${detailHref}">
+                       <img src="assets/images/placeholder-lowquality.svg" data-src="${safeImage}" alt="${safeAlt}" loading="lazy" decoding="async" class="lazyload">
+                   </a>
+                  ${favBtnHTML}
+              </div>
+              <div class="product-card__content">
+                  <div class="product-card__meta">
+                      ${ratingHTML}
+                      ${statusHTML}
+                  </div>
+                  <h4 class="product-card__title">
+                      <a href="${detailHref}">${name}</a>
+                  </h4>
+                  <p class="product-card__series">${series}</p>
+                  ${priceHTML}
+                   <div class="product-card__actions">
+                       <a href="${detailHref}" class="product-card__button">查看详情</a>
+                       ${quickAddHTML}
+                       ${compareHTML}
+                       ${alertHTML}
+                   </div>
+               </div>
+          </div>
+        `;
+    }
+
+    try {
+        const g = globalThis;
+        if (!g.ProductListing || typeof g.ProductListing !== 'object') g.ProductListing = {};
+        if (typeof g.ProductListing.createProductCardHTML !== 'function') {
+            g.ProductListing.createProductCardHTML = createProductCardHTML;
+        }
+    } catch {
+        // ignore
+    }
 })();
 
 // ==============================================

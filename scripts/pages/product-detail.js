@@ -114,8 +114,9 @@ export function init(ctx = {}) {
               return;
           }
   
-          if (typeof ProductListing !== 'undefined' && ProductListing.createProductCardHTML) {
-              grid.innerHTML = products.map((product) => ProductListing.createProductCardHTML(product)).join('');
+          const productListing = globalThis.ProductListing;
+          if (productListing && typeof productListing.createProductCardHTML === 'function') {
+              grid.innerHTML = products.map((product) => productListing.createProductCardHTML(product)).join('');
           } else {
               grid.innerHTML = '';
           }

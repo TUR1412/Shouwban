@@ -686,6 +686,7 @@ select:focus:not(:focus-visible) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .header__logo a {
@@ -693,6 +694,7 @@ select:focus:not(:focus-visible) {
     font-weight: var(--font-weight-extrabold);
     font-size: var(--font-size-lg);
     letter-spacing: -0.5px;
+    white-space: nowrap;
 }
 
 .header__logo a:hover {
@@ -789,12 +791,23 @@ select:focus:not(:focus-visible) {
 .header__actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--spacing-xs);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.header__actions::-webkit-scrollbar {
+    display: none; /* WebKit */
 }
 
 .header__action-link {
     color: var(--color-text-dark);
     font-size: var(--font-size-lg); /* Icon size */
-    margin-left: var(--spacing-base);
+    margin-left: 0;
     padding: var(--spacing-xs);
     position: relative; /* For cart count */
     background: none;
@@ -834,7 +847,7 @@ select:focus:not(:focus-visible) {
     cursor: pointer;
     color: var(--color-text-dark);
     padding: var(--spacing-xs);
-    margin-left: var(--spacing-xs);
+    margin-left: 0;
 }
 
 /* Search Bar */
